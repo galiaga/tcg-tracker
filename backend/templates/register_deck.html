@@ -1,0 +1,21 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Register deck
+{% endblock %}
+
+{% block main %}
+
+    <form action="/register_deck" method="post">
+        <div class="mb-3">
+            <input autocomplete="off" autofocus class="form-control mx-auto w-auto" name="deck_name" placeholder="Deck Name" type="text">
+        </div>
+        <button class="btn btn-primary" type="submit">Register deck</button>
+    </form>
+    {% if error %}
+        <script>
+            alert("{{ error }}");
+        </script>
+    {% endif %}
+
+{% endblock %}
