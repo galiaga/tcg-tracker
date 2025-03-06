@@ -12,12 +12,24 @@
     </head>
 
     <body>
-
-        <nav>
-            <div>
+        <div class="section">
+            {% if session["user_id"] %}
+                <p>{{ username }} logged</p>
+            {% else %}
+                <p>Not logged</p>
+            {% endif %}
+        </div>
+        <nav class="bg-light border navbar navbar-expand-md navbar-light">
+            <div class="container-fluid">
                 <ul>
                     <li><a href="/">Home</a></li>
+                    {% if session["user_id"] %}
+                    <li><a href="/register_deck">Register deck</a></li>    
+                    <li><a href="/logout">Log out</a></li>    
+                    {% else %}
+                    <li><a href="/login">Login</a></li>    
                     <li><a href="/register">Register</a></li>
+                {% endif %}
                 </ul>
             </div>
         </nav>
