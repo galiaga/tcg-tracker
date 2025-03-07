@@ -2,6 +2,13 @@ import os
 from flask import Flask, flash, redirect, render_template, request, session, g
 from flask_bcrypt import Bcrypt
 from flask_session import Session
+from flask_jwt_extended import JWTManager
+
+from backend.routes.matches import matches_bp
+from backend.database import get_db, close_db
+from backend.routes.auth import auth_bp
+
+
 import sqlite3
 import redis
 
@@ -12,7 +19,15 @@ TEMPLATES_DIR = os.path.join(BASE_DIR, "templates")    # Agrega "templates"
 # Template and static folders are defined
 app = Flask(__name__, template_folder=TEMPLATES_DIR, static_folder="static")
 bcrypt = Bcrypt(app)
+
+app.config["JWT_SECRET_KEY"] = "super-secret-key"  # Update when in PROD
+jwt = JWTManager(app)
+
 app.secret_key = "cs50"
+
+app.register_blueprint(matches_bp)
+app.teardown_appcontext(close_db)
+app.register_blueprint(auth_bp)
 
 # Habilita el modo debug
 app.config["DEBUG"] = True
@@ -31,20 +46,10 @@ app.config["SESSION_REDIS"] = redis.Redis(
 )
 
 
-Session(app)
-DATABASE = "app.db"
-
-
 # Value mapping
 RESULT_MAPPING = {0: "Lose", 1: "Win", 2: "Draw"}
 
-
-def get_db():
-    # Abre una conexión a la db si es que no existe en g
-    if "db" not in g:
-        g.db = sqlite3.connect(DATABASE)
-        g.db.row_factory = sqlite3.Row # Para devolver resultados como diccionarios
-    return g.db
+Session(app)
 
 # To show username across the app
 @app.before_request
@@ -74,14 +79,6 @@ def inject_user():
     return {"username": g.username}
 
 
-@app.teardown_appcontext
-def close_db(exception):
-    #Cierra la conexión a la base de datos si existe en g
-    db = g.pop("db", None)
-    if db is not None:
-        db.close()
-
-
 @app.route('/')
 def home():
     db = get_db()
@@ -89,76 +86,6 @@ def home():
     # Show decks
     decks = db.execute("SELECT decks.deck_name FROM user_decks JOIN decks ON user_decks.deck_id = decks.id WHERE user_decks.user_id = ?;", (g.user_id,))
     return render_template("index.html", decks=decks)
-
-
-@app.route("/login", methods=["GET", "POST"])
-def login():
-    db = get_db()
-    session.clear() # Eliminar sesiones previas
-
-    if request.method == "POST":
-        username = request.form.get("username")
-        password = request.form.get("password")
-
-        # Search user in database
-        cursor = db.execute("SELECT * FROM users WHERE username = ?", (username,))
-        row = cursor.fetchone()
-        
-        if row is None or not bcrypt.check_password_hash(row["hash"], password):
-            flash("Invalid username or password")
-            return render_template("login.html"), 400
-
-        session["user_id"] = row["id"]
-        flash("Welcome back, " + username, "success")
-        return redirect ("/")
-    
-    return render_template("login.html")
-
-
-# Log match function
-@app.route("/log_match", methods=["GET", "POST"])
-def log_match():
-    db = get_db()
-    
-    # Retrieve user decks
-    decks = db.execute("SELECT user_decks.id, decks.deck_name FROM user_decks JOIN decks ON user_decks.deck_id = decks.id WHERE user_decks.user_id = ?;",(g.user_id,)).fetchall()
-
-    if request.method == "POST":
-        
-        # Capture deck_id from UI and find its deck_name
-        deck_id = request.form.get("deck_id")
-        if not deck_id:
-            flash("Select a deck to log.", "error")
-            return render_template("log_match.html", decks=decks), 400
-        row = db.execute("SELECT decks.deck_name FROM user_decks JOIN decks ON user_decks.deck_id = decks.id WHERE user_decks.user_id = ? AND user_decks.id = ?;",(g.user_id, deck_id,)).fetchone()
-        deck_name = row[0] if row else None 
-
-        # Capture match_result from UI
-        match_result = request.form.get("match_result")
-        if not match_result:
-            flash("Select a result for the match.", "error")
-            return render_template("log_match.html", decks=decks), 400
-        
-        match_result = int(match_result) # Convert to integer
-        match_result_str = RESULT_MAPPING.get(match_result, "Unknown")
-
-        # Register into database
-        try:
-            with g.db as db:
-                db.execute("INSERT INTO matches (result, user_deck_id) VALUES (?, ?)", (match_result, deck_id))
-
-            # Message to user
-            flash(match_result_str + " with " + deck_name + " logged.", "success")
-            return redirect("/")
-        
-        except sqlite3.IntegrityError:
-            flash("Database error.", "error")
-            return render_template("log_match.html"), 400
-        
-        
-
-    return render_template("log_match.html", decks=decks)
-
 
 
 @app.route("/logout")
@@ -170,7 +97,6 @@ def logout():
 
     # Redirects to login form
     return redirect("/")
-
 
 
 @app.route('/register', methods=['GET', 'POST'])
