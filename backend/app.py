@@ -35,6 +35,10 @@ Session(app)
 DATABASE = "app.db"
 
 
+# Value mapping
+RESULT_MAPPING = {0: "Lose", 1: "Win", 2: "Draw"}
+
+
 def get_db():
     # Abre una conexión a la db si es que no existe en g
     if "db" not in g:
@@ -105,10 +109,56 @@ def login():
             return render_template("login.html"), 400
 
         session["user_id"] = row["id"]
-        flash("Welcome back, " + username)
+        flash("Welcome back, " + username, "success")
         return redirect ("/")
     
     return render_template("login.html")
+
+
+# Log match function
+@app.route("/log_match", methods=["GET", "POST"])
+def log_match():
+    db = get_db()
+    
+    # Retrieve user decks
+    decks = db.execute("SELECT user_decks.id, decks.deck_name FROM user_decks JOIN decks ON user_decks.deck_id = decks.id WHERE user_decks.user_id = ?;",(g.user_id,)).fetchall()
+
+    if request.method == "POST":
+        
+        # Capture deck_id from UI and find its deck_name
+        deck_id = request.form.get("deck_id")
+        if not deck_id:
+            flash("Select a deck to log.", "error")
+            return render_template("log_match.html", decks=decks), 400
+        row = db.execute("SELECT decks.deck_name FROM user_decks JOIN decks ON user_decks.deck_id = decks.id WHERE user_decks.user_id = ? AND user_decks.id = ?;",(g.user_id, deck_id,)).fetchone()
+        deck_name = row[0] if row else None 
+
+        # Capture match_result from UI
+        match_result = request.form.get("match_result")
+        if not match_result:
+            flash("Select a result for the match.", "error")
+            return render_template("log_match.html", decks=decks), 400
+        
+        match_result = int(match_result) # Convert to integer
+        match_result_str = RESULT_MAPPING.get(match_result, "Unknown")
+
+        # Register into database
+        try:
+            with g.db as db:
+                db.execute("INSERT INTO matches (result, user_deck_id) VALUES (?, ?)", (match_result, deck_id))
+
+            # Message to user
+            flash(match_result_str + " with " + deck_name + " logged.", "success")
+            return redirect("/")
+        
+        except sqlite3.IntegrityError:
+            flash("Database error.", "error")
+            return render_template("log_match.html"), 400
+        
+        
+
+    return render_template("log_match.html", decks=decks)
+
 
 
 @app.route("/logout")
@@ -164,7 +214,7 @@ def add_user():
                 session["user_id"] = cursor.lastrowid
 
             # Message to user
-            flash("Registered! Welcome, " + username)
+            flash("Registered! Welcome, " + username, "success")
             return redirect("/")
         
         except sqlite3.IntegrityError:
@@ -203,7 +253,7 @@ def register_deck():
                 db.execute("INSERT INTO user_decks (user_id, deck_id) VALUES (?, ?)", (g.user_id, deck_id))
 
             # Message to user
-            flash("New deck registered: " + deck_name)
+            flash("New deck registered: " + deck_name, "success")
             return redirect("/")
         
         except sqlite3.Error:
