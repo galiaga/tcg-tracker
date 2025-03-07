@@ -1,0 +1,40 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Log match
+{% endblock %}
+
+{% block main %}
+    <h2>
+        Log match
+    </h2>
+
+    <form action="/log_match" method="post">
+        <div class="mb-3">
+            <select name="deck_id" class="form-select mx-auto w-auto">
+                <option disabled selected>Select Deck</option>
+                {% for deck in decks %}
+                <option value="{{ deck.id }}">{{ deck.deck_name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="btn-group btn-group-toggle" data-toggle="buttons">
+            <label class="btn btn-outline-success">
+              <input type="radio" name="match_result" value="0" id="option1" autocomplete="off" checked> Won
+            </label>
+            <label class="btn btn-outline-danger">
+              <input type="radio" name="match_result" value="1" id="option2" autocomplete="off"> Lose
+            </label>
+            <label class="btn btn-outline-warning">
+              <input type="radio" name="match_result" value="2" id="option3" autocomplete="off"> Draw
+            </label>
+          </div>
+        <button class="btn btn-primary" type="submit">Log Match</button>
+    </form>
+    {% if error %}
+        <script>
+            alert("{{ error }}");
+        </script>
+    {% endif %}
+
+{% endblock %}

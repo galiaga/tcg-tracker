@@ -24,8 +24,9 @@
                 <ul>
                     <li><a href="/">Home</a></li>
                     {% if session["user_id"] %}
-                    <li><a href="/register_deck">Register deck</a></li>    
-                    <li><a href="/logout">Log out</a></li>    
+                    <li><a href="/log_match">Log Match</a></li>
+                    <li><a href="/register_deck">Register Deck</a></li>
+                    <li><a href="/logout">Log Out</a></li>    
                     {% else %}
                     <li><a href="/login">Login</a></li>    
                     <li><a href="/register">Register</a></li>
@@ -34,14 +35,18 @@
             </div>
         </nav>
 
-        {% if get_flashed_messages() %}
-        <header>
-            <div class="alert alert-primary mb-0 text-center" role="alert">
-                {{ get_flashed_messages() | join(" ") }}
-            </div>
-        </header>
+        {% with messages = get_flashed_messages(with_categories=True) %}
+        {% if messages %}
+            <header>
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ 'success' if category == 'success' else 'danger' }} mb-0 text-center" role="alert">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            </header>
         {% endif %}
-
+    {% endwith %}
+   
         <main class="container py-5 text-center">
             {% block main %}{% endblock %}
         </main>
