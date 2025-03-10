@@ -2,7 +2,7 @@ from flask import Flask, jsonify, Blueprint, request, g
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from backend.database import get_db
 
-matches_bp = Blueprint("matches", __name__)
+matches_bp = Blueprint("matches", __name__, url_prefix="/api")
 
 @matches_bp.route("/log_match", methods=["GET", "POST"])
 @jwt_required()

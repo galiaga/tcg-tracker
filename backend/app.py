@@ -1,5 +1,5 @@
 import os
-from flask import Flask, flash, redirect, render_template, request, session, g
+from flask import Flask, flash, redirect, render_template, request, session, g, jsonify
 from flask_bcrypt import Bcrypt
 from flask_session import Session
 from flask_jwt_extended import JWTManager
@@ -7,6 +7,7 @@ from flask_jwt_extended import JWTManager
 from backend.routes.matches import matches_bp
 from backend.database import get_db, close_db
 from backend.routes.auth import auth_bp
+from backend.routes.frontend import frontend_bp
 
 
 import sqlite3
@@ -28,6 +29,7 @@ app.secret_key = "cs50"
 app.register_blueprint(matches_bp)
 app.teardown_appcontext(close_db)
 app.register_blueprint(auth_bp)
+app.register_blueprint(frontend_bp)
 
 # Habilita el modo debug
 app.config["DEBUG"] = True
@@ -187,6 +189,11 @@ def register_deck():
             return render_template("register.html"), 400
 
     return render_template("register_deck.html")
+
+
+@jwt.unauthorized_loader
+def unauthorized_response(callback):
+    return jsonify({"error": "Missing or invalid token"}), 401
 
 
 if __name__ == '__main__':
