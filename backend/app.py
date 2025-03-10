@@ -3,12 +3,13 @@ from flask import Flask, flash, redirect, render_template, request, session, g, 
 from flask_bcrypt import Bcrypt
 from flask_session import Session
 from flask_jwt_extended import JWTManager
+from datetime import timedelta
 
-from backend.routes.matches import matches_bp
 from backend.database import get_db, close_db
 from backend.routes.auth import auth_bp
 from backend.routes.frontend import frontend_bp
-
+from backend.routes.matches import matches_bp
+from backend.routes.decks import decks_bp
 
 import sqlite3
 import redis
@@ -22,14 +23,17 @@ app = Flask(__name__, template_folder=TEMPLATES_DIR, static_folder="static")
 bcrypt = Bcrypt(app)
 
 app.config["JWT_SECRET_KEY"] = "super-secret-key"  # Update when in PROD
+app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(minutes=15)  # 🔹 Access Token lasts 15 min
+app.config["JWT_REFRESH_TOKEN_EXPIRES"] = timedelta(days=7)  # 🔹 Refresh Token lasts 7 days
 jwt = JWTManager(app)
 
 app.secret_key = "cs50"
 
-app.register_blueprint(matches_bp)
 app.teardown_appcontext(close_db)
 app.register_blueprint(auth_bp)
 app.register_blueprint(frontend_bp)
+app.register_blueprint(matches_bp)
+app.register_blueprint(decks_bp)
 
 # Habilita el modo debug
 app.config["DEBUG"] = True
@@ -150,45 +154,6 @@ def add_user():
             return render_template("register.html"), 400
     
     return render_template("register.html")
-
-
-@app.route("/register_deck", methods=['GET', 'POST'])
-def register_deck():
-     # Conexión segura a la base de datos
-    db = get_db()
-
-    # Verify if user is logged
-    if g.user_id is None:
-        flash("You must be logged in to register a deck.")
-        return redirect("/login")
-    
-    # Register deck
-    if request.method == "POST":
-
-        # Capture deck name
-        deck_name = request.form.get("deck_name")
-        if not isinstance(deck_name, str) or not deck_name.strip():
-            flash("Deck name missing.")
-            return render_template("register_deck.html"), 400
-        
-        # Register into database
-        try:
-            with g.db as db:
-                cursor = db.execute("INSERT INTO decks (deck_name) VALUES (?)", (deck_name,))
-                deck_id = cursor.lastrowid
-                
-                # Relate deck with user
-                db.execute("INSERT INTO user_decks (user_id, deck_id) VALUES (?, ?)", (g.user_id, deck_id))
-
-            # Message to user
-            flash("New deck registered: " + deck_name, "success")
-            return redirect("/")
-        
-        except sqlite3.Error:
-            flash("Database error")
-            return render_template("register.html"), 400
-
-    return render_template("register_deck.html")
 
 
 @jwt.unauthorized_loader

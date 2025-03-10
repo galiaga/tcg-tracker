@@ -9,15 +9,13 @@
         Log match
     </h2>
 
-    <form action="/log_match" method="post">
+    <form id="log-match-form">
         <div class="mb-3">
-            <select name="deck_id" class="form-select mx-auto w-auto">
+            <select id="deck-select" class="form-select mx-auto w-auto">
                 <option disabled selected>Select Deck</option>
-                {% for deck in decks %}
-                <option value="{{ deck.id }}">{{ deck.deck_name }}</option>
-                {% endfor %}
             </select>
         </div>
+
         <div class="btn-group btn-group-toggle" data-toggle="buttons">
             <label class="btn btn-outline-success">
               <input type="radio" name="match_result" value="0" id="option1" autocomplete="off" checked> Won
@@ -31,10 +29,74 @@
           </div>
         <button class="btn btn-primary" type="submit">Log Match</button>
     </form>
-    {% if error %}
-        <script>
-            alert("{{ error }}");
-        </script>
-    {% endif %}
+
+    <script>
+        document.addEventListener("DOMContentLoaded", async function() {
+            const token = localStorage.getItem("token");
+            if (!token) {
+                alert("You must be logged in.");
+                return;
+            }
+
+            // Load user decks
+            const response = await fetch("/api/decks", {
+                method: "GET",
+                headers: {
+                    "Authorization": `Bearer ${token}`
+                }
+            });
+
+            const decks = await response.json();
+            const select = document.getElementById("deck-select");
+
+            if (response.ok) {
+                decks.forEach(deck => {
+                    const option = document.createElement("option");
+                    option.value = deck.id;
+                    option.dataset.name = deck.deck_name;
+                    option.textContent = deck.deck_name;
+                    select.appendChild(option);
+                });
+            } else {
+                alert("Error loading decks.");
+            }
+
+            // Get match from user
+            document.getElementById("log-match-form").addEventListener("submit", async function(event) {
+                event.preventDefault();
+                
+                const selectedOption = select.options[select.selectedIndex];
+                const deckId = select.value;
+                const deckName = selectedOption.dataset.name;
+                const matchResult = document.querySelector('input[name="match_result"]:checked').value;
+                const resultMapping = { "0": "Victory", "1": "Defeat", "2": "Draw" };
+                const matchResultText = resultMapping[matchResult];
+
+                if(!deckId) {
+                    alert("Please select a deck.");
+                    return;
+                }
+
+                const response = await fetch("/api/log_match", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ deck_id: deckId, match_result: matchResult })
+                });
+
+                const data = await response.json();
+
+                if(response.ok) {
+                    localStorage.setItem("flashMessage", `${matchResultText} with ${deckName} registered!`);
+                    localStorage.setItem("flashType", "success");
+                    window.location.href = "/";
+                } else {
+                    alert("Error: " + data.error);
+                }
+            })
+        });
+    </script>
 
 {% endblock %}

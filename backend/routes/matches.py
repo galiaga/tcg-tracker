@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, Blueprint, request, g
+from flask import Flask, jsonify, Blueprint, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from backend.database import get_db
 
@@ -21,9 +21,6 @@ def log_match():
     # Validate user auth
     if not user_id:
         return jsonify({"error": "User not authenticated"}), 401
-    
-    # Retrieve user decks
-    decks = db.execute("SELECT user_decks.id, decks.deck_name FROM user_decks JOIN decks ON user_decks.deck_id = decks.id WHERE user_decks.user_id = ?;",(g.user_id,)).fetchall()
  
     # Validate deck_id and match_result
     if not deck_id or match_result is None:
