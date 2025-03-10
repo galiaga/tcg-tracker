@@ -12,41 +12,74 @@
     </head>
 
     <body>
-        <div class="section">
-            {% if session["user_id"] %}
-                <p>{{ username }} logged</p>
-            {% else %}
-                <p>Not logged</p>
-            {% endif %}
-        </div>
         <nav class="bg-light border navbar navbar-expand-md navbar-light">
             <div class="container-fluid">
                 <ul>
                     <li><a href="/">Home</a></li>
-                    {% if session["user_id"] %}
+                    <li id="user-info" style="display: none;"></li>
                     <li><a href="/log_match">Log Match</a></li>
                     <li><a href="/register_deck">Register Deck</a></li>
                     <li><a href="/logout">Log Out</a></li>    
-                    {% else %}
                     <li><a href="/login">Login</a></li>    
                     <li><a href="/register">Register</a></li>
-                {% endif %}
                 </ul>
             </div>
         </nav>
 
-        {% with messages = get_flashed_messages(with_categories=True) %}
-        {% if messages %}
             <header>
-                {% for category, message in messages %}
-                    <div class="alert alert-{{ 'success' if category == 'success' else 'danger' }} mb-0 text-center" role="alert">
-                        {{ message }}
-                    </div>
-                {% endfor %}
+                <div id="flash-message" class="alert" style="display: none;"></div>
+
+                    <script>
+                        document.addEventListener("DOMContentLoaded", function() {
+                            const flashDiv = document.getElementById("flash-message");
+                            if (!flashDiv) return;
+                            
+                            const flashMessage = localStorage.getItem("flashMessage");
+                            const flashType = localStorage.getItem("flashType");
+
+                            if (flashMessage) {
+                                flashDiv.innerText = flashMessage;
+                                flashDiv.style.display = "block";
+
+                                // Color styles
+                                if (flashType === "success") {
+                                    flashDiv.style.color = "green";
+                                } else {
+                                    flashDiv.style.color = "red";
+                                }
+
+                                // Hide message after showing it
+                                setTimeout(() => {
+                                    flashDiv.style.display = "none";
+                                    localStorage.removeItem("flashMessage");
+                                    localStorage.removeItem("flashType");
+                                }, 3000);
+                            }
+
+                            // Show username if logged
+                            const username = localStorage.getItem("username");
+                            const userInfo = document.getElementById("user-info");
+                            const loginLink = document.getElementById("login-link");
+                            const logoutLink = document.getElementById("logout-link");
+
+                            if (username) {
+                                userInfo.innerText = `Logged in as: ${username}`;
+                                userInfo.style.display = "inline";
+                                loginLink.style.display = "none";
+                                logoutLink.style.display = "inline";
+                            }
+                        }
+                    );
+
+                    // Logout function
+                    function logout() {
+                        localStorage.removeItem("token");
+                        localStorage.removeItem("username");
+                        window.location.href = "/login";
+                    }
+                    </script>
             </header>
-        {% endif %}
-    {% endwith %}
-   
+
         <main class="container py-5 text-center">
             {% block main %}{% endblock %}
         </main>

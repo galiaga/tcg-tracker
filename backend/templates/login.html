@@ -6,14 +6,41 @@
 
 {% block main %}
 
-    <form action="/login" method="post">
+    <form onsubmit="event.preventDefault(); login()">
         <div class="mb-3">
-            <input autocomplete="off" autofocus class="form-control mx-auto w-auto" name="username" placeholder="Username" type="text">
+            <input autocomplete="off" autofocus class="form-control mx-auto w-auto" id="username" placeholder="Username" type="text">
         </div>
         <div class="mb-3">
-            <input class="form-control mx-auto w-auto" name="password" placeholder="Password" type="password">
+            <input class="form-control mx-auto w-auto" id="password" placeholder="Password" type="password">
         </div>
         <button class="btn btn-primary" type="submit">Login</button>
     </form>
+
+    <script>
+        async function login() {
+            const username = document.getElementById("username").value;
+            const password = document.getElementById("password").value;
+
+            const response = await fetch("/api/login", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ username, password})
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                localStorage.setItem("flashMessage", `Welcome back, ${data.username}!`);
+                localStorage.setItem("flashType", "success");
+                localStorage.setItem("token", data.access_token);
+                localStorage.setItem("username", data.username);
+                window.location.href = "/";
+            } else {
+                localStorage.setItem("flashMessage", data.error);
+                localStorage.setItem("flashType", "error");
+                window.location.reload()
+            }
+        }
+    </script>
 
 {% endblock %}
