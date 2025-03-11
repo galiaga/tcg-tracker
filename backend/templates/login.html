@@ -21,7 +21,7 @@
             const username = document.getElementById("username").value;
             const password = document.getElementById("password").value;
 
-            const response = await fetch("/api/login", {
+            const response = await fetch("/api/auth/login", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ username, password})
@@ -33,6 +33,7 @@
                 localStorage.setItem("flashMessage", `Welcome back, ${data.username}!`);
                 localStorage.setItem("flashType", "success");
                 localStorage.setItem("token", data.access_token);
+                localStorage.setItem("refresh_token", data.refresh_token);
                 localStorage.setItem("username", data.username);
                 window.location.href = "/";
             } else {

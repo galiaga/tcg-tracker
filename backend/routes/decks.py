@@ -14,8 +14,13 @@ def register_deck():
     
     # Capture json data
     user_id = get_jwt_identity()
+    if not user_id:
+        return jsonify({"error": "Invalid or missing token"}), 401
+    
     data = request.get_json()
     
+    if data is None:
+        return jsonify({"error": "Invalid or missing JSON body"}), 400
 
     # Validate user auth
     if not user_id:
