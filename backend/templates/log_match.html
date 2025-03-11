@@ -4,6 +4,10 @@
     Log match
 {% endblock %}
 
+{% block head %}
+    <script src="{{ url_for('static', filename='js/auth.js') }}"></script>
+{% endblock %}
+
 {% block main %}
     <h2>
         Log match
@@ -32,71 +36,76 @@
 
     <script>
         document.addEventListener("DOMContentLoaded", async function() {
-            const token = localStorage.getItem("token");
-            if (!token) {
-                alert("You must be logged in.");
-                return;
-            }
+        const token = localStorage.getItem("access_token");
+        if (!token) {
+            return;
+        }
 
+        const select = document.getElementById("deck-select");  // Mueve esta línea fuera del try
+        
+        try {
             // Load user decks
             const response = await fetch("/api/decks", {
                 method: "GET",
                 headers: {
-                    "Authorization": `Bearer ${token}`
+                    "Authorization": `Bearer ${localStorage.getItem("access_token")}`
                 }
             });
 
-            const decks = await response.json();
-            const select = document.getElementById("deck-select");
-
-            if (response.ok) {
-                decks.forEach(deck => {
-                    const option = document.createElement("option");
-                    option.value = deck.id;
-                    option.dataset.name = deck.deck_name;
-                    option.textContent = deck.deck_name;
-                    select.appendChild(option);
-                });
-            } else {
-                alert("Error loading decks.");
+            if (!response.ok) {
+                throw new Error(`Error: ${response.status}`);
             }
 
-            // Get match from user
-            document.getElementById("log-match-form").addEventListener("submit", async function(event) {
-                event.preventDefault();
-                
-                const selectedOption = select.options[select.selectedIndex];
-                const deckId = select.value;
-                const deckName = selectedOption.dataset.name;
-                const matchResult = document.querySelector('input[name="match_result"]:checked').value;
-                const resultMapping = { "0": "Victory", "1": "Defeat", "2": "Draw" };
-                const matchResultText = resultMapping[matchResult];
+            const decks = await response.json();
 
-                if(!deckId) {
-                    alert("Please select a deck.");
-                    return;
-                }
+            decks.forEach(deck => {
+                const option = document.createElement("option");
+                option.value = deck.id;
+                option.dataset.name = deck.deck_name;
+                option.textContent = deck.deck_name;
+                select.appendChild(option);
+            });
 
-                const response = await fetch("/api/log_match", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "Authorization": `Bearer ${token}`
-                    },
-                    body: JSON.stringify({ deck_id: deckId, match_result: matchResult })
-                });
+        } catch (error) {
+            console.error("Failed to fetch decks:", error);
+        }
 
-                const data = await response.json();
+        // Get match from user
+        document.getElementById("log-match-form").addEventListener("submit", async function(event) {
+            event.preventDefault();
 
-                if(response.ok) {
-                    localStorage.setItem("flashMessage", `${matchResultText} with ${deckName} registered!`);
-                    localStorage.setItem("flashType", "success");
-                    window.location.href = "/";
-                } else {
-                    alert("Error: " + data.error);
-                }
-            })
+            const selectedOption = select.options[select.selectedIndex];  // Ahora select siempre está definido
+            const deckId = select.value;
+            const deckName = selectedOption.dataset.name;
+            const matchResult = document.querySelector('input[name="match_result"]:checked').value;
+            const resultMapping = { "0": "Victory", "1": "Defeat", "2": "Draw" };
+            const matchResultText = resultMapping[matchResult];
+
+            if (!deckId) {
+                alert("Please select a deck.");
+                return;
+            }
+
+            const response = await fetch("/api/log_match", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${localStorage.getItem("access_token")}`
+                },
+                body: JSON.stringify({ deck_id: deckId, match_result: matchResult })
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                localStorage.setItem("flashMessage", `${matchResultText} with ${deckName} registered!`);
+                localStorage.setItem("flashType", "success");
+                window.location.href = "/";
+            } else {
+                alert("Error: " + data.error);
+            }
         });
+    });
     </script>
 
 {% endblock %}

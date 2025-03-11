@@ -32,7 +32,8 @@
             if (response.ok) {
                 localStorage.setItem("flashMessage", `Welcome back, ${data.username}!`);
                 localStorage.setItem("flashType", "success");
-                localStorage.setItem("token", data.access_token);
+                localStorage.setItem("access_token", data.access_token);
+                console.log("Token saved:", localStorage.getItem("access_token"));
                 localStorage.setItem("refresh_token", data.refresh_token);
                 localStorage.setItem("username", data.username);
                 window.location.href = "/";

@@ -4,6 +4,10 @@
     Register deck
 {% endblock %}
 
+{% block head %}
+    <script src="{{ url_for('static', filename='js/auth.js') }}"></script>
+{% endblock %}
+
 {% block main %}
 
     <form id="register-deck-form">
@@ -18,19 +22,14 @@
             document.getElementById("register-deck-form").addEventListener("submit", async function(event) {
                 event.preventDefault();
 
-                const token = localStorage.getItem("token");
-                if (!token) {
-                    alert("You must be logged in to register a deck.");
-                    return;
-                }
-
+                const token = localStorage.getItem("access_token");
                 const deckName = document.getElementById("deck_name").value;
 
                 const response = await fetch("/api/register_deck", {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
-                        "Authorization": `Bearer ${localStorage.getItem("token")}`
+                        "Authorization": `Bearer ${localStorage.getItem("access_token")}`
                     },
                     body: JSON.stringify({ deck_name: deckName })
                 });
