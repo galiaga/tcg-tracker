@@ -6,23 +6,48 @@
 
 {% block main %}
 
-    <form action="/register" method="post">
-        <div class="mb-3">
-            <input autocomplete="off" autofocus class="form-control mx-auto w-auto" name="username" placeholder="Username" type="text">
-        </div>
-        <div class="mb-3">
-            <input class="form-control mx-auto w-auto" name="password" placeholder="Password" type="password">
-        </div>
-        <div class="mb-3">
-            <input class="form-control mx-auto w-auto" name="confirmation" placeholder="Confirm Password" type="password">
-        </div>
-        <button class="btn btn-primary" type="submit">Register</button>
-    </form>
-    {% if error %}
-        <script>
-            alert("{{ error }}");
-        </script>
-    {% endif %}
-    {{ username }}
+<form id="register-form">
+    <div class="mb-3">
+        <input autocomplete="off" autofocus class="form-control mx-auto w-auto" id="username" placeholder="Username" type="text">
+        <input autocomplete="off" autofocus class="form-control mx-auto w-auto" id="password" placeholder="Password" type="password">
+        <input autocomplete="off" autofocus class="form-control mx-auto w-auto" id="confirmation" placeholder="Confirm Password" type="password">
+    </div>
+    <button class="btn btn-primary" type="submit">Register</button>
+</form>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        document.getElementById("register-form").addEventListener("submit", async function(event) {
+            event.preventDefault();
+    
+            const username = document.getElementById("username").value;
+            const password = document.getElementById("password").value;
+            const confirmation = document.getElementById("confirmation").value;
+    
+            if (password !== confirmation) {
+                alert("Passwords do not match.");
+                return;
+            }
+    
+            const response = await fetch("/api/auth/register", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ username, password, confirmation })
+            });
+    
+            const data = await response.json();
+    
+            if (response.ok) {
+                localStorage.setItem("token", data.access_token);
+                localStorage.setItem("username", data.username);
+                localStorage.setItem("flashMessage", `Welcome ${data.username}!`);
+                localStorage.setItem("flashType", "success");
+                window.location.href = "/";
+            } else {
+                alert("Error: " + data.error);
+            }
+        });
+    });
+    </script>
 
 {% endblock %}
