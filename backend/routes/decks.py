@@ -4,57 +4,45 @@ from backend.database import get_db
 
 decks_bp = Blueprint("decks", __name__, url_prefix="/api")
 
-@decks_bp.route("/register_deck", methods=["GET", "POST"])
+@decks_bp.route("/register_deck", methods=["POST"])
 @jwt_required()
 def register_deck():
     db = get_db()
 
-    if request.method == "GET":
-        return jsonify({"error": "This endpoint only supports POST requests"}), 405
-    
-    # Capture json data
+    # Captura datos JSON
     user_id = get_jwt_identity()
-    if not user_id:
-        return jsonify({"error": "Invalid or missing token"}), 401
-    
     data = request.get_json()
-    
-    if data is None:
-        return jsonify({"error": "Invalid or missing JSON body"}), 400
-
-    # Validate user auth
-    if not user_id:
-        return jsonify({"error": "User not authenticated"}), 401
-    
-    # Capture deck name
     deck_name = data.get("deck_name")
 
-    # Validate deck_id and match_result
+    # Validación de usuario y datos
+    if not user_id:
+        return jsonify({"error": "User not authenticated"}), 401
     if not deck_name:
         return jsonify({"error": "Missing required fields"}), 400
-    
-    # Register into database
+
+    # Obtener username desde la BD
+    user = db.execute("SELECT username FROM users WHERE id = ?", (user_id,)).fetchone()
+    username = user["username"] if user else "Unknown"
+
+    # Registrar deck en la BD
     try:
         cursor = db.execute("INSERT INTO decks (deck_name) VALUES (?)", (deck_name,))
         db.commit()
-
         deck_id = cursor.lastrowid
 
-        deck = db.execute("SELECT id, deck_name FROM decks WHERE id = ?",(deck_id,)).fetchone()
-            
-        # Relate deck with user
+        # Relacionar deck con el usuario
         db.execute("INSERT INTO user_decks (user_id, deck_id) VALUES (?, ?)", (user_id, deck_id))
         db.commit()
 
-        # Message to user
+        # Responder con el username y deck registrado
         return jsonify({
             "message": "Deck registered successfully",
-            "deck": dict(deck)
-            }), 201
-    
+            "deck": {"id": deck_id, "name": deck_name},
+            "username": username  # 🔹 Se incluye el username en la respuesta
+        }), 201
+
     except Exception as e:
         return jsonify({"error": "Database error", "details": str(e)}), 500
-    
 
 @decks_bp.route("/decks", methods=["GET"])
 @jwt_required()

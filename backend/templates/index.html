@@ -10,21 +10,4 @@
         Funciona????
         Ahora si?
     </p>
-    {% if g.user_id %}
-        <h2>My decks</h2>
-        <table class="table table-striped">
-            <thead>
-                <tr>
-                    <th>Decks</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for deck in decks %}
-                <tr>
-                    <td>{{ deck.deck_name }}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    {% endif %}
 {% endblock %}
