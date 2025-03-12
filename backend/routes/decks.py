@@ -13,6 +13,9 @@ def register_deck():
     user_id = get_jwt_identity()
     data = request.get_json()
     deck_name = data.get("deck_name")
+    deck_type = data.get("deck_type")
+
+    print(deck_type)
 
     # Validación de usuario y datos
     if not user_id:
@@ -26,8 +29,7 @@ def register_deck():
 
     # Registrar deck en la BD
     try:
-        cursor = db.execute("INSERT INTO decks (deck_name) VALUES (?)", (deck_name,))
-        db.commit()
+        cursor = db.execute("INSERT INTO decks (deck_name, deck_type_id) VALUES (?, ?)", (deck_name, deck_type,))
         deck_id = cursor.lastrowid
 
         # Relacionar deck con el usuario
@@ -37,11 +39,12 @@ def register_deck():
         # Responder con el username y deck registrado
         return jsonify({
             "message": "Deck registered successfully",
-            "deck": {"id": deck_id, "name": deck_name},
+            "deck": {"id": deck_id, "name": deck_name, "deck_type": deck_type},
             "username": username  # 🔹 Se incluye el username en la respuesta
         }), 201
 
     except Exception as e:
+        db.rollback()
         return jsonify({"error": "Database error", "details": str(e)}), 500
 
 @decks_bp.route("/decks", methods=["GET"])

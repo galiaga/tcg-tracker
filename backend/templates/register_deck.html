@@ -12,6 +12,9 @@
 
     <form id="register-deck-form">
         <div class="mb-3">
+            <select id="deck_type" class="form-select mx-auto w-auto" required>
+                <option value="" disabled selected>Loading deck types...</option>
+            </select>
             <input autocomplete="off" autofocus class="form-control mx-auto w-auto" id="deck_name" placeholder="Deck Name" type="text">
         </div>
         <button class="btn btn-primary" type="submit">Register deck</button>
@@ -23,6 +26,9 @@
                 event.preventDefault();
 
                 const token = localStorage.getItem("access_token");
+                const select = document.getElementById("deck_type");
+                const selectedOption = select.options[select.selectedIndex];
+                const deckTypeId = select.value;
                 const deckName = document.getElementById("deck_name").value;
 
                 const response = await fetch("/api/register_deck", {
@@ -31,22 +37,21 @@
                         "Content-Type": "application/json",
                         "Authorization": `Bearer ${localStorage.getItem("access_token")}`
                     },
-                    body: JSON.stringify({ deck_name: deckName })
+                    body: JSON.stringify({ deck_name: deckName,  deck_type: deckTypeId})
                 });
 
                 const data = await response.json();
 
                 if (response.ok) {
-                    // localStorage.setItem("deck", data.deck);
                     localStorage.setItem("username", data.username);
-                    localStorage.setItem("flashMessage", `Deck ${deckName} registered!`);
-                    localStorage.setItem("flashType", "success");
+                    sessionStorage.setItem("flashMessage", "Deck " + deckName + " registered!");
+                    sessionStorage.setItem("flashType", "success");
                     window.location.href = "/";
                 } else {
-                    alert("Error: " + data.error);
+                    showFlashMessage(data.error, "error");
                 }
             })
         });
     </script>
-
+    <script src="/static/js/deck_types.js"></script>
 {% endblock %}

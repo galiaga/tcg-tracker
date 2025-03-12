@@ -30,11 +30,18 @@ def register():
 
         # Generate JWT
         access_token = create_access_token(identity=str(user_id))
-        return jsonify({"access_token": access_token, "username": username}), 201
+        return jsonify({
+            "access_token": access_token,
+            "username": username,
+            "message": f"User {username} successfully registered."
+        }), 201
 
     
     except sqlite3.IntegrityError:
-        return jsonify({"error": f"Username {username} already exists. Try another one."}), 400
+        return jsonify({
+            "error": f"Username {username} already exists. Try another one.",
+            "type": "DUPLICATE_USERNAME"    
+        }), 400
 
 
 @auth_bp.route("/login", methods=["POST"])

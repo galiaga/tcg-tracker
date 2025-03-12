@@ -22,8 +22,8 @@
 
                     <li id="nav-home" class="hidden"><a href="/">Home</a></li>
                     <li id="nav-profile" class="hidden"></li>
-                    <li id="nav-log_match" class="hidden"><a href="/log_match">Log Match</a></li>
                     <li id="nav-register_deck" class="hidden"><a href="/register_deck">Register Deck</a></li>
+                    <li id="nav-log_match" class="hidden"><a href="/log_match">Log Match</a></li>
                     <li id="nav-logout" class="hidden"><a href="#" onclick="logout()">Logout</a></li>    
 
                 </ul>
@@ -31,35 +31,13 @@
         </nav>
 
             <header>
-                <div id="flash-message" class="alert" style="display: none;"></div>
+                <div id="flash-message" class="alert alert-dismissible fade" role="alert" style="display: none;">
+                    <span id="flash-message-text"></span>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
 
                     <script>
                         document.addEventListener("DOMContentLoaded", function() {
-                            const flashDiv = document.getElementById("flash-message");
-                            if (!flashDiv) return;
-                            
-                            const flashMessage = localStorage.getItem("flashMessage");
-                            const flashType = localStorage.getItem("flashType");
-
-                            if (flashMessage) {
-                                flashDiv.innerText = flashMessage;
-                                flashDiv.style.display = "block";
-
-                                // Color styles
-                                if (flashType === "success") {
-                                    flashDiv.style.color = "green";
-                                } else {
-                                    flashDiv.style.color = "red";
-                                }
-
-                                // Hide message after showing it
-                                setTimeout(() => {
-                                    flashDiv.style.display = "none";
-                                    localStorage.removeItem("flashMessage");
-                                    localStorage.removeItem("flashType");
-                                }, 3000);
-                            }
-
                             // Show username if logged
                             const username = localStorage.getItem("username");
                             const userInfo = document.getElementById("user-info");
@@ -146,6 +124,7 @@
             }
         </script>
         <script src="{{ url_for('static', filename='js/menu.js') }}"></script>
+        <script src="{{ url_for('static', filename='js/flashMessages.js') }}"></script>
     </body>
 
 </html>

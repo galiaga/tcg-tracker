@@ -41,7 +41,7 @@
             return;
         }
 
-        const select = document.getElementById("deck-select");  // Mueve esta línea fuera del try
+        const select = document.getElementById("deck-select");
         
         try {
             // Load user decks
@@ -74,17 +74,18 @@
         document.getElementById("log-match-form").addEventListener("submit", async function(event) {
             event.preventDefault();
 
-            const selectedOption = select.options[select.selectedIndex];  // Ahora select siempre está definido
+            const selectedOption = select.options[select.selectedIndex];
             const deckId = select.value;
+            
+            if (!deckId || selectedOption.disabled) {
+                showFlashMessage("Please select a valid deck before logging a match.", "error");
+                return;
+            }
+
             const deckName = selectedOption.dataset.name;
             const matchResult = document.querySelector('input[name="match_result"]:checked').value;
             const resultMapping = { "0": "Victory", "1": "Defeat", "2": "Draw" };
             const matchResultText = resultMapping[matchResult];
-
-            if (!deckId) {
-                alert("Please select a deck.");
-                return;
-            }
 
             const response = await fetch("/api/log_match", {
                 method: "POST",
@@ -98,13 +99,14 @@
             const data = await response.json();
 
             if (response.ok) {
-                localStorage.setItem("flashMessage", `${matchResultText} with ${deckName} registered!`);
-                localStorage.setItem("flashType", "success");
+                sessionStorage.setItem("flashMessage", `${matchResultText} with ${deckName} registered!`);
+                sessionStorage.setItem("flashType", "success");
                 window.location.href = "/";
             } else {
-                alert("Error: " + data.error);
+                showFlashMessage(data.error, "error");
             }
-        });
+});
+
     });
     </script>
 
