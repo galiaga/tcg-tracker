@@ -2,40 +2,44 @@ document.addEventListener("DOMContentLoaded", function () {
     const token = localStorage.getItem("access_token");
     const username = localStorage.getItem("username");
 
-    const navUsername = document.getElementById("nav-username");
-    const navLogin = document.getElementById("nav-login");
-    const navRegister = document.getElementById("nav-register");
-    const navHome = document.getElementById("nav-home");
-    const navProfile = document.getElementById("nav-profile");
-    const navLogMatch = document.getElementById("nav-log_match");
-    const navRegisterDeck = document.getElementById("nav-register_deck");
-    const navLogout = document.getElementById("nav-logout");
+    // Función para mostrar/ocultar elementos de forma segura
+    const showElement = (id) => {
+        const element = document.getElementById(id);
+        if (element) element.classList.add("show");
+    };
+    
+    const hideElement = (id) => {
+        const element = document.getElementById(id);
+        if (element) element.classList.remove("show");
+    };
 
     if (token) {
-        // Si está autenticado, mostrar username y ocultar login/register
         if (username) {
-            navUsername.innerText = `Hey, ${username}!`;
+            const navUsername = document.getElementById("nav-username");
+            if (navUsername) {
+                navUsername.innerText = `Hey, ${username}!`;
+                showElement("nav-username");
+            }
         }
-        navUsername.style.display = "block";
-        navLogin.style.display = "none";
-        navRegister.style.display = "none";
-        navHome.style.display = "block";
-        navProfile.style.display = "block";
-        navLogMatch.style.display = "block";
-        navRegisterDeck.style.display = "block";
-        navLogout.style.display = "block";
+        hideElement("nav-login");
+        hideElement("nav-register");
+        showElement("nav-home");
+        showElement("nav-profile");
+        showElement("nav-log_match");
+        showElement("nav-register_deck");
+        showElement("nav-logout");
     } else {
-        // Si no está autenticado, mostrar login/register y ocultar username
-        navUsername.style.display = "none";
-        navLogin.style.display = "block";
-        navRegister.style.display = "block";
-        navHome.style.display = "none";
-        navProfile.style.display = "none";
-        navLogMatch.style.display = "none";
-        navRegisterDeck.style.display = "none";
-        navLogout.style.display = "none";
+        hideElement("nav-username");
+        showElement("nav-login");
+        showElement("nav-register");
+        hideElement("nav-home");
+        hideElement("nav-profile");
+        hideElement("nav-log_match");
+        hideElement("nav-register_deck");
+        hideElement("nav-logout");
     }
 });
+
 
 // Función de logout
 function logout() {
