@@ -30,17 +30,14 @@
             const data = await response.json();
 
             if (response.ok) {
-                localStorage.setItem("flashMessage", `Welcome back, ${data.username}!`);
-                localStorage.setItem("flashType", "success");
                 localStorage.setItem("access_token", data.access_token);
-                console.log("Token saved:", localStorage.getItem("access_token"));
                 localStorage.setItem("refresh_token", data.refresh_token);
                 localStorage.setItem("username", data.username);
+                sessionStorage.setItem("flashMessage", `Welcome back, ${data.username}!`);
+                sessionStorage.setItem("flashType", "success");
                 window.location.href = "/";
             } else {
-                localStorage.setItem("flashMessage", data.error);
-                localStorage.setItem("flashType", "error");
-                window.location.reload()
+                showFlashMessage(data.error, "error");
             }
         }
     </script>
