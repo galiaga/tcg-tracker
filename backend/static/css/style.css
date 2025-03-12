@@ -1,0 +1,19 @@
+/* Hide elements by default  */
+.hidden {
+    display: none !important;
+}
+
+.show {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+#nav-home, #nav-profile, #nav-log_match, #nav-register_deck, #nav-logout {
+    visibility: hidden;
+}
+
+#nav-home.show, #nav-profile.show, #nav-log_match.show, #nav-register_deck.show, #nav-logout.show {
+    display: block !important;
+    visibility: visible;
+}
