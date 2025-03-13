@@ -14,44 +14,22 @@
         <div class="mb-3">
             <select id="deck_type" class="form-select mx-auto w-auto" required>
                 <option value="" disabled selected>Loading deck types...</option>
+                <option value="Standard">Standard</option>
+                <option value="Modern">Modern</option>
+                <option value="Commander">Commander</option>
             </select>
+        </div>
+        <div id="commander_field" class="mb-3" style="display: none;">
+            <input autocomplete="off" class="form-control mx-auto w-auto" id="commander_name" placeholder="Commander Name" type="text">
+        </div>
+        <div class="mb-3">
             <input autocomplete="off" autofocus class="form-control mx-auto w-auto" id="deck_name" placeholder="Deck Name" type="text">
         </div>
+
         <button class="btn btn-primary" type="submit">Register deck</button>
     </form>
 
-    <script>
-        document.addEventListener("DOMContentLoaded", function() {
-            document.getElementById("register-deck-form").addEventListener("submit", async function(event) {
-                event.preventDefault();
-
-                const token = localStorage.getItem("access_token");
-                const select = document.getElementById("deck_type");
-                const selectedOption = select.options[select.selectedIndex];
-                const deckTypeId = select.value;
-                const deckName = document.getElementById("deck_name").value;
-
-                const response = await fetch("/api/register_deck", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "Authorization": `Bearer ${localStorage.getItem("access_token")}`
-                    },
-                    body: JSON.stringify({ deck_name: deckName,  deck_type: deckTypeId})
-                });
-
-                const data = await response.json();
-
-                if (response.ok) {
-                    localStorage.setItem("username", data.username);
-                    sessionStorage.setItem("flashMessage", "Deck " + deckName + " registered!");
-                    sessionStorage.setItem("flashType", "success");
-                    window.location.href = "/";
-                } else {
-                    showFlashMessage(data.error, "error");
-                }
-            })
-        });
-    </script>
     <script src="/static/js/deck_types.js"></script>
+    <script type="module" src="{{ url_for('static', filename='js/deckForm.js') }}"></script>
+    <script src="/static/js/registerDeck.js"></script>
 {% endblock %}

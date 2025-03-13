@@ -1,4 +1,4 @@
-from yourapp import db
+from backend import db
 
 class Deck(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)

@@ -14,37 +14,40 @@ def register_deck():
     data = request.get_json()
     deck_name = data.get("deck_name")
     deck_type = data.get("deck_type")
+    commander_id = data.get("commander_id")
 
-    print(deck_type)
-
-    # Validación de usuario y datos
     if not user_id:
         return jsonify({"error": "User not authenticated"}), 401
     if not deck_name:
         return jsonify({"error": "Missing required fields"}), 400
 
-    # Obtener username desde la BD
     user = db.execute("SELECT username FROM users WHERE id = ?", (user_id,)).fetchone()
-    username = user["username"] if user else "Unknown"
+    username = user["username"] if user else "Unknown" 
 
-    # Registrar deck en la BD
     try:
         cursor = db.execute("INSERT INTO decks (deck_name, deck_type_id) VALUES (?, ?)", (deck_name, deck_type,))
         deck_id = cursor.lastrowid
 
-        # Relacionar deck con el usuario
         db.execute("INSERT INTO user_decks (user_id, deck_id) VALUES (?, ?)", (user_id, deck_id))
+
+        if commander_id: 
+            db.execute("INSERT INTO commanders (deck_id, commander_id) VALUES (?, ?)",(deck_id, commander_id))
         db.commit()
 
-        # Responder con el username y deck registrado
         return jsonify({
             "message": "Deck registered successfully",
-            "deck": {"id": deck_id, "name": deck_name, "deck_type": deck_type},
-            "username": username  # 🔹 Se incluye el username en la respuesta
+            "deck": {
+                "id": deck_id,
+                "name": deck_name,
+                "deck_type": deck_type,
+                "commander_id": commander_id
+            },
+            "username": username
         }), 201
 
     except Exception as e:
         db.rollback()
+        print(f"❌ Database error: {e}") 
         return jsonify({"error": "Database error", "details": str(e)}), 500
 
 @decks_bp.route("/decks", methods=["GET"])
@@ -53,7 +56,6 @@ def get_user_decks():
     db = get_db()
     user_id = get_jwt_identity()
 
-     # Validate user auth
     if not user_id:
         return jsonify({"error": "User not authenticated"}), 401
     
