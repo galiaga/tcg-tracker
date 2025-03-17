@@ -22,11 +22,13 @@ def create_app():
     from .routes.matches import matches_bp
     from .routes.decks import decks_bp
     from .routes.deck_types import deck_types_bp
+    from .routes.commanders import commanders_bp 
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(frontend_bp)
     app.register_blueprint(matches_bp)
     app.register_blueprint(decks_bp)
     app.register_blueprint(deck_types_bp, url_prefix='/api')
+    app.register_blueprint(commanders_bp, url_prefix='/api')
 
     return app

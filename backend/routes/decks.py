@@ -31,7 +31,7 @@ def register_deck():
         db.execute("INSERT INTO user_decks (user_id, deck_id) VALUES (?, ?)", (user_id, deck_id))
 
         if commander_id: 
-            db.execute("INSERT INTO commanders (deck_id, commander_id) VALUES (?, ?)",(deck_id, commander_id))
+            db.execute("INSERT INTO commander_decks (deck_id, commander_id) VALUES (?, ?)",(deck_id, commander_id))
         db.commit()
 
         return jsonify({
