@@ -19,9 +19,10 @@
                 <option value="Commander">Commander</option>
             </select>
         </div>
-        <div id="commander_field" class="mb-3" style="display: none;">
+        <div id="commander_field" class="mb-3 position-relative" style="display: none;">
             <input autocomplete="off" class="form-control mx-auto w-auto" id="commander_name" placeholder="Commander Name" type="text">
-        </div>
+            <ul id="commander-suggestions" class="list-group commander-suggestions"></ul>
+        </div> 
         <div class="mb-3">
             <input autocomplete="off" autofocus class="form-control mx-auto w-auto" id="deck_name" placeholder="Deck Name" type="text">
         </div>

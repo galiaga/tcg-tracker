@@ -1,1 +1,1 @@
-export * from "./scryfall.js";
+export * from "./commanders.js";
