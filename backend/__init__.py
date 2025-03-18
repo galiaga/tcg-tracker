@@ -25,6 +25,7 @@ def create_app():
     from .routes.deck_types import deck_types_bp
     from .routes.commanders import commanders_bp
     from .routes.match_history import matches_history_bp 
+    from .routes.decks.user_decks import user_decks_bp 
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(frontend_bp)
@@ -33,6 +34,7 @@ def create_app():
     app.register_blueprint(deck_types_bp, url_prefix='/api')
     app.register_blueprint(commanders_bp, url_prefix='/api')
     app.register_blueprint(matches_history_bp, url_prefix='/api')
+    app.register_blueprint(user_decks_bp, url_prefix='/api')
 
     Migrate(app, db)
     

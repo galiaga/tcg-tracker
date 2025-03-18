@@ -8,7 +8,7 @@ document.addEventListener("DOMContentLoaded", async function() {
     
     try {
         // Load user decks
-        const response = await authFetch("/api/decks", {
+        const response = await authFetch("/api/user_decks", {
             method: "GET",
             headers: {
                 "Authorization": `Bearer ${token}`,
@@ -27,8 +27,8 @@ document.addEventListener("DOMContentLoaded", async function() {
         decks.forEach(deck => {
             const option = document.createElement("option");
             option.value = deck.id;
-            option.dataset.name = deck.deck_name;
-            option.textContent = deck.deck_name;
+            option.dataset.name = deck.name;
+            option.textContent = deck.name;
             select.appendChild(option);
         });
 

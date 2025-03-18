@@ -23,6 +23,6 @@ def matches_history():
 def register_page():
     return render_template("register.html")
 
-@frontend_bp.route("/register_deck", methods=["GET"])
+@frontend_bp.route("/my-decks", methods=["GET"])
 def register_deck_page():
-    return render_template("register_deck.html")
+    return render_template("my-decks.html")

@@ -27,7 +27,7 @@ document.addEventListener("DOMContentLoaded", function () {
         showElement("nav-profile");
         showElement("nav-matches");
         showElement("nav-log_match");
-        showElement("nav-register_deck");
+        showElement("nav-my-decks");
         showElement("nav-logout");
     } else {
         hideElement("nav-username");
@@ -37,7 +37,7 @@ document.addEventListener("DOMContentLoaded", function () {
         hideElement("nav-profile");
         hideElement("nav-matches");
         hideElement("nav-log_match");
-        hideElement("nav-register_deck");
+        hideElement("nav-my-decks");
         hideElement("nav-logout");
     }
 });
