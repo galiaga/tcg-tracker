@@ -7,7 +7,7 @@ from backend import db
 def get_all_matches():
     return Match.query.order_by(Match.date.desc()).all()
 
-# # Get user's matches
+# Get user's matches
 def get_matches_by_user(user_id):
     return (
         db.session.query(Match, Deck, DeckType)

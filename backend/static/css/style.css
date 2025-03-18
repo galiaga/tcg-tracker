@@ -37,11 +37,11 @@
     opacity: 1 !important;
 }
 
-#nav-home, #nav-profile, #nav-log_match, #nav-register_deck, #nav-logout {
+#nav-home, #nav-profile, #nav-log_match, #nav-my-decks, #nav-logout {
     visibility: hidden;
 }
 
-#nav-home.show, #nav-profile.show, #nav-log_match.show, #nav-register_deck.show, #nav-logout.show {
+#nav-home.show, #nav-profile.show, #nav-log_match.show, #nav-my-decks.show, #nav-logout.show {
     display: block !important;
     visibility: visible;
 }
