@@ -10,11 +10,11 @@ document.addEventListener("DOMContentLoaded", function() {
 
         const commanderId = deckTypeId === "7" ? commanderInput.dataset.commanderId : null;
 
-        const response = await fetch("/api/register_deck", {
+        const response = await authFetch("/api/register_deck", {
             method: "POST",
             headers: {
-                "Content-Type": "application/json",
-                "Authorization": `Bearer ${localStorage.getItem("access_token")}`
+                "Authorization": `Bearer ${token}`,
+                "Content-Type": "application/json"
             },
             body: JSON.stringify({ 
                 deck_name: deckName,  
@@ -23,6 +23,8 @@ document.addEventListener("DOMContentLoaded", function() {
             })
         });
 
+        if (!response) return;
+        
         const data = await response.json();
 
         if (response.ok) {

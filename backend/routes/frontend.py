@@ -15,6 +15,10 @@ def login_page():
 def log_match_page():
     return render_template("log_match.html")
 
+@frontend_bp.route("/matches_history", methods=["GET"])
+def matches_history():
+    return render_template("matches_history.html")
+
 @frontend_bp.route("/register", methods=["GET"])
 def register_page():
     return render_template("register.html")

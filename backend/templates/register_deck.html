@@ -1,7 +1,7 @@
 {% extends "layout.html" %}
 
 {% block title %}
-    Register deck
+    My Decks
 {% endblock %}
 
 {% block head %}
@@ -9,27 +9,41 @@
 {% endblock %}
 
 {% block main %}
-
-    <form id="register-deck-form">
-        <div class="mb-3">
-            <select id="deck_type" class="form-select mx-auto w-auto" required>
-                <option value="" disabled selected>Loading deck types...</option>
-                <option value="Standard">Standard</option>
-                <option value="Modern">Modern</option>
-                <option value="Commander">Commander</option>
-            </select>
+<div class="container">
+    <div class="row">
+        <form id="register-deck-form">
+            <div class="mb-3">
+                <select id="deck_type" class="form-select mx-auto w-auto" required>
+                    <option value="" disabled selected>Loading deck types...</option>
+                    <option value="Standard">Standard</option>
+                    <option value="Modern">Modern</option>
+                    <option value="Commander">Commander</option>
+                </select>
+            </div>
+            <div id="commander_field" class="mb-3 position-relative" style="display: none;">
+                <input autocomplete="off" class="form-control mx-auto w-auto" id="commander_name" placeholder="Commander Name" type="text">
+                <ul id="commander-suggestions" class="list-group commander-suggestions"></ul>
+            </div> 
+            <div class="mb-3">
+                <input autocomplete="off" autofocus class="form-control mx-auto w-auto" id="deck_name" placeholder="Deck Name" type="text">
+            </div>
+            <button class="btn btn-primary" type="submit">Register deck</button>
+        </form>
+    </div>
+    <div class="row">
+        <div class="col-sm">
+            <h2>
+                My Decks
+            </h2>
         </div>
-        <div id="commander_field" class="mb-3 position-relative" style="display: none;">
-            <input autocomplete="off" class="form-control mx-auto w-auto" id="commander_name" placeholder="Commander Name" type="text">
-            <ul id="commander-suggestions" class="list-group commander-suggestions"></ul>
-        </div> 
-        <div class="mb-3">
-            <input autocomplete="off" autofocus class="form-control mx-auto w-auto" id="deck_name" placeholder="Deck Name" type="text">
-        </div>
 
-        <button class="btn btn-primary" type="submit">Register deck</button>
-    </form>
+    </div>
+</div>
+    
 
+
+
+    <script src="{{ url_for('static', filename='js/auth.js') }}"></script>
     <script src="/static/js/deck_types.js"></script>
     <script type="module" src="{{ url_for('static', filename='js/deckForm.js') }}"></script>
     <script src="/static/js/registerDeck.js"></script>
