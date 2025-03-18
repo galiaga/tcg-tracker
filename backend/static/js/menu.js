@@ -25,6 +25,7 @@ document.addEventListener("DOMContentLoaded", function () {
         hideElement("nav-register");
         showElement("nav-home");
         showElement("nav-profile");
+        showElement("nav-matches");
         showElement("nav-log_match");
         showElement("nav-register_deck");
         showElement("nav-logout");
@@ -34,6 +35,7 @@ document.addEventListener("DOMContentLoaded", function () {
         showElement("nav-register");
         hideElement("nav-home");
         hideElement("nav-profile");
+        hideElement("nav-matches");
         hideElement("nav-log_match");
         hideElement("nav-register_deck");
         hideElement("nav-logout");

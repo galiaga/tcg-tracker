@@ -8,12 +8,15 @@ document.addEventListener("DOMContentLoaded", async function() {
     
     try {
         // Load user decks
-        const response = await fetch("/api/decks", {
+        const response = await authFetch("/api/decks", {
             method: "GET",
             headers: {
-                "Authorization": `Bearer ${localStorage.getItem("access_token")}`
+                "Authorization": `Bearer ${token}`,
+                "Content-Type": "application/json"
             }
         });
+
+        if (!response) return;
 
         if (!response.ok) {
             throw new Error(`Error: ${response.status}`);
@@ -50,15 +53,17 @@ document.addEventListener("DOMContentLoaded", async function() {
         const resultMapping = { "0": "Victory", "1": "Defeat", "2": "Draw" };
         const matchResultText = resultMapping[matchResult];
 
-        const response = await fetch("/api/log_match", {
+        const response = await authFetch("/api/log_match", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
-                "Authorization": `Bearer ${localStorage.getItem("access_token")}`
+                "Authorization": `Bearer ${token}`
             },
             body: JSON.stringify({ deck_id: deckId, match_result: matchResult })
         });
 
+        if (!response) return;
+        
         const data = await response.json();
 
         if (response.ok) {

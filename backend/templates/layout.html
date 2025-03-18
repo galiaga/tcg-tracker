@@ -22,6 +22,7 @@
 
                     <li id="nav-home" class="hidden"><a href="/">Home</a></li>
                     <li id="nav-profile" class="hidden"></li>
+                    <li id="nav-matches" class="hidden"><a href="/matches_history">Matches</a></li>
                     <li id="nav-register_deck" class="hidden"><a href="/register_deck">Register Deck</a></li>
                     <li id="nav-log_match" class="hidden"><a href="/log_match">Log Match</a></li>
                     <li id="nav-logout" class="hidden"><a href="#" onclick="logout()">Logout</a></li>    
@@ -123,6 +124,7 @@
                 }
             }
         </script>
+        
         <script src="{{ url_for('static', filename='js/menu.js') }}"></script>
         <script src="{{ url_for('static', filename='js/flashMessages.js') }}"></script>
     </body>
