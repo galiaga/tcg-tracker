@@ -1,6 +1,6 @@
 import { searchCommander } from "./api/index.js";
 
-const COMMANDER_ID = "4";
+const COMMANDER_ID = "7";
 
 document.addEventListener("DOMContentLoaded", function () {
     const deckTypeSelect = document.getElementById("deck_type");

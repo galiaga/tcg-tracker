@@ -1,66 +1,81 @@
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from backend.database import get_db
+from backend import db
+
+from backend.models.user import User
+from backend.models.deck import Deck
+from backend.models.user_deck import UserDeck
+from backend.models.commander_deck import CommanderDeck
+from backend.services.user_service import get_user_by_username
 
 decks_bp = Blueprint("decks", __name__, url_prefix="/api")
+COMMANDER_DECK_TYPE_ID = 7
 
+# Register a new deck for a user using SQLAlchemy
 @decks_bp.route("/register_deck", methods=["POST"])
 @jwt_required()
 def register_deck():
-    db = get_db()
 
-    # Captura datos JSON
     user_id = get_jwt_identity()
+    print(f"🔹 user_id obtenido desde JWT: {user_id}")
     data = request.get_json()
     deck_name = data.get("deck_name")
-    deck_type = data.get("deck_type")
+    deck_type_id = data.get("deck_type")
+
+    # Convert deck_type_id to int
+    try:
+        deck_type_id = int(deck_type_id)
+    except ValueError:
+        pass
+
     commander_id = data.get("commander_id")
 
     if not user_id:
         return jsonify({"error": "User not authenticated"}), 401
     if not deck_name:
         return jsonify({"error": "Missing required fields"}), 400
-
-    user = db.execute("SELECT username FROM users WHERE id = ?", (user_id,)).fetchone()
-    username = user["username"] if user else "Unknown" 
-
+    if (deck_type_id == COMMANDER_DECK_TYPE_ID) and not commander_id:
+        return jsonify({"error": "Commander ID is required for Commander decks"}), 400
+    
     try:
-        cursor = db.execute("INSERT INTO decks (deck_name, deck_type_id) VALUES (?, ?)", (deck_name, deck_type,))
-        deck_id = cursor.lastrowid
+        new_deck = Deck(user_id=user_id, name=deck_name, deck_type_id=deck_type_id)
+        db.session.add(new_deck)
+        db.session.commit()
 
-        db.execute("INSERT INTO user_decks (user_id, deck_id) VALUES (?, ?)", (user_id, deck_id))
+        user_deck = UserDeck(user_id=user_id, deck_id=new_deck.id)
+        db.session.add(user_deck)
+        
+        if commander_id:
+            commander_deck = CommanderDeck(deck_id=new_deck.id, commander_id=commander_id)
+            db.session.add(commander_deck)
 
-        if commander_id: 
-            db.execute("INSERT INTO commander_decks (deck_id, commander_id) VALUES (?, ?)",(deck_id, commander_id))
-        db.commit()
+        db.session.commit()
 
         return jsonify({
             "message": "Deck registered successfully",
             "deck": {
-                "id": deck_id,
-                "name": deck_name,
-                "deck_type": deck_type,
+                "id": new_deck.id,
+                "name": new_deck.name,
+                "deck_type": deck_type_id,
                 "commander_id": commander_id
-            },
-            "username": username
+            }
         }), 201
 
     except Exception as e:
-        db.rollback()
+        db.session.rollback()
         print(f"❌ Database error: {e}") 
         return jsonify({"error": "Database error", "details": str(e)}), 500
 
 @decks_bp.route("/decks", methods=["GET"])
 @jwt_required()
 def get_user_decks():
-    db = get_db()
     user_id = get_jwt_identity()
 
     if not user_id:
         return jsonify({"error": "User not authenticated"}), 401
     
-    decks = db.execute("SELECT user_decks.id, decks.deck_name FROM user_decks JOIN decks ON user_decks.deck_id = decks.id WHERE user_decks.user_id = ?;",(user_id,)).fetchall()
+    decks = Deck.query.all()
 
-    decks_list = [{"id": deck["id"], "deck_name": deck["deck_name"]} for deck in decks]
+    decks_list = [{"id": deck.id, "deck_name": deck.name} for deck in decks]
 
     return jsonify(decks_list)
