@@ -1,13 +1,13 @@
 from flask import Flask, jsonify, Blueprint, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from backend.database import get_db
+from backend import db
+from backend.models.match import Match
 
 matches_bp = Blueprint("matches", __name__, url_prefix="/api")
 
 @matches_bp.route("/log_match", methods=["GET", "POST"])
 @jwt_required()
 def log_match():
-    db = get_db()
 
     if request.method == "GET":
         return jsonify({"error": "This endpoint only supports POST requests"}), 405
@@ -17,6 +17,7 @@ def log_match():
     data = request.get_json()
     deck_id = data.get("deck_id")
     match_result = data.get("match_result")
+    print(data)
 
     # Validate user auth
     if not user_id:
@@ -28,16 +29,18 @@ def log_match():
         
     # Register into database
     try:
-        cursor = db.execute("INSERT INTO matches (result, user_deck_id) VALUES (?, ?)", (match_result, deck_id))
-        db.commit()
-
-        match_id = cursor.lastrowid
-        
-        match = db.execute("SELECT id, result, user_deck_id FROM matches WHERE id = ?",(match_id,)).fetchone()
+        new_match = Match(result=match_result, user_deck_id=deck_id)
+        db.session.add(new_match)
+        db.session.commit()
 
         return jsonify({
             "message": "Match logged successfully",
-            "match": dict(match)
+            "match": {
+                "id": new_match.id,
+                "name": new_match.timestamp,
+                "result": new_match.result,
+                "user_deck_id": new_match.user_deck_id
+            }
             }), 201
     
     except Exception as e:

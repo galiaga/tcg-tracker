@@ -8,7 +8,7 @@ document.addEventListener("DOMContentLoaded", function() {
         const deckName = document.getElementById("deck_name").value;
         const commanderInput = document.getElementById("commander_name");
 
-        const commanderId = deckTypeId === "4" ? commanderInput.dataset.commanderId : null;
+        const commanderId = deckTypeId === "7" ? commanderInput.dataset.commanderId : null;
 
         const response = await fetch("/api/register_deck", {
             method: "POST",
