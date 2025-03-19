@@ -1,7 +1,7 @@
 from flask import jsonify, Blueprint
 from flask_jwt_extended import jwt_required, get_jwt_identity
 
-from backend.services.match_history_service import get_matches_by_user
+from backend.services.matches.match_history_service import get_matches_by_user
 
 matches_history_bp = Blueprint("matches_history", __name__, url_prefix="/api")
 

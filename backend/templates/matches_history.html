@@ -17,11 +17,13 @@
                 <thead>
                     <th>Deck Name</th>
                     <th>Deck Type</th>
+                    <th>Match result</th>
+                    <th>Match timestamp</th>
                 </thead>
                 <tbody></tbody>
             </table>
         </div>
 
-    <script src="/static/js/api/match_history.js"></script>
+    <script type="module" src="/static/js/api/match_history.js"></script>
     <script src="{{ url_for('static', filename='js/auth.js') }}"></script>
 {% endblock %}
