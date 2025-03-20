@@ -1,6 +1,6 @@
-document.addEventListener("DOMContentLoaded", function () {
-    loadUserMatches();
-});
+import { formatMatchResult } from "../utils.js";
+
+document.addEventListener("DOMContentLoaded", () => loadUserMatches());
 
 async function loadUserMatches() {
     const table = document.getElementById("matches-list");
@@ -23,7 +23,10 @@ async function loadUserMatches() {
             }
         });
 
-        if (!response) return;
+        if (!response) {
+            showFlashMessage("Failed to connect to the server", "danger");
+            return;
+        }
 
         if (!response.ok) throw new Error("Error fetching match history");
 
@@ -42,11 +45,15 @@ async function loadUserMatches() {
         const fragment = document.createDocumentFragment();
         
         userMatches.forEach(match => {
+            console.log(match);
             const row = document.createElement("tr");
+            const formattedDate = new Date(match.date).toLocaleString();
 
             row.innerHTML = `
                 <td>${match.deck.name}</td>
                 <td>${match.deck_type.name}</td>
+                <td>${formatMatchResult(match.result)}</td>
+                <td>${formattedDate}</td>
                 `;
             
                 fragment.appendChild(row);
