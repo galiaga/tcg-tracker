@@ -1,5 +1,6 @@
 from backend import db
 from sqlalchemy.sql import func
+from sqlalchemy.orm import class_mapper
 from backend.models.commander_deck import CommanderDeck 
 
 class Commander(db.Model):
@@ -28,6 +29,9 @@ class Commander(db.Model):
     time_lord_doctor = db.Column(db.Boolean, default=False, nullable=False, server_default="0")
 
     commander_decks = db.relationship("CommanderDeck", back_populates="commander", cascade="all, delete-orphan")
+
+    def to_dict(self):
+        return {column.name: getattr(self, column.name) for column in class_mapper(self.__class__).mapped_table.columns}
 
     def __repr__(self):
         return f"<Commander {self.name}>"

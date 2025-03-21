@@ -7,13 +7,20 @@ document.addEventListener("DOMContentLoaded", function () {
     const commanderField = document.getElementById("commander_field");
     const commanderInput = document.getElementById("commander_name");
 
+    const partnerField = document.getElementById("partnerField");
+    const friendsForeverField = document.getElementById("friendsForeverField");
+    const doctorCompanionField = document.getElementById("doctorCompanionField");
+    const timeLordDoctorField = document.getElementById("timeLordDoctorField");
+
+    let selectedCommanderId = null; 
+
     if (!deckTypeSelect || !commanderField || !commanderInput) {
         console.error("Uno o más elementos del formulario no fueron encontrados.");
         return;
     }
 
     deckTypeSelect.addEventListener("change", function () {
-        if (this.value === COMMANDER_ID) {
+        if (this.value === COMMANDER_ID) { 
             commanderField.style.display = "block";
         } else {
             commanderField.style.display = "none";
@@ -21,19 +28,124 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     });
 
+    async function checkCommanderRelations(commanderId) {
+        const token = localStorage.getItem("access_token");
+
+        if (!token) {
+            console.error("No hay token en localStorage.");
+            return;
+        }
+
+        const response = await fetch(`/api/get_commander_attributes?q=${commanderId}`, {
+            method: "GET",
+            headers: {
+                "Authorization": `Bearer ${token}`,
+                "Content-Type": "application/json"
+            }
+        });
+
+        if (!response.ok) {
+            console.error("Request error:", response.status);
+            return;
+        }
+
+        const commanderData = await response.json();
+        console.log("commanderData:", commanderData)
+
+        selectedCommanderId = commanderData.id;
+
+        partnerField.style.display = "none";
+        friendsForeverField.style.display = "none";
+        doctorCompanionField.style.display = "none";
+        timeLordDoctorField.style.display = "none";
+
+        if (commanderData.partner) {
+            partnerField.style.display = "block";
+            document.getElementById("partner_name").placeholder = "Partner Name";
+            await populateSuggestions("partner");
+        }
+
+        if (commanderData.friends_forever) {
+            friendsForeverField.style.display = "block";
+            document.getElementById("friendsForever_name").placeholder = "Friend Name";
+            await populateSuggestions("friendsForever");
+        }
+
+        if (commanderData.doctor_companion) {
+            doctorCompanionField.style.display = "block";
+            document.getElementById("doctorCompanion_name").placeholder = "Doctor's Companion Name";
+            await populateSuggestions("doctorCompanion");
+        }
+
+        if (commanderData.time_lord_doctor) {
+            timeLordDoctorField.style.display = "block";
+            document.getElementById("timeLordDoctor_name").placeholder = "Time Lord Doctor Name";
+            await populateSuggestions("timeLordDoctor");
+        }
+    }
+
+    async function populateSuggestions(type) {
+        let query;
+        if (type === "partner") {
+            query = document.getElementById("partner_name").value.trim();
+        } else if (type === "friendsForever") {
+            query = document.getElementById("friendsForever_name").value.trim();
+        } else if (type === "doctorCompanion") {
+            query = document.getElementById("doctorCompanion_name").value.trim();
+        } else if (type === "timeLordDoctor") {
+            query = document.getElementById("timeLordDoctor_name").value.trim();
+        } else {
+            query = document.getElementById("commander_name").value.trim();
+        }
+
+        const response = await fetch(`/api/search_commanders?q=${query}&type=${type}`);
+        const commanders = await response.json();
+        const suggestionMap = {
+            partner: "partner-suggestions",
+            friendsForever: "friendsForever-suggestions",
+            doctorCompanion: "doctorCompanion-suggestions",
+            timeLordDoctor: "timeLordDoctor-suggestions"
+        };
+        
+        const suggestionsList = document.getElementById(suggestionMap[type]);
+
+        suggestionsList.innerHTML = '';
+
+        commanders.forEach(commander => {
+            if (commander.id === selectedCommanderId) return;
+
+            const listItem = document.createElement("li");
+            listItem.classList.add("list-group-item");
+            listItem.textContent = commander.name;
+            listItem.addEventListener("click", () => {
+                const inputIds = {
+                    partner: "partner_name",
+                    friendsForever: "friendsForever_name",
+                    doctorCompanion: "doctorCompanion_name",
+                    timeLordDoctor: "timeLordDoctor_name"
+                };
+            
+                const inputId = inputIds[type];
+                if (inputId) {
+                    document.getElementById(inputId).value = commander.name;
+                }
+
+                suggestionsList.innerHTML = '';
+            });
+            suggestionsList.appendChild(listItem);
+        });
+
+        if (commanders.length === 0) {
+            const noResults = document.createElement("li");
+            noResults.classList.add("list-group-item", "text-center");
+            noResults.textContent = "No results";
+            suggestionsList.appendChild(noResults);
+        }
+    }
+
     const commanderSuggestions = document.getElementById("commander-suggestions");
 
     commanderSuggestions.style.display = "none";
-
-    function adjustSuggestionsList(suggestionsList, inputElement) {
-        const inputRect = inputElement.getBoundingClientRect();
-        const inputWidth = inputElement.offsetWidth;
-        
-        suggestionsList.style.minWidth = `${inputWidth}px`;
-        
-        suggestionsList.style.left = '50%';
-        suggestionsList.style.transform = 'translateX(-50%)';
-    }
 
     commanderInput.addEventListener("input", function() {
         const query = commanderInput.value.trim();
@@ -48,19 +160,19 @@ document.addEventListener("DOMContentLoaded", function () {
         
         const loadingItem = document.createElement("li");
         loadingItem.classList.add("list-group-item", "text-center");
-        loadingItem.textContent = "Buscando...";
+        loadingItem.textContent = "Loading...";
         commanderSuggestions.appendChild(loadingItem);
         
         if (this.searchTimeout) clearTimeout(this.searchTimeout);
         
         this.searchTimeout = setTimeout(async () => {
-            const commanders = await searchCommander(query);
+            const commanders = await searchCommander(query); 
             commanderSuggestions.innerHTML = "";
             
             if (commanders.length === 0) {
                 const noResults = document.createElement("li");
                 noResults.classList.add("list-group-item", "text-center");
-                noResults.textContent = "No se encontraron resultados";
+                noResults.textContent = "No results";
                 commanderSuggestions.appendChild(noResults);
                 return;
             }
@@ -76,6 +188,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     commanderInput.value = commander.name;
                     commanderInput.dataset.commanderId = commander.id;
                     commanderSuggestions.innerHTML = "";
+                    checkCommanderRelations(commander.id);
                 });
                 
                 commanderSuggestions.appendChild(item);
@@ -91,4 +204,112 @@ document.addEventListener("DOMContentLoaded", function () {
         }, 100);
     });
 
+    function adjustSuggestionsList(suggestionsList, inputElement) {
+        const inputRect = inputElement.getBoundingClientRect();
+        const inputWidth = inputElement.offsetWidth;
+    
+        suggestionsList.style.minWidth = `${inputWidth}px`;
+        suggestionsList.style.left = '50%';
+        suggestionsList.style.transform = 'translateX(-50%)';
+    }
+
+    const partnerInput = document.getElementById("partner_name");
+    partnerInput.addEventListener("input", function() {
+        const query = partnerInput.value.trim();
+        const partnerSuggestions = document.getElementById("partner-suggestions");
+        partnerSuggestions.innerHTML = "";
+
+        if (query.length < 1) {
+            partnerSuggestions.style.display = "none";
+            return;
+        }
+
+        partnerSuggestions.style.display = "block";
+        
+        const loadingItem = document.createElement("li");
+        loadingItem.classList.add("list-group-item", "text-center");
+        loadingItem.textContent = "Loading...";
+        partnerSuggestions.appendChild(loadingItem);
+
+        if (this.searchTimeout) clearTimeout(this.searchTimeout);
+        
+        this.searchTimeout = setTimeout(async () => {
+            await populateSuggestions("partner");
+        }, 100);
+    });
+
+    const friendsForeverInput = document.getElementById("friendsForever_name");
+    friendsForeverInput.addEventListener("input", function() {
+        const query = friendsForeverInput.value.trim();
+        const friendsForeverSuggestions = document.getElementById("friendsForever-suggestions");
+        friendsForeverSuggestions.innerHTML = "";
+
+        if (query.length < 1) {
+            friendsForeverSuggestions.style.display = "none";
+            return;
+        }
+
+        friendsForeverSuggestions.style.display = "block";
+        
+        const loadingItem = document.createElement("li");
+        loadingItem.classList.add("list-group-item", "text-center");
+        loadingItem.textContent = "Loading...";
+        friendsForeverSuggestions.appendChild(loadingItem);
+
+        if (this.searchTimeout) clearTimeout(this.searchTimeout);
+        
+        this.searchTimeout = setTimeout(async () => {
+            await populateSuggestions("friendsForever");
+        }, 100);
+    });
+
+    const doctorCompanionInput = document.getElementById("doctorCompanion_name");
+    doctorCompanionInput.addEventListener("input", function() {
+        const query = doctorCompanionInput.value.trim();
+        const doctorCompanionSuggestions = document.getElementById("doctorCompanion-suggestions");
+        doctorCompanionSuggestions.innerHTML = "";
+
+        if (query.length < 1) {
+            doctorCompanionSuggestions.style.display = "none";
+            return;
+        }
+
+        doctorCompanionSuggestions.style.display = "block";
+        
+        const loadingItem = document.createElement("li");
+        loadingItem.classList.add("list-group-item", "text-center");
+        loadingItem.textContent = "Loading...";
+        doctorCompanionSuggestions.appendChild(loadingItem);
+
+        if (this.searchTimeout) clearTimeout(this.searchTimeout);
+        
+        this.searchTimeout = setTimeout(async () => {
+            await populateSuggestions("doctorCompanion");
+        }, 100);
+    });
+
+    const timeLordDoctorInput = document.getElementById("timeLordDoctor_name");
+    timeLordDoctorInput.addEventListener("input", function() {
+        const query = timeLordDoctorInput.value.trim();
+        const timeLordDoctorSuggestions = document.getElementById("timeLordDoctor-suggestions");
+        timeLordDoctorSuggestions.innerHTML = "";
+
+        if (query.length < 1) {
+            timeLordDoctorSuggestions.style.display = "none";
+            return;
+        }
+
+        timeLordDoctorSuggestions.style.display = "block";
+        
+        const loadingItem = document.createElement("li");
+        loadingItem.classList.add("list-group-item", "text-center");
+        loadingItem.textContent = "Loading...";
+        timeLordDoctorSuggestions.appendChild(loadingItem);
+
+        if (this.searchTimeout) clearTimeout(this.searchTimeout);
+        
+        this.searchTimeout = setTimeout(async () => {
+            await populateSuggestions("timeLordDoctor");
+        }, 100);
+    });
 });
