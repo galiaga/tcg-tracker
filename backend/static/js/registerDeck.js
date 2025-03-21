@@ -12,13 +12,10 @@ document.addEventListener("DOMContentLoaded", function() {
         const friendsForeverInput = document.getElementById("friendsForever_name");
         const doctorCompanionInput = document.getElementById("doctorCompanion_name");
         const timeLordDoctorInput = document.getElementById("timeLordDoctor_name");
+        const backgroundInput = document.getElementById("background_name");
 
         const commanderId = deckTypeId === COMMANDER_ID ? commanderInput.dataset.commanderId : null;
         let partnerId = deckTypeId === COMMANDER_ID && partnerInput ? partnerInput.dataset.partnerId : null;
-
-        // ✅ DEBUG: Imprimir valores antes de enviar el formulario
-        console.log("Commander ID:", commanderId);
-        console.log("Partner ID:", partnerId);
 
         // ✅ Si `partnerInput` tiene valor en el campo, pero `dataset.partnerId` es null, actualizarlo
         if (deckTypeId === "7" && partnerInput && partnerInput.value.trim() !== "" && !partnerId) {
@@ -36,7 +33,8 @@ document.addEventListener("DOMContentLoaded", function() {
         let friendsForeverId = deckTypeId === COMMANDER_ID && friendsForeverInput ? friendsForeverInput.dataset.friendsForeverId : null;
         let doctorCompanionId = deckTypeId === COMMANDER_ID && doctorCompanionInput ? doctorCompanionInput.dataset.doctorCompanionId : null;
         let timeLordDoctorId  = deckTypeId === COMMANDER_ID && timeLordDoctorInput ? timeLordDoctorInput.dataset.timeLordDoctorId : null;
-
+        let backgroundId  = deckTypeId === COMMANDER_ID && backgroundInput ? backgroundInput.dataset.backgroundId : null;
+        
         const response = await authFetch("/api/register_deck", {
             method: "POST",
             headers: {
@@ -50,7 +48,8 @@ document.addEventListener("DOMContentLoaded", function() {
                 partner_id: partnerId,
                 friends_forever_id: friendsForeverId,
                 doctor_companion_id: doctorCompanionId,
-                time_lord_doctor_id: timeLordDoctorId
+                time_lord_doctor_id: timeLordDoctorId,
+                background_id: backgroundId
             })
         });
 

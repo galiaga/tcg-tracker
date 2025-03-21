@@ -11,7 +11,8 @@ document.addEventListener("DOMContentLoaded", function () {
     const friendsForeverField = document.getElementById("friendsForeverField");
     const doctorCompanionField = document.getElementById("doctorCompanionField");
     const timeLordDoctorField = document.getElementById("timeLordDoctorField");
-
+    const backgroundField = document.getElementById("backgroundField");
+    
     let selectedCommanderId = null; 
 
     if (!deckTypeSelect || !commanderField || !commanderInput) {
@@ -58,6 +59,7 @@ document.addEventListener("DOMContentLoaded", function () {
         friendsForeverField.style.display = "none";
         doctorCompanionField.style.display = "none";
         timeLordDoctorField.style.display = "none";
+        backgroundField.style.display = "none";
 
         if (commanderData.partner) {
             partnerField.style.display = "block";
@@ -82,6 +84,12 @@ document.addEventListener("DOMContentLoaded", function () {
             document.getElementById("timeLordDoctor_name").placeholder = "Time Lord Doctor Name";
             await populateSuggestions("timeLordDoctor");
         }
+
+        if (commanderData.background) {
+            backgroundField.style.display = "block";
+            document.getElementById("background_name").placeholder = "Background Name";
+            await populateSuggestions("background");
+        }
     }
 
     async function populateSuggestions(type) {
@@ -94,6 +102,8 @@ document.addEventListener("DOMContentLoaded", function () {
             query = document.getElementById("doctorCompanion_name").value.trim();
         } else if (type === "timeLordDoctor") {
             query = document.getElementById("timeLordDoctor_name").value.trim();
+        } else if (type === "background") {
+            query = document.getElementById("background_name").value.trim();
         } else {
             query = document.getElementById("commander_name").value.trim();
         }
@@ -104,7 +114,8 @@ document.addEventListener("DOMContentLoaded", function () {
             partner: "partner-suggestions",
             friendsForever: "friendsForever-suggestions",
             doctorCompanion: "doctorCompanion-suggestions",
-            timeLordDoctor: "timeLordDoctor-suggestions"
+            timeLordDoctor: "timeLordDoctor-suggestions",
+            background: "background-suggestions"
         };
         
         const suggestionsList = document.getElementById(suggestionMap[type]);
@@ -122,7 +133,8 @@ document.addEventListener("DOMContentLoaded", function () {
                     partner: "partner_name",
                     friendsForever: "friendsForever_name",
                     doctorCompanion: "doctorCompanion_name",
-                    timeLordDoctor: "timeLordDoctor_name"
+                    timeLordDoctor: "timeLordDoctor_name",
+                    background: "background_name"
                 };
             
                 const inputId = inputIds[type];
@@ -310,6 +322,31 @@ document.addEventListener("DOMContentLoaded", function () {
         
         this.searchTimeout = setTimeout(async () => {
             await populateSuggestions("timeLordDoctor");
+        }, 100);
+    });
+
+    const backgroundInput = document.getElementById("background_name");
+    backgroundInput.addEventListener("input", function() {
+        const query = backgroundInput.value.trim();
+        const backgroundSuggestions = document.getElementById("background-suggestions");
+        backgroundSuggestions.innerHTML = "";
+
+        if (query.length < 1) {
+            backgroundSuggestions.style.display = "none";
+            return;
+        }
+
+        backgroundSuggestions.style.display = "block";
+        
+        const loadingItem = document.createElement("li");
+        loadingItem.classList.add("list-group-item", "text-center");
+        loadingItem.textContent = "Loading...";
+        backgroundSuggestions.appendChild(loadingItem);
+
+        if (this.searchTimeout) clearTimeout(this.searchTimeout);
+        
+        this.searchTimeout = setTimeout(async () => {
+            await populateSuggestions("background");
         }, 100);
     });
 });
