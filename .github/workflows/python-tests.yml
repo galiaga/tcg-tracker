@@ -24,8 +24,9 @@ jobs:
           python -m venv .venv
           source .venv/bin/activate
           pip install -r requirements.txt
+          pip install pytest-cov
 
       - name: Run tests with coverage
         run: |
           source .venv/bin/activate
-          pytest --cov=backend
+          pytest --cov=backend --cov-report=term-missing
