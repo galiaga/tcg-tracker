@@ -15,7 +15,7 @@ cursor.execute("""
 cursor.execute("""
     UPDATE commanders
     SET background = 1
-    WHERE oracle_text LIKE '%Background%';
+    WHERE type_line IS 'Legendary Enchantment — Background';
 """)
 
 # Actualizar friends_forever

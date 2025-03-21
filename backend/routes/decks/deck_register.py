@@ -19,7 +19,6 @@ def register_deck():
 
     user_id = get_jwt_identity()
     data = request.get_json()
-    print(data)
     deck_name = data.get("deck_name")
     deck_type_id = data.get("deck_type")
 
@@ -33,6 +32,7 @@ def register_deck():
     friends_forever_id = data.get("friends_forever_id")
     doctor_companion_id = data.get("doctor_companion_id")
     time_lord_doctor_id = data.get("time_lord_doctor_id")
+    background_id = data.get("background_id")
 
     if not user_id:
         return jsonify({"error": "User not authenticated"}), 401
@@ -68,14 +68,15 @@ def register_deck():
             "partner_id": partner_id,
             "friends_forever_id": friends_forever_id,
             "time_lord_doctor_id": time_lord_doctor_id,
-            "doctor_companion_id": doctor_companion_id
+            "doctor_companion_id": doctor_companion_id,
+            "background_id": background_id
         }
 
         non_null_associations = {key: value for key, value in associations.items() if value is not None}
 
         if len(non_null_associations) > 1:
             return jsonify({
-                "error": "Only one of partner_id, friends_forever_id, doctor_companion_id or time_lord_doctor_id can be included."
+                "error": "Only one of partner_id, friends_forever_id, doctor_companion_id, time_lord_doctor_id or background_id can be included."
             }), 400
         
         if commander_id:
@@ -88,7 +89,8 @@ def register_deck():
                 "partner_id": lambda c: c.partner,
                 "friends_forever_id": lambda c: c.friends_forever,
                 "time_lord_doctor_id": lambda c: c.time_lord_doctor,
-                "doctor_companion_id": lambda c: c.doctor_companion
+                "doctor_companion_id": lambda c: c.doctor_companion,
+                "background_id": lambda c: c.background,
             }
 
             if associated_commander_id:
@@ -122,7 +124,8 @@ def register_deck():
                     "partner_id": partner_id,
                     "friends_forever_id": friends_forever_id,
                     "doctor_companion_id": doctor_companion_id,
-                    "time_lord_doctor_id": time_lord_doctor_id
+                    "time_lord_doctor_id": time_lord_doctor_id,
+                    "background_id": background_id
                 }
             }, indent=4),  # Formato legible
             mimetype="application/json",
