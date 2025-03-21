@@ -1,11 +1,18 @@
+<<<<<<< HEAD
 from flask import Blueprint, jsonify, request, Response
+=======
+from flask import Blueprint, jsonify, request
+>>>>>>> 6e48b3a047b3fec03eac240a8a1d934082a59822
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from backend import db
 from backend.models.user import User
 from backend.models.deck import Deck
 from backend.models.user_deck import UserDeck
 from backend.models.commander_deck import CommanderDeck
+<<<<<<< HEAD
 import json
+=======
+>>>>>>> 6e48b3a047b3fec03eac240a8a1d934082a59822
 
 deck_register_bp = Blueprint("deck_register", __name__, url_prefix="/api")
 
@@ -14,29 +21,46 @@ COMMANDER_DECK_TYPE_ID = 7
 @deck_register_bp.route("/register_deck", methods=["POST"])
 @jwt_required()
 def register_deck():
+<<<<<<< HEAD
+=======
+    # Aquí el código original de register_deck
+>>>>>>> 6e48b3a047b3fec03eac240a8a1d934082a59822
     if request.method == "GET":
         return jsonify({"error": "This endpoint only supports POST requests"}), 405
 
     user_id = get_jwt_identity()
+<<<<<<< HEAD
     data = request.get_json()
     print(data)
     deck_name = data.get("deck_name")
     deck_type_id = data.get("deck_type")
 
+=======
+    print(f"🔹 user_id obtenido desde JWT: {user_id}")
+    data = request.get_json()
+    deck_name = data.get("deck_name")
+    deck_type_id = data.get("deck_type")
+
+    # Convert deck_type_id to int
+>>>>>>> 6e48b3a047b3fec03eac240a8a1d934082a59822
     try:
         deck_type_id = int(deck_type_id)
     except ValueError:
         pass
 
     commander_id = data.get("commander_id")
+<<<<<<< HEAD
     partner_id = data.get("partner_id")
     friends_forever_id = data.get("friends_forever_id")
     doctor_companion_id = data.get("doctor_companion_id")
     time_lord_doctor_id = data.get("time_lord_doctor_id")
+=======
+>>>>>>> 6e48b3a047b3fec03eac240a8a1d934082a59822
 
     if not user_id:
         return jsonify({"error": "User not authenticated"}), 401
     if not deck_name:
+<<<<<<< HEAD
         return jsonify({"error": "Add a Deck Name"}), 400
     if (deck_type_id == COMMANDER_DECK_TYPE_ID) and not commander_id:
         return jsonify({"error": "Add your Commander"}), 400
@@ -55,6 +79,11 @@ def register_deck():
     
     if commander and commander.time_lord_doctor and not doctor_companion_id:
         return jsonify({"error": "This Doctor requires a Doctor's Companion Commander."}), 400
+=======
+        return jsonify({"error": "Missing required fields"}), 400
+    if (deck_type_id == COMMANDER_DECK_TYPE_ID) and not commander_id:
+        return jsonify({"error": "Commander ID is required for Commander decks"}), 400
+>>>>>>> 6e48b3a047b3fec03eac240a8a1d934082a59822
     
     try:
         new_deck = Deck(user_id=user_id, name=deck_name, deck_type_id=deck_type_id)
@@ -63,6 +92,7 @@ def register_deck():
 
         user_deck = UserDeck(user_id=user_id, deck_id=new_deck.id)
         db.session.add(user_deck)
+<<<<<<< HEAD
 
         associations = {
             "partner_id": partner_id,
@@ -107,10 +137,16 @@ def register_deck():
                 commander_id=commander_id,
                 associated_commander_id=associated_commander_id
             )
+=======
+        
+        if commander_id:
+            commander_deck = CommanderDeck(deck_id=new_deck.id, commander_id=commander_id)
+>>>>>>> 6e48b3a047b3fec03eac240a8a1d934082a59822
             db.session.add(commander_deck)
 
         db.session.commit()
 
+<<<<<<< HEAD
         return Response(
             json.dumps({
                 "message": "Deck registered successfully",
@@ -128,6 +164,17 @@ def register_deck():
             mimetype="application/json",
             status=201
         )
+=======
+        return jsonify({
+            "message": "Deck registered successfully",
+            "deck": {
+                "id": new_deck.id,
+                "name": new_deck.name,
+                "deck_type": deck_type_id,
+                "commander_id": commander_id
+            }
+        }), 201
+>>>>>>> 6e48b3a047b3fec03eac240a8a1d934082a59822
 
     except Exception as e:
         db.session.rollback()
