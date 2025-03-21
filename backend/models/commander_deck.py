@@ -23,10 +23,9 @@ class CommanderDeck(db.Model):
         ).fetchone()
 
         if result:
-            # 🔹 Convertimos la tupla en un objeto SQLAlchemy Commander
-            from backend.models import Commander  # Importamos aquí para evitar el circular import
+            from backend.models import Commander
             commander_obj = Commander(**dict(result._mapping))
-            make_transient(commander_obj)  # Evita que SQLAlchemy lo trate como un objeto persistente
+            make_transient(commander_obj)
             return commander_obj
 
         return None

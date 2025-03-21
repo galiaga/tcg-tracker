@@ -1,8 +1,8 @@
-"""Fix primary key for decks
+"""Recreating commander_decks with associated_commander_id
 
-Revision ID: 689ddf931e21
+Revision ID: e3967e3ac80a
 Revises: 
-Create Date: 2025-03-17 18:14:17.963803
+Create Date: 2025-03-21 12:57:12.818696
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '689ddf931e21'
+revision = 'e3967e3ac80a'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -22,6 +22,7 @@ def upgrade():
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
     sa.Column('scryfall_id', sa.String(), nullable=False),
     sa.Column('name', sa.String(), nullable=False),
+    sa.Column('flavor_name', sa.String(), nullable=True),
     sa.Column('mana_cost', sa.String(), nullable=True),
     sa.Column('type_line', sa.String(), nullable=True),
     sa.Column('oracle_text', sa.Text(), nullable=True),
@@ -30,9 +31,15 @@ def upgrade():
     sa.Column('loyalty', sa.String(), nullable=True),
     sa.Column('colors', sa.String(), nullable=True),
     sa.Column('color_identity', sa.String(), nullable=True),
-    sa.Column('set_name', sa.String(), nullable=True),
+    sa.Column('set_code', sa.String(), nullable=True),
     sa.Column('image_url', sa.String(), nullable=True),
+    sa.Column('art_crop', sa.String(), nullable=True),
     sa.Column('updated_at', sa.TIMESTAMP(), server_default=sa.text('(CURRENT_TIMESTAMP)'), nullable=False),
+    sa.Column('partner', sa.Boolean(), server_default='0', nullable=False),
+    sa.Column('background', sa.Boolean(), server_default='0', nullable=False),
+    sa.Column('friends_forever', sa.Boolean(), server_default='0', nullable=False),
+    sa.Column('doctor_companion', sa.Boolean(), server_default='0', nullable=False),
+    sa.Column('time_lord_doctor', sa.Boolean(), server_default='0', nullable=False),
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('scryfall_id')
     )
@@ -61,6 +68,8 @@ def upgrade():
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
     sa.Column('deck_id', sa.Integer(), nullable=False),
     sa.Column('commander_id', sa.Integer(), nullable=False),
+    sa.Column('associated_commander_id', sa.Integer(), nullable=True),
+    sa.Column('relationship_type', sa.String(), nullable=True),
     sa.ForeignKeyConstraint(['commander_id'], ['commanders.id'], ),
     sa.ForeignKeyConstraint(['deck_id'], ['decks.id'], ),
     sa.PrimaryKeyConstraint('id')
