@@ -39,6 +39,13 @@ cursor.execute("""
     WHERE type_line LIKE '%Time Lord Doctor%';
 """)
 
+# Actualizar Choose a background
+cursor.execute("""
+    UPDATE commanders
+    SET choose_a_background = 1
+    WHERE oracle_text LIKE '%Choose a Background%';
+""")
+
 # Guardar cambios y cerrar conexión
 conn.commit()
 conn.close()
