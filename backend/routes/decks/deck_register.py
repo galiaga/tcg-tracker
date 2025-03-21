@@ -103,6 +103,25 @@ def register_deck():
                 if not VALIDATION_RULES[assoc_key](associated_commander):
                     label = assoc_key.replace("_id", "").replace("_", " ").title()
                     return jsonify({"error": f"{associated_commander.name} is not a valid {label}."}), 400
+                
+                REQUIRED_MAIN_TYPE = {
+                    "partner_id": lambda c: c.partner,
+                    "friends_forever_id": lambda c: c.friends_forever,
+                    "time_lord_doctor_id": lambda c: c.doctor_companion,
+                    "doctor_companion_id": lambda c: c.time_lord_doctor,
+                    "background_id": lambda c: c.choose_a_background,
+                }
+
+                required_main_validator = REQUIRED_MAIN_TYPE.get(assoc_key)
+                if required_main_validator and not required_main_validator(commander):
+                    label = assoc_key.replace("_id", "").replace("_", " ").title()
+                    return jsonify({
+                        "error": f"{commander.name} is not a valid main commander for associated {label}."
+                    }), 400
+                
+                commander = db.session.get(Commander, commander_id)
+                if not commander:
+                    return jsonify({"error": "Commander not found."}), 404
 
             commander_deck = CommanderDeck(
                 deck_id=new_deck.id,
@@ -127,7 +146,7 @@ def register_deck():
                     "time_lord_doctor_id": time_lord_doctor_id,
                     "background_id": background_id
                 }
-            }, indent=4),  # Formato legible
+            }, indent=4),
             mimetype="application/json",
             status=201
         )

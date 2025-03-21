@@ -24,6 +24,7 @@ class Commander(db.Model):
     updated_at = db.Column(db.TIMESTAMP, server_default=func.current_timestamp(), nullable=False)
     partner = db.Column(db.Boolean, default=False, nullable=False, server_default="0")
     background = db.Column(db.Boolean, default=False, nullable=False, server_default="0")
+    choose_a_background = db.Column(db.Boolean, default=False, nullable=False, server_default="0")
     friends_forever = db.Column(db.Boolean, default=False, nullable=False, server_default="0")
     doctor_companion = db.Column(db.Boolean, default=False, nullable=False, server_default="0")
     time_lord_doctor = db.Column(db.Boolean, default=False, nullable=False, server_default="0")
