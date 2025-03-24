@@ -70,7 +70,7 @@
                             }
 
                             console.log("Token is about to expire, refreshing...");
-                            const response = await fetch("/api/refresh", {
+                            const response = await fetch("/api/auth/refresh", {
                                 method: "POST",
                                 headers: { "Authorization": `Bearer ${refreshToken}` }
                             });
@@ -81,11 +81,11 @@
                                 localStorage.setItem("access_token", data.access_token);
                             } else {
                                 console.warn("Refresh failed, logging out...");
-                                logoutUser();
+                                logout();
                             }
                         } catch (error) {
                             console.error("Error refreshing token:", error);
-                            logoutUser();
+                            logout();
                         }
                     }
 
@@ -119,7 +119,7 @@
                     console.error("Failed to access protected data");
                     if (response.status === 401) {
                         console.warn("Session expired. Logging out...");
-                        logoutUser();
+                        logout();
                     }
                 }
             }
@@ -127,6 +127,7 @@
         
         <script src="{{ url_for('static', filename='js/menu.js') }}"></script>
         <script src="{{ url_for('static', filename='js/flashMessages.js') }}"></script>
+        {% block scripts %}{% endblock %}
     </body>
 
 </html>
