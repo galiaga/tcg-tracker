@@ -4,7 +4,7 @@ from backend.models.user_deck import UserDeck
 from backend.models.deck import Deck
 from sqlalchemy import func, case
 
-RESULT_WIN_ID = 1
+RESULT_WIN_ID = 0
 
 def get_all_decks_stats(user_id):
 
