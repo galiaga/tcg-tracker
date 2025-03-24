@@ -39,10 +39,15 @@
         </nav>
 
             <header>
-                <div id="flash-message" class="alert alert-dismissible fade" role="alert" style="display: none;">
-                    <span id="flash-message-text"></span>
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+              <div id="flash-message-container" class="fixed top-4 inset-x-4 z-50 flex justify-center pointer-events-none">
+                <div id="flash-message" class="hidden max-w-md w-full rounded-xl px-4 py-3 shadow-lg pointer-events-auto transition duration-300 ease-in-out">
+                  <div class="flex items-start">
+                    <div id="flash-message-text" class="flex-1 text-sm text-white"></div>
+                    <button type="button" id="flash-message-close" class="ml-4 text-white text-lg leading-none font-bold focus:outline-none">&times;</button>
+                  </div>
                 </div>
+              </div>
+              
 
                     <script>
                         document.addEventListener("DOMContentLoaded", function() {
