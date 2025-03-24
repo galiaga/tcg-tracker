@@ -31,8 +31,8 @@ document.addEventListener("DOMContentLoaded", function () {
         showElement("nav-logout");
     } else {
         hideElement("nav-username");
-        showElement("nav-login");
-        showElement("nav-register");
+        hideElement("nav-login");
+        hideElement("nav-register");
         hideElement("nav-home");
         hideElement("nav-profile");
         hideElement("nav-matches");
