@@ -20,11 +20,18 @@
                     <li id="nav-login" class="hidden"><a href="/login">Login</a></li>    
                     <li id="nav-register" class="hidden"><a href="/register">Register</a></li>
 
-                    <li id="nav-home" class="hidden"><a href="/">Home</a></li>
-                    <li id="nav-profile" class="hidden"></li>
-                    <li id="nav-matches" class="hidden"><a href="/matches_history">Matches</a></li>
-                    <li id="nav-my-decks" class="hidden"><a href="/my-decks">My Decks</a></li>
-                    <li id="nav-log_match" class="hidden"><a href="/log_match">Log Match</a></li>
+                    <li id="nav-home" class="hidden">
+                      <a href="/" data-path="/" class="desktop-nav-link relative flex flex-col items-center p-2">Home</a>
+                    </li>
+                    <li id="nav-matches" class="hidden">
+                      <a href="/matches_history" data-path="/matches_history" class="desktop-nav-link relative flex flex-col items-center p-2">Matches</a>
+                    </li>
+                    <li id="nav-my-decks" class="hidden">
+                      <a href="/my-decks" data-path="/my-decks" class="desktop-nav-link relative flex flex-col items-center p-2">My Decks</a>
+                    </li>
+                    <li id="nav-log_match" class="hidden">
+                      <a href="/log_match" data-path="/log_match" class="desktop-nav-link relative flex flex-col items-center p-2">Log Match</a>
+                    </li>
                     <li id="nav-logout" class="hidden"><a href="#" onclick="logout()">Logout</a></li>    
 
                 </ul>
@@ -132,7 +139,7 @@
         <nav id="mobile-navbar" class="hidden fixed bottom-0 left-0 right-0 bg-white border-t shadow-inner md:hidden z-50">
             <ul class="flex justify-around text-blue-600">
               <li>
-                <a href="/" class="flex flex-col items-center p-2">
+                <a href="/" data-path="/" class="mobile-nav-link relative flex flex-col items-center px-4 py-2 transition-colors duration-300">
                   <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M13 5v6h6" />
                   </svg>
@@ -140,7 +147,7 @@
                 </a>
               </li>
               <li>
-                <a href="/log_match" class="flex flex-col items-center p-2">
+                <a href="/log_match" data-path="/log_match" class="mobile-nav-link relative flex flex-col items-center px-4 py-2 transition-colors duration-300">
                   <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
                   </svg>
@@ -148,7 +155,7 @@
                 </a>
               </li>
               <li>
-                <a href="/my-decks" class="flex flex-col items-center p-2">
+                <a href="/my-decks" data-path="/my-decks" class="mobile-nav-link relative flex flex-col items-center px-4 py-2 transition-colors duration-300">
                   <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4" />
                   </svg>
@@ -156,7 +163,7 @@
                 </a>
               </li>
               <li>
-                <a href="/matches_history" class="flex flex-col items-center p-2">
+                <a href="/matches_history" data-path="/matches_history" class="mobile-nav-link relative flex flex-col items-center px-4 py-2 transition-colors duration-300">
                   <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                   </svg>

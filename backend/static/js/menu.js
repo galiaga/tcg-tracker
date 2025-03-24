@@ -42,10 +42,39 @@ document.addEventListener("DOMContentLoaded", function () {
         hideElement("nav-logout");
         hideElement("mobile-navbar");
     }
+
+    const currentPath = window.location.pathname;
+
+    document.querySelectorAll('.mobile-nav-link').forEach(link => {
+        const expectedPath = link.getAttribute('data-path');
+
+        link.classList.remove("text-blue-800", "font-bold");
+        link.querySelectorAll(".active-indicator").forEach(el => el.remove());
+    
+        if (expectedPath === currentPath) {
+            link.classList.add("bg-blue-100", "text-blue-800", "font-bold", "rounded-full");
+
+            const indicator = document.createElement("div");
+            indicator.className = "active-indicator absolute top-0 left-0 w-full h-1 bg-blue-800 rounded-t transition-all duration-300";
+            link.appendChild(indicator);
+        }
+    });
+
+    document.querySelectorAll('.desktop-nav-link').forEach(link => {
+        const expectedPath = link.getAttribute('data-path');
+    
+        link.classList.remove("text-blue-800", "font-bold");
+        
+        if (expectedPath === currentPath) {
+            link.classList.add("bg-blue-100", "text-blue-800", "font-bold", "rounded-full");
+        } else {
+            link.classList.remove("bg-blue-100", "text-blue-800", "font-bold", "rounded-full");
+        }
+    });
+    
+
 });
 
-
-// Función de logout
 function logout() {
     localStorage.removeItem("access_token");
     localStorage.removeItem("username");

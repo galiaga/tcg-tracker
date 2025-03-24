@@ -1,3 +1,7 @@
+.active-indicator {
+    transition: all 0.3s ease-in-out;
+  }
+
 .commander-suggestions {
     position: absolute;
     top: calc(100% + 2px);
