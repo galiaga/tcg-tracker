@@ -29,6 +29,7 @@ document.addEventListener("DOMContentLoaded", function () {
         showElement("nav-log_match");
         showElement("nav-my-decks");
         showElement("nav-logout");
+        showElement("mobile-navbar");
     } else {
         hideElement("nav-username");
         hideElement("nav-login");
@@ -39,6 +40,7 @@ document.addEventListener("DOMContentLoaded", function () {
         hideElement("nav-log_match");
         hideElement("nav-my-decks");
         hideElement("nav-logout");
+        hideElement("mobile-navbar");
     }
 });
 
