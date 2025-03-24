@@ -1,7 +1,6 @@
 window.onload = function() {
+    setInterval(autoRefreshAccessToken, 60000); 
     const token = localStorage.getItem("access_token");
-
-    console.log("Auth.js loaded. Token:", token);
 
     if (!token) {
         console.warn("No token found. Redirecting to login...");
@@ -30,17 +29,63 @@ function logout() {
     window.location.href = "/login";
 }
 
+function autoRefreshAccessToken() {
+    const refreshToken = localStorage.getItem("refresh_token");
+    const accessToken = localStorage.getItem("access_token");
+
+    if (!refreshToken || !accessToken) {
+        console.warn("Auto-refresh: tokens not found.");
+        return;
+    }
+
+    try {
+        const payload = JSON.parse(atob(accessToken.split(".")[1]));
+        const expTime = payload.exp * 1000;
+        const currentTime = Date.now();
+        const timeUntilExpiration = expTime - currentTime;
+
+        if (timeUntilExpiration < 120000) {
+            console.log("Access token is about to expire. Refreshing...");
+
+            fetch("/api/auth/refresh", {
+                method: "POST",
+                headers: {
+                    "Authorization": `Bearer ${refreshToken}`,
+                    "Content-Type": "application/json"
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error("Refresh failed");
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log("Access token refreshed successfully.");
+                localStorage.setItem("access_token", data.access_token);
+            })
+            .catch(err => {
+                console.error("Error refreshing token:", err);
+                logout();
+            });
+        }
+    } catch (err) {
+        console.error("Failed to decode access token:", err);
+        logout();
+    }
+}
+
+
 async function authFetch(url, options = {}) {
     let token = localStorage.getItem("access_token");
     let refreshToken = localStorage.getItem("refresh_token");
 
-    // 🚨 NO redirigir si ya estamos en /login
     if (!token && window.location.pathname !== "/login") {
         console.warn("No access token found. Redirecting to login.");
         window.location.href = "/login";
         return null;
     } else if (!token && window.location.pathname === "/login") {
-        return null;  // Si estamos en /login, no intentamos hacer la solicitud
+        return null;
     }
 
     options.headers = {
@@ -64,19 +109,22 @@ async function authFetch(url, options = {}) {
 
         if (refreshResponse.ok) {
             const refreshData = await refreshResponse.json();
-            localStorage.setItem("access_token", refreshData.access_token);
+            const newAccessToken = refreshData.access_token;
 
-            // Reintentar la solicitud con el nuevo token
-            options.headers["Authorization"] = `Bearer ${refreshData.access_token}`;
+            if (!newAccessToken) {
+                console.error("Refresh succeeded but no access token returned.");
+                logout();
+                return null;
+            }
+
+            localStorage.setItem("access_token", newAccessToken);
+            console.log("New access token obtained:", newAccessToken);
+
+            options.headers["Authorization"] = `Bearer ${newAccessToken}`;
             response = await fetch(url, options);
         } else {
-            console.error("Refresh token expired. Logging out.");
-            localStorage.removeItem("access_token");
-            localStorage.removeItem("refresh_token");
-
-            if (window.location.pathname !== "/login") {
-                window.location.href = "/login";
-            }
+            console.error("Refresh token invalid or expired.");
+            logout();
             return null;
         }
     }

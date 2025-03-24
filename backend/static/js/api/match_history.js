@@ -45,7 +45,6 @@ async function loadUserMatches() {
         const fragment = document.createDocumentFragment();
         
         userMatches.forEach(match => {
-            console.log(match);
             const row = document.createElement("tr");
             const formattedDate = new Date(match.date).toLocaleString();
 

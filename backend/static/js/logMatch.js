@@ -5,6 +5,12 @@ document.addEventListener("DOMContentLoaded", async function() {
     }
 
     const select = document.getElementById("deck-select");
+    const form = document.getElementById("log-match-form");
+
+    if (!select || !form) {
+        console.warn("logMatch.js: No se encontraron elementos esperados en esta vista.");
+        return;
+    }
     
     try {
         // Load user decks

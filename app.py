@@ -10,8 +10,8 @@ app = create_app()
 
 bcrypt = Bcrypt(app)
 app.config["JWT_SECRET_KEY"] = "super-secret-key"  # Update when in PROD
-app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(minutes=15)  # 🔹 Access Token dura 15 min
-app.config["JWT_REFRESH_TOKEN_EXPIRES"] = timedelta(days=7)  # 🔹 Refresh Token dura 7 días
+app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(minutes=15)
+app.config["JWT_REFRESH_TOKEN_EXPIRES"] = timedelta(days=7)
 jwt = JWTManager(app)
 
 migrate = Migrate(app, db)
