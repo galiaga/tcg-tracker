@@ -6,53 +6,36 @@
 
 {% block main %}
 
-<form id="register-form">
-    <div class="mb-3">
-        <input autocomplete="off" autofocus class="form-control mx-auto w-auto" id="username" placeholder="Username" type="text">
-        <input autocomplete="off" autofocus class="form-control mx-auto w-auto" id="password" placeholder="Password" type="password">
-        <input autocomplete="off" autofocus class="form-control mx-auto w-auto" id="confirmation" placeholder="Confirm Password" type="password">
+<div class="flex items-center justify-center min-h-screen bg-gray-100 px-4">
+    <div class="w-full max-w-md bg-white p-8 rounded-2xl shadow-xl space-y-6">
+      <form id="register-form" class="space-y-6">
+        <h2 class="text-2xl font-bold text-center text-blue-600">Create Account</h2>
+  
+        <input id="username" type="text" placeholder="Username" autocomplete="off" autofocus
+          class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500" />
+  
+        <input id="password" type="password" placeholder="Password"
+          class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500" />
+  
+        <input id="confirmation" type="password" placeholder="Confirm Password"
+          class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500" />
+  
+        <button type="submit"
+          class="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 rounded-xl shadow-md transition duration-300">
+          Register
+        </button>
+      </form>
+  
+      <a href="/login"
+        class="block text-center w-full bg-neutral-50 hover:bg-blue-800 text-blue-600 font-semibold hover:text-white py-3 rounded-xl shadow-md transition duration-300">
+        Already have an account? Log in
+      </a>
     </div>
-    <button class="btn btn-primary" type="submit">Register</button>
-</form>
+  </div>
+  
+{% endblock %}
 
-<script>
-    document.addEventListener("DOMContentLoaded", function() {
-        document.getElementById("register-form").addEventListener("submit", async function(event) {
-            event.preventDefault();
-    
-            const username = document.getElementById("username").value;
-            const password = document.getElementById("password").value;
-            const confirmation = document.getElementById("confirmation").value;
-    
-            if (password !== confirmation) {
-                alert("Passwords do not match.");
-                return;
-            }
-    
-            const response = await fetch("/api/auth/register", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ username, password, confirmation })
-            });
-    
-            const data = await response.json();
-    
-            if (response.ok) {
-
-                localStorage.setItem("access_token", data.access_token);
-                localStorage.setItem("username", data.username);
-                
-                sessionStorage.setItem("flashMessage", `Welcome ${data.username}!`);
-                sessionStorage.setItem("flashType", "success");
-                
-                window.location.href = "/";
-            }
-
-            if (!response.ok) {
-                showFlashMessage(data.error, "error");
-            }
-        });
-    });
-    </script>
-
+{% block scripts %}
+    <script src="{{ url_for('static', filename='js/auth/register.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/ui/hideNavbar.js') }}"></script>
 {% endblock %}
