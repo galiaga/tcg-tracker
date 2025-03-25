@@ -6,6 +6,32 @@
 
 {% block main %}
     <h2>
+        Log match
+    </h2>
+
+    <form id="log-match-form">
+        <div class="mb-3">
+            <select id="deck-select" class="form-select mx-auto w-auto">
+                <option disabled selected>Select Deck</option>
+            </select>
+        </div>
+
+        <div class="btn-group btn-group-toggle" data-toggle="buttons">
+            <label class="btn btn-outline-success">
+            <input type="radio" name="match_result" value="0" id="option1" autocomplete="off" checked> Won
+            </label>
+            <label class="btn btn-outline-danger">
+            <input type="radio" name="match_result" value="1" id="option2" autocomplete="off"> Lose
+            </label>
+            <label class="btn btn-outline-warning">
+            <input type="radio" name="match_result" value="2" id="option3" autocomplete="off"> Draw
+            </label>
+        </div>
+
+        <button class="btn btn-primary" type="submit">Log Match</button>
+    </form>
+
+    <h2>
         Match History
     </h2>
         <div class="mb-3">
@@ -14,7 +40,6 @@
                     <th>Deck Name</th>
                     <th>Deck Type</th>
                     <th>Match result</th>
-                    <th>Match timestamp</th>
                 </thead>
                 <tbody></tbody>
             </table>
@@ -24,4 +49,5 @@
 {% block scripts %}
     <script type="module" src="/static/js/api/match_history.js"></script>
     <script src="{{ url_for('static', filename='js/auth.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/logMatch.js') }}"></script>
 {% endblock %}

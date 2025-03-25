@@ -17,25 +17,32 @@ function showFlashMessage(message, type = "info", duration = 3000) {
     const bgColors = {
         success: "bg-green-500",
         error: "bg-red-500",
-        warning: "bg-yellow-500 text-black",
+        warning: "bg-yellow-400 text-black",
         info: "bg-blue-500"
     };
 
-    // Reset classes
-    container.className = `max-w-md w-full rounded-xl px-4 py-3 shadow-lg pointer-events-auto transition duration-300 ease-in-out ${bgColors[type] || bgColors.info}`;
-    text.textContent = message;
+    container.className = `transform transition-all duration-300 ease-out opacity-0 translate-y-[-20px] inline-flex items-center gap-2 px-4 py-3 text-sm text-white rounded-full shadow-lg pointer-events-auto max-w-fit md:max-w-md ${bgColors[type] || bgColors.info}`;
 
+    text.textContent = message;
     container.classList.remove("hidden");
 
-    // Close manually
-    closeBtn.onclick = () => {
-        container.classList.add("hidden");
-    };
+    // Trigger animation
+    requestAnimationFrame(() => {
+        container.classList.remove("opacity-0", "translate-y-[-20px]");
+        container.classList.add("opacity-100", "translate-y-0");
+    });
 
-    // Auto-hide
     if (duration > 0) {
         setTimeout(() => {
-            container.classList.add("hidden");
+            container.classList.remove("opacity-100", "translate-y-0");
+            container.classList.add("opacity-0", "translate-y-[-20px]");
+            setTimeout(() => container.classList.add("hidden"), 300);
         }, duration);
     }
+
+    closeBtn.onclick = () => {
+        container.classList.remove("opacity-100", "translate-y-0");
+        container.classList.add("opacity-0", "translate-y-[-20px]");
+        setTimeout(() => container.classList.add("hidden"), 300);
+    };
 }

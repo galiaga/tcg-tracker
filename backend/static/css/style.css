@@ -1,3 +1,11 @@
+@media (max-width: 767px) {
+    #flash-message {
+      border-radius: 9999px; /* estilo pill en móvil */
+      max-width: 90%;
+      word-wrap: break-word;
+    }
+  }
+
 .active-indicator {
     transition: all 0.3s ease-in-out;
   }
@@ -41,11 +49,11 @@
     opacity: 1 !important;
 }
 
-#nav-home, #nav-profile, #nav-log_match, #nav-my-decks, #nav-logout {
+#nav-home, #nav-profile, #nav-my-decks, #nav-logout {
     visibility: hidden;
 }
 
-#nav-home.show, #nav-profile.show, #nav-log_match.show, #nav-my-decks.show, #nav-logout.show {
+#nav-home.show, #nav-profile.show, #nav-my-decks.show, #nav-logout.show {
     display: block !important;
     visibility: visible;
 }

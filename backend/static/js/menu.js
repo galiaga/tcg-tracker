@@ -26,7 +26,6 @@ document.addEventListener("DOMContentLoaded", function () {
         showElement("nav-home");
         showElement("nav-profile");
         showElement("nav-matches");
-        showElement("nav-log_match");
         showElement("nav-my-decks");
         showElement("nav-logout");
         showElement("mobile-navbar");
@@ -37,7 +36,6 @@ document.addEventListener("DOMContentLoaded", function () {
         hideElement("nav-home");
         hideElement("nav-profile");
         hideElement("nav-matches");
-        hideElement("nav-log_match");
         hideElement("nav-my-decks");
         hideElement("nav-logout");
         hideElement("mobile-navbar");

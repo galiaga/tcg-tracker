@@ -11,10 +11,6 @@ def index_page():
 def login_page():
     return render_template("login.html")
 
-@frontend_bp.route("/log_match", methods=["GET"])
-def log_match_page():
-    return render_template("log_match.html")
-
 @frontend_bp.route("/matches_history", methods=["GET"])
 def matches_history():
     return render_template("matches_history.html")
