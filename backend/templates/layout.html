@@ -11,34 +11,37 @@
 
     <body>
 
-      <nav id="main-navbar" class="bg-blue-600 shadow-md hidden md:block">
-        <div class="container-fluid">
-            <ul class="flex justify-between items-center py-4 space-x-6 text-white">
-
+        <nav id="main-navbar" class="bg-blue-600 shadow-md hidden md:block">
+            <div class="container-fluid">
+              <ul class="flex justify-between items-center py-4 space-x-6 text-white">
+                <!-- Usuario -->
                 <li id="nav-username" class="hidden text-lg font-semibold"></li>
-    
+                
+                <!-- Links -->
                 <li id="nav-login" class="hidden">
-                    <a href="/login" class="text-white hover:text-blue-300">Login</a>
+                  <a href="/login" class="text-white hover:text-blue-300">Login</a>
                 </li>
                 <li id="nav-register" class="hidden">
-                    <a href="/register" class="text-white hover:text-blue-300">Register</a>
+                  <a href="/register" class="text-white hover:text-blue-300">Register</a>
                 </li>
-    
-                <li id="nav-home" class="hidden">
-                    <a href="/" data-path="/" class="desktop-nav-link text-white hover:text-blue-300 p-2">Home</a>
+          
+                <!-- Menú principal -->
+                <li id="nav-home">
+                  <a href="/" data-path="/" class="desktop-nav-link text-white hover:text-blue-300 p-2">Home</a>
                 </li>
-                <li id="nav-matches" class="hidden">
-                    <a href="/matches_history" data-path="/matches_history" class="desktop-nav-link text-white hover:text-blue-300 p-2">Matches</a>
+                <li id="nav-matches">
+                  <a href="/matches_history" data-path="/matches_history" class="desktop-nav-link text-white hover:text-blue-300 p-2">Matches</a>
                 </li>
-                <li id="nav-my-decks" class="hidden">
-                    <a href="/my-decks" data-path="/my-decks" class="desktop-nav-link text-white hover:text-blue-300 p-2">My Decks</a>
+                <li id="nav-my-decks">
+                  <a href="/my-decks" data-path="/my-decks" class="desktop-nav-link text-white hover:text-blue-300 p-2">My Decks</a>
                 </li>
-                <li id="nav-logout" class="hidden">
-                    <a href="#" onclick="logout()" class="desktop-nav-link text-white hover:text-blue-300 p-2">Logout</a>
+                <li id="nav-logout">
+                  <a href="#" onclick="logout()" class="desktop-nav-link text-white hover:text-blue-300 p-2">Logout</a>
                 </li>
-            </ul>
-        </div>
-    </nav>
+              </ul>
+            </div>
+          </nav>
+          
     
     <main class="bg-gray-100 pb-20">
         {% block main %}{% endblock %}
@@ -61,40 +64,41 @@
 
         <nav id="mobile-navbar" class="fixed bottom-0 left-0 right-0 bg-white border-t shadow-inner md:hidden z-50">
           <ul class="flex justify-around text-blue-600">
-              <li>
-                  <a href="/" data-path="/" class="mobile-nav-link relative flex flex-col items-center px-4 py-2 transition-colors duration-300">
-                      <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M13 5v6h6" />
-                      </svg>
-                      <span class="text-xs">Home</span>
-                  </a>
-              </li>
-              <li>
-                  <a href="/my-decks" data-path="/my-decks" class="mobile-nav-link relative flex flex-col items-center px-4 py-2 transition-colors duration-300">
-                      <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4" />
-                      </svg>
-                      <span class="text-xs">Decks</span>
-                  </a>
-              </li>
-              <li>
-                  <a href="/matches_history" data-path="/matches_history" class="mobile-nav-link relative flex flex-col items-center px-4 py-2 transition-colors duration-300">
-                      <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                      </svg>
-                      <span class="text-xs">Matches</span>
-                  </a>
-              </li>
-              <li>
-                  <button onclick="logout()" class="flex flex-col items-center p-2 text-red-500">
-                      <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7" />
-                      </svg>
-                      <span class="text-xs">Logout</span>
-                  </button>
-              </li>
+            <li>
+              <a href="/" data-path="/" class="mobile-nav-link relative flex flex-col items-center px-4 py-2 rounded-md transition-colors duration-300 hover:bg-blue-600 hover:text-white">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M13 5v6h6" />
+                </svg>
+                <span class="text-xs">Home</span>
+              </a>
+            </li>
+            <li>
+              <a href="/my-decks" data-path="/my-decks" class="mobile-nav-link relative flex flex-col items-center px-4 py-2 rounded-md transition-colors duration-300 hover:bg-blue-600 hover:text-white">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4" />
+                </svg>
+                <span class="text-xs">Decks</span>
+              </a>
+            </li>
+            <li>
+              <a href="/matches_history" data-path="/matches_history" class="mobile-nav-link relative flex flex-col items-center px-4 py-2 rounded-md transition-colors duration-300 hover:bg-blue-600 hover:text-white">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                <span class="text-xs">Matches</span>
+              </a>
+            </li>
+            <li>
+              <button onclick="logout()" class="flex flex-col items-center p-2 text-red-500 rounded-md transition-colors duration-300 hover:bg-red-500 hover:text-white">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7" />
+                </svg>
+                <span class="text-xs">Logout</span>
+              </button>
+            </li>
           </ul>
-      </nav>
+      </nav>       
+          
     </body>
 
 </html>
