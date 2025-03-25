@@ -43,7 +43,7 @@ def create_app(config_name=None):
     app.register_blueprint(commanders_bp, url_prefix='/api')
     app.register_blueprint(matches_history_bp, url_prefix='/api')
     app.register_blueprint(user_decks_bp, url_prefix='/api')
-
+  
     register_routes(app)
 
     Migrate(app, db)

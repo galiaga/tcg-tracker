@@ -22,3 +22,7 @@ def register_page():
 @frontend_bp.route("/my-decks", methods=["GET"])
 def register_deck_page():
     return render_template("my-decks.html")
+
+@frontend_bp.route("/decks/<deck_id_slug>", methods=["GET"])
+def deck_details_page(deck_id_slug):
+    return render_template("decks/deck_details.html")
