@@ -26,6 +26,7 @@ document.addEventListener("DOMContentLoaded", function () {
         showElement("nav-matches");
         showElement("nav-my-decks");
         showElement("nav-logout");
+        showElement("mobile-navbar");
     } else {
         hideElement("nav-username");
         hideElement("nav-login");
@@ -34,18 +35,31 @@ document.addEventListener("DOMContentLoaded", function () {
         hideElement("nav-matches");
         hideElement("nav-my-decks");
         hideElement("nav-logout");
+        hideElement("mobile-navbar");
     }
 
     const currentPath = window.location.pathname;
 
-    document.querySelectorAll('.desktop-nav-link').forEach(link => {
+    document.querySelectorAll('.desktop-nav-link, .mobile-nav-link').forEach(link => {
+        link.classList.remove('bg-blue-600', 'text-white', 'font-bold', 'rounded-md');
+    });
+
+    const desktopLinks = document.querySelectorAll('.desktop-nav-link');
+    const mobileLinks = document.querySelectorAll('.mobile-nav-link');
+
+    desktopLinks.forEach(link => {
         const expectedPath = link.getAttribute('data-path');
-        const currentPath = window.location.pathname;
-        
-        if (expectedPath === currentPath) {
-            link.classList.add('bg-blue-700', 'text-white', 'font-bold', 'rounded-full');
+        if (currentPath === expectedPath) {
+            link.classList.add('bg-blue-600', 'text-white', 'font-bold', 'rounded-full');
+        }
+    });
+
+    mobileLinks.forEach(link => {
+        const expectedPath = link.getAttribute('data-path');
+        if (currentPath === expectedPath) {
+            link.classList.add('bg-blue-600', 'text-white');
         } else {
-            link.classList.remove('bg-blue-700', 'text-white', 'font-bold', 'rounded-full');
+            link.classList.remove('bg-blue-600', 'text-white');
         }
     });
 });
