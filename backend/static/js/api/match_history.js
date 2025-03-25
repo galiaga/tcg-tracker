@@ -52,7 +52,6 @@ async function loadUserMatches() {
                 <td>${match.deck.name}</td>
                 <td>${match.deck_type.name}</td>
                 <td>${formatMatchResult(match.result)}</td>
-                <td>${formattedDate}</td>
                 `;
             
                 fragment.appendChild(row);
