@@ -27,7 +27,9 @@ def user_decks():
             },
             "win_rate": stats.get(deck.id, {}).get("win_rate", 0),
             "total_matches": stats.get(deck.id, {}).get("total_matches", 0),
-            "total_wins": stats.get(deck.id, {}).get("total_wins", 0)
+            "total_wins": stats.get(deck.id, {}).get("total_wins", 0),
+            "last_match": stats.get(deck.id, {}).get("last_match", 0)
+
         } 
         for deck, deck_type in user_decks
     ]
