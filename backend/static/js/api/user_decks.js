@@ -22,7 +22,6 @@ async function loadUserDecks() {
         });
 
         if (!response) return;
-
         if (!response.ok) throw new Error("Error fetching user decks");
 
         let userDecks = await response.json();
@@ -44,9 +43,10 @@ async function loadUserDecks() {
         const fragment = document.createDocumentFragment();
 
         userDecks.forEach(deck => {
-            const card = document.createElement("div");
-
-            card.className = "rounded-2xl shadow-md p-4 bg-white border border-gray-200 hover:shadow-lg transition duration-300";
+            const card = document.createElement("a");
+            const slug = deck.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+            card.href = `/decks/${deck.id}-${slug}`;
+            card.className = "block rounded-2xl shadow-md p-4 bg-white border border-gray-200 hover:shadow-lg transition duration-300 cursor-pointer";
 
             card.innerHTML = `
                 <h2 class="text-xl font-semibold mb-2">${deck.name}</h2>

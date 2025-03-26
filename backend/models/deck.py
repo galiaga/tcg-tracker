@@ -12,3 +12,16 @@ class Deck(db.Model):
 
     deck_type = db.relationship("DeckType", back_populates="decks")
     commander_decks = db.relationship("CommanderDeck", back_populates="deck", cascade="all, delete-orphan") 
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "name": self.name,
+            "deck_type": {
+                "id": self.deck_type.id,
+                "name": self.deck_type.name
+            },
+            "win_rate": getattr(self, "win_rate", 0),
+            "total_matches": getattr(self, "total_matches", 0),
+            "total_wins": getattr(self, "total_wins", 0)
+        }
