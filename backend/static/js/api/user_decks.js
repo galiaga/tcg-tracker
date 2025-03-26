@@ -24,7 +24,7 @@ async function loadUserDecks() {
         if (!response) return;
         if (!response.ok) throw new Error("Error fetching user decks");
 
-        let userDecks = await response.json();
+        window.userDecks = await response.json();
 
         if (!Array.isArray(userDecks)) {
             console.warn("Unexpected response format:", userDecks);
@@ -40,6 +40,14 @@ async function loadUserDecks() {
             return;
         }
 
+        console.log("userDecks = ", userDecks)
+
+        // Sort decks
+        // Winrate
+        // userDecks.sort((a, b) => b.win_rate - a.win_rate);
+        // Last match
+        userDecks.sort((a, b) => new Date(b.last_match) - new Date(a.last_match));
+
         const fragment = document.createDocumentFragment();
 
         userDecks.forEach(deck => {
@@ -53,7 +61,8 @@ async function loadUserDecks() {
                 <p class="text-sm text-gray-500 mb-1"><strong>Format:</strong> ${deck.deck_type.name}</p>
                 <p class="text-sm text-gray-500 mb-1"><strong>Winrate:</strong> ${deck.win_rate ?? 0}%</p>
                 <p class="text-sm text-gray-500 mb-1"><strong>Matches:</strong> ${deck.total_matches ?? 0}</p>
-                <p class="text-sm text-gray-500"><strong>Wins:</strong> ${deck.total_wins ?? 0}</p>
+                <p class="text-sm text-gray-500 mb-1"><strong>Wins:</strong> ${deck.total_wins ?? 0}</p>
+                <p class="text-sm text-gray-500"><strong>Last Match:</strong> ${deck.last_match ?? 0}</p>
             `;
 
             fragment.appendChild(card);

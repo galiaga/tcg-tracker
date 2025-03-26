@@ -11,9 +11,6 @@
             <div class="mb-3">
                 <select id="deck_type" class="form-select mx-auto w-auto" required>
                     <option value="" disabled selected>Loading deck types...</option>
-                    <option value="Standard">Standard</option>
-                    <option value="Modern">Modern</option>
-                    <option value="Commander">Commander</option>
                 </select>
             </div>
             <div id="commander_field" class="mb-3 position-relative" style="display: none;">
@@ -53,6 +50,14 @@
             </h2>
         </div>
     </div>
+    <div class="mb-3">
+        <select id="sort_decks" class="form-select mx-auto w-auto" required>
+            <option value="last_match" selected>Last Match</option>
+            <option value="matches">Matches</option>
+            <option value="name">Deck name</option>
+            <option value="winrate">Winrate</option>
+        </select>
+    </div>
     <div id="decks-container" class="grid gap-4 md:grid-cols-2 xl:grid-cols-3 mt-4"></div>
 </div>
 
@@ -64,4 +69,5 @@
     <script type="module" src="{{ url_for('static', filename='js/deckForm.js') }}"></script>
     <script src="{{ url_for('static', filename='js/api/user_decks.js') }}"></script>
     <script src="/static/js/registerDeck.js"></script>
+    <script src="{{ url_for('static', filename='js/ui/decks/sort_decks.js') }}"></script>
 {% endblock %}
