@@ -1,3 +1,5 @@
+import { renderDeckCard, renderEmptyDecksMessage } from "../ui/decks/deckCardComponent.js";
+
 document.addEventListener("DOMContentLoaded", function () {
     loadUserDecks();
 });
@@ -32,39 +34,14 @@ async function loadUserDecks() {
         }
 
         if (userDecks.length === 0) {
-            container.innerHTML = `
-                <div class="text-center text-gray-500 mt-4">
-                    No decks yet. Start by creating one!
-                </div>
-            `;
+            renderEmptyDecksMessage(container);
             return;
         }
-
-        console.log("userDecks = ", userDecks)
-
-        // Sort decks
-        // Winrate
-        // userDecks.sort((a, b) => b.win_rate - a.win_rate);
-        // Last match
-        userDecks.sort((a, b) => new Date(b.last_match) - new Date(a.last_match));
 
         const fragment = document.createDocumentFragment();
 
         userDecks.forEach(deck => {
-            const card = document.createElement("a");
-            const slug = deck.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
-            card.href = `/decks/${deck.id}-${slug}`;
-            card.className = "block rounded-2xl shadow-md p-4 bg-white border border-gray-200 hover:shadow-lg transition duration-300 cursor-pointer";
-
-            card.innerHTML = `
-                <h2 class="text-xl font-semibold mb-2">${deck.name}</h2>
-                <p class="text-sm text-gray-500 mb-1"><strong>Format:</strong> ${deck.deck_type.name}</p>
-                <p class="text-sm text-gray-500 mb-1"><strong>Winrate:</strong> ${deck.win_rate ?? 0}%</p>
-                <p class="text-sm text-gray-500 mb-1"><strong>Matches:</strong> ${deck.total_matches ?? 0}</p>
-                <p class="text-sm text-gray-500 mb-1"><strong>Wins:</strong> ${deck.total_wins ?? 0}</p>
-                <p class="text-sm text-gray-500"><strong>Last Match:</strong> ${deck.last_match ?? 0}</p>
-            `;
-
+            const card = renderDeckCard(deck);
             fragment.appendChild(card);
         });
 
