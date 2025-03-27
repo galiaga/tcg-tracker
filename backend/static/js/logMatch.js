@@ -13,7 +13,6 @@ document.addEventListener("DOMContentLoaded", async function() {
     }
     
     try {
-        // Load user decks
         const response = await authFetch("/api/user_decks", {
             method: "GET",
             headers: {
