@@ -1,3 +1,7 @@
+function updatePageTitle(newTitle) {
+    document.title = `TCG Tracker: ${newTitle}`;
+}
+
 document.addEventListener("DOMContentLoaded", async () => {
     const pathParts = window.location.pathname.split("/");
     const idSlug = pathParts[pathParts.length - 1];
@@ -25,6 +29,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         const deck = await response.json();
 
+        console.log("deck = ", deck);
+
         const container = document.getElementById("deck-details");
         container.innerHTML = `
             <h1 class="text-2xl font-bold">${deck.name}</h1>
@@ -33,6 +39,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             <p><strong>Matches:</strong> ${deck.total_matches}</p>
             <p><strong>Wins:</strong> ${deck.total_wins}</p>
         `;
+        updatePageTitle(deck.name);
     } catch (error) {
         console.error(error);
         showFlashMessage(error.message, "danger");
