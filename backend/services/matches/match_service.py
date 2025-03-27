@@ -65,3 +65,6 @@ def get_deck_stats(user_id, deck_id):
             "total_wins": deck.total_wins,
             "win_rate": round((deck.total_wins / deck.total_matches) * 100, 2) if deck.total_matches > 0 else 0,
         }
+
+def get_commanders (user_id, deck_id):
+    return

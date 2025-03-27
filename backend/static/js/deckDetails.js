@@ -29,8 +29,6 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         const deck = await response.json();
 
-        console.log("deck = ", deck);
-
         const container = document.getElementById("deck-details");
         container.innerHTML = `
             <h1 class="text-2xl font-bold">${deck.name}</h1>
@@ -39,7 +37,25 @@ document.addEventListener("DOMContentLoaded", async () => {
             <p><strong>Matches:</strong> ${deck.total_matches}</p>
             <p><strong>Wins:</strong> ${deck.total_wins}</p>
         `;
+        
         updatePageTitle(deck.name);
+
+        const commanders_container = document.getElementById("commanders");
+        
+        if (deck.commander?.commander_id && deck.commander?.associated_commander_id) {
+            commanders_container.innerHTML = `
+            <p><strong>Commander:</strong> ${deck.commander_name}</p>
+            <p><strong>Associated Commander:</strong> ${deck.associated_commander_name}</p>
+            `;
+        }
+
+        else if (deck.commander?.commander_id) {
+            console.log ("commander.commander_id = ", deck.commander.commander_id)
+            commanders_container.innerHTML = `
+            <p><strong>Commander:</strong> ${deck.commander_name}</p>
+            `;
+        }
+
     } catch (error) {
         console.error(error);
         showFlashMessage(error.message, "danger");

@@ -8,6 +8,7 @@ from backend.models.commander_deck import CommanderDeck
 from backend.services.matches.match_service import get_deck_stats
 from backend.services.matches.match_service import get_all_decks_stats
 from backend.services.decks.get_user_decks_service import get_user_decks
+from backend.services.decks.get_commander_attributes_service import get_commander_attributes_by_id
 
 import json
 
@@ -36,6 +37,23 @@ def deck_details(deck_id):
             "total_matches": stats["total_matches"],
             "total_wins": stats["total_wins"]
         })
+
+    if deck_data["deck_type"]["id"] == COMMANDER_DECK_TYPE_ID:
+        commander_attributes = get_commander_attributes_by_id(deck_data["commander"]["commander_id"])
+
+        if commander_attributes:
+            jsonify(commander_attributes)
+            deck_data.update({
+                "commander_name": commander_attributes["name"]
+            })
+        
+        associated_commander_attributes = get_commander_attributes_by_id(deck_data["commander"]["associated_commander_id"])
+        if associated_commander_attributes:
+            jsonify(associated_commander_attributes)
+            deck_data.update({
+                "associated_commander_name": associated_commander_attributes["name"]
+            })
+
     return jsonify(deck_data), 200
 
 @decks_bp.route("/register_deck", methods=["POST"])

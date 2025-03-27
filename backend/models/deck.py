@@ -11,10 +11,10 @@ class Deck(db.Model):
     deck_type_id = db.Column(db.Integer, db.ForeignKey('deck_types.id'), nullable=False)
 
     deck_type = db.relationship("DeckType", back_populates="decks")
-    commander_decks = db.relationship("CommanderDeck", back_populates="deck", cascade="all, delete-orphan") 
+    commander_decks = db.relationship("CommanderDeck", back_populates="deck", uselist=False, cascade="all, delete-orphan")
 
     def to_dict(self):
-        return {
+        data = {
             "id": self.id,
             "name": self.name,
             "deck_type": {
@@ -25,3 +25,11 @@ class Deck(db.Model):
             "total_matches": getattr(self, "total_matches", 0),
             "total_wins": getattr(self, "total_wins", 0)
         }
+
+        if self.deck_type_id == 7 and self.commander_decks:
+            data["commander"] = {
+                "commander_id": self.commander_decks.commander_id,
+                "associated_commander_id": self.commander_decks.associated_commander_id
+            }
+
+        return data
