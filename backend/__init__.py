@@ -24,6 +24,7 @@ def create_app(config_name=None):
     db.init_app(app)
 
     from backend.routes import register_routes
+  
     register_routes(app)
 
     Migrate(app, db)
