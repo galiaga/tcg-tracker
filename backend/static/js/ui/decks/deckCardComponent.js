@@ -4,18 +4,20 @@ export function renderDeckCard(deck) {
     const slug = deck.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
     const card = document.createElement("a");
     card.href = `/decks/${deck.id}-${slug}`;
-    card.className = "block rounded-2xl shadow-md p-4 bg-white border border-gray-200 hover:shadow-lg transition duration-300 cursor-pointer";
+    card.className = "block rounded-2xl shadow-md p-4 border border-gray-200 hover:shadow-lg transition duration-300 cursor-pointer hover:scale-105";
 
     const winrate = deck.win_rate ?? 0;
     if (winrate >= 60) {
-        card.classList.add("bg-green-50", "border-green-200");
+        card.classList.add("bg-green-100", "border-green-200");
     } else if (winrate >= 30) {
         card.classList.add("bg-yellow-50", "border-yellow-200");
     } else {
-        card.classList.add("bg-red-50", "border-red-200");
+        card.classList.add("bg-red-100", "border-red-200");
     }
 
     const formattedDate = formatDate(deck.last_match);
+
+    userDecks.sort((a, b) => new Date(b.last_match) - new Date(a.last_match));
 
     card.innerHTML = `
         <div class="flex items-start justify-between mb-2">
