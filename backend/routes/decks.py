@@ -229,7 +229,4 @@ def user_decks():
         for deck, deck_type in user_decks
     ]
 
-    print(f"stats = {stats}")
-    print(f"decks_list = {decks_list}")
-
     return jsonify(decks_list), 200

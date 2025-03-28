@@ -31,30 +31,16 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         const container = document.getElementById("deck-details");
         container.innerHTML = `
-            <h1 class="text-2xl font-bold">${deck.name}</h1>
-            <p><strong>Format:</strong> ${deck.deck_type.name}</p>
-            <p><strong>Winrate:</strong> ${deck.win_rate}%</p>
-            <p><strong>Matches:</strong> ${deck.total_matches}</p>
-            <p><strong>Wins:</strong> ${deck.total_wins}</p>
+            <h2 class="text-xl font-bold mb-1">${deck.name}</h2>
+            <p><span class="font-semibold text-gray-700">Format:</span> ${deck.deck_type.name}</p>
+            <p><span class="font-semibold text-gray-700">Winrate:</span> ${deck.win_rate}%</p>
+            <p><span class="font-semibold text-gray-700">Matches:</span> ${deck.total_matches}</p>
+            <p><span class="font-semibold text-gray-700">Wins:</span> ${deck.total_wins}</p>
+            ${deck.commander_name ? `<p><span class="font-semibold text-gray-700">Commander:</span> ${deck.commander_name}</p>` : ""}
+            ${deck.associated_commander_name ? `<p><span class="font-semibold text-gray-700">Associated Commander:</span> ${deck.associated_commander_name}</p>` : ""}
         `;
         
         updatePageTitle(deck.name);
-
-        const commanders_container = document.getElementById("commanders");
-        
-        if (deck.commander?.commander_id && deck.commander?.associated_commander_id) {
-            commanders_container.innerHTML = `
-            <p><strong>Commander:</strong> ${deck.commander_name}</p>
-            <p><strong>Associated Commander:</strong> ${deck.associated_commander_name}</p>
-            `;
-        }
-
-        else if (deck.commander?.commander_id) {
-            console.log ("commander.commander_id = ", deck.commander.commander_id)
-            commanders_container.innerHTML = `
-            <p><strong>Commander:</strong> ${deck.commander_name}</p>
-            `;
-        }
 
     } catch (error) {
         console.error(error);
