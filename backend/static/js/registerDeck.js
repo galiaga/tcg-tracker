@@ -17,14 +17,11 @@ document.addEventListener("DOMContentLoaded", function() {
         const commanderId = deckTypeId === COMMANDER_ID ? commanderInput.dataset.commanderId : null;
         let partnerId = deckTypeId === COMMANDER_ID && partnerInput ? partnerInput.dataset.partnerId : null;
 
-        // ✅ Si `partnerInput` tiene valor en el campo, pero `dataset.partnerId` es null, actualizarlo
         if (deckTypeId === "7" && partnerInput && partnerInput.value.trim() !== "" && !partnerId) {
             console.warn("⚠ Partner name is selected but partnerId is missing in dataset. Updating...");
             partnerId = await fetchPartnerId(partnerInput.value.trim());
-            console.log("Updated Partner ID:", partnerId);
         }
 
-        // ✅ Validación en el frontend: Si commander requiere partner y no se eligió, mostrar error
         if (deckTypeId === "7" && commanderInput.dataset.requiresPartner === "true" && !partnerId) {
             showFlashMessage("You must select a Partner for this Commander.", "error");
             return;
@@ -67,13 +64,12 @@ document.addEventListener("DOMContentLoaded", function() {
     });
 });
 
-// ✅ Función para obtener `partnerId` si el usuario ingresó solo el nombre
 async function fetchPartnerId(partnerName) {
     try {
         const response = await fetch(`/api/search_commanders?q=${partnerName}&type=partner`);
         const commanders = await response.json();
         if (commanders.length > 0) {
-            return commanders[0].id;  // Tomamos el primer resultado
+            return commanders[0].id; 
         }
     } catch (error) {
         console.error("Error fetching partner ID:", error);
