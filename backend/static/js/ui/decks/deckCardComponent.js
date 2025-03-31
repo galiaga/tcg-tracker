@@ -17,7 +17,7 @@ export function renderDeckCard(deck) {
 
     card.innerHTML = `
         <div class="flex items-start justify-between mb-2">
-            <h2 class="text-lg font-bold text-gray-800 truncate">${deck.name}</h2>
+            <h2 class="text-lg font-bold text-gray-800 min-w-0 break-words md:truncate">${deck.name}</h2>
             <span class="text-xs bg-blue-500 text-white px-2 py-0.5 rounded-md font-medium whitespace-nowrap">
                 ${deck.deck_type.name}
             </span>

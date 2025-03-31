@@ -160,13 +160,6 @@ document.addEventListener("DOMContentLoaded", function () {
             });
             suggestionsList.appendChild(listItem);
         });
-
-        if (commanders.length === 0) {
-            const noResults = document.createElement("li");
-            noResults.classList.add("list-group-item", "text-center");
-            noResults.textContent = "No results";
-            suggestionsList.appendChild(noResults);
-        }
     }
 
     const commanderSuggestions = document.getElementById("commander-suggestions");
