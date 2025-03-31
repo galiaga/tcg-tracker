@@ -10,7 +10,7 @@ function handleDeckSortChange(event) {
     sortAndRenderDecks(sortOption);
 }
 
-function sortAndRenderDecks(sortOption) {
+export function sortAndRenderDecks(sortOption) {
     if (!window.userDecks || !Array.isArray(userDecks)) {
         showFlashMessage("Decks not loaded yet.", "warning");
         return;
@@ -39,17 +39,19 @@ function sortAndRenderDecks(sortOption) {
             return;
     }
 
-    renderDecks(userDecks);
+    renderDecks(window.userDecks);
 }
 
 function renderDecks(decks) {
-
     const decksContainer = document.getElementById('decks-container');
+    if (!decksContainer) {
+        console.error("Decks container not found.");
+        return;
+    }
     decksContainer.innerHTML = '';
-
     const fragment = document.createDocumentFragment();
 
-    userDecks.forEach(deck => {
+    decks.forEach(deck => {
         const card = renderDeckCard(deck);
         fragment.appendChild(card);
     });

@@ -1,5 +1,3 @@
-// deckCardComponent.js
-
 export function renderDeckCard(deck) {
     const slug = deck.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
     const card = document.createElement("a");
@@ -16,8 +14,6 @@ export function renderDeckCard(deck) {
     }
 
     const formattedDate = formatDate(deck.last_match);
-
-    userDecks.sort((a, b) => new Date(b.last_match) - new Date(a.last_match));
 
     card.innerHTML = `
         <div class="flex items-start justify-between mb-2">

@@ -1,4 +1,5 @@
 import { renderDeckCard, renderEmptyDecksMessage } from "../ui/decks/deckCardComponent.js";
+import { sortAndRenderDecks } from "../ui/decks/sort_decks.js";
 
 document.addEventListener("DOMContentLoaded", function () {
     loadUserDecks();
@@ -27,6 +28,7 @@ async function loadUserDecks() {
         if (!response.ok) throw new Error("Error fetching user decks");
 
         window.userDecks = await response.json();
+        sortAndRenderDecks("last_match");
 
         if (!Array.isArray(userDecks)) {
             console.warn("Unexpected response format:", userDecks);
@@ -37,15 +39,6 @@ async function loadUserDecks() {
             renderEmptyDecksMessage(container);
             return;
         }
-
-        const fragment = document.createDocumentFragment();
-
-        userDecks.forEach(deck => {
-            const card = renderDeckCard(deck);
-            fragment.appendChild(card);
-        });
-
-        container.appendChild(fragment);
 
     } catch (error) {
         console.error(error);
