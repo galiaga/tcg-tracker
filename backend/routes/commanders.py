@@ -11,8 +11,11 @@ commanders_bp = Blueprint("commanders", __name__, url_prefix="/api")
 @commanders_bp.route("/search_commanders", methods=["GET"])
 def search_commanders():
     query = request.args.get("q", "").strip().lower()
+    print(f"query = {query}")
 
     relation_type = request.args.get("type", "").lower()
+
+    print(f"relation_type = {relation_type}")
 
     if not query:
         return jsonify([])
@@ -21,18 +24,33 @@ def search_commanders():
         commanders = Commander.query.filter(Commander.partner == 1, Commander.name.ilike(f"{query}%")).all()
         print(f"Comandantes encontrados (partner): {commanders}")
         pprint([commander.name for commander in commanders])
-    elif relation_type == "friendsForever":
+
+    elif relation_type == "friendsforever":
         commanders = Commander.query.filter(Commander.friends_forever == 1, Commander.name.ilike(f"{query}%")).all()
         print(f"Comandantes encontrados (friends forever): {commanders}")
         pprint([commander.name for commander in commanders])
-    elif relation_type == "doctorCompanion":
+
+    elif relation_type == "doctorcompanion":
         commanders = Commander.query.filter(Commander.time_lord_doctor == 1, Commander.name.ilike(f"{query}%")).all()
         print(f"Comandantes encontrados (time_lord_doctor): {commanders}")
         pprint([commander.name for commander in commanders])
-    elif relation_type == "timeLordDoctor":
+
+    elif relation_type == "timelorddoctor":
         commanders = Commander.query.filter(Commander.doctor_companion == 1, Commander.name.ilike(f"{query}%")).all()
         print(f"Comandantes encontrados (doctor companion): {commanders}")
         pprint([commander.name for commander in commanders])
+
+    elif relation_type == "background":
+        commanders = Commander.query.filter(Commander.choose_a_background == 1, Commander.name.ilike(f"{query}%")).all()
+        print(f"Comandantes encontrados (background): {commanders}")
+        pprint([commander.name for commander in commanders])
+    
+    elif relation_type == "chooseabackground":
+        print("LLEGO HASTA ACÄ")
+        commanders = Commander.query.filter(Commander.background == 1, Commander.name.ilike(f"{query}%")).all()
+        print(f"Comandantes encontrados (choose_a_background): {commanders}")
+        pprint([commander.name for commander in commanders])
+        
     else:
         commanders = Commander.query.filter(Commander.name.ilike(f"{query}%")).all()
         print(f"Comandantes encontrados (todos): {commanders}")
