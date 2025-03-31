@@ -4,7 +4,7 @@ const COMMANDER_ID = "7";
 
 document.addEventListener("DOMContentLoaded", function () {
     const deckTypeSelect = document.getElementById("deck_type");
-    const commanderField = document.getElementById("commander_field");
+    const commanderField = document.getElementById("commanderField");
     const commanderInput = document.getElementById("commander_name");
 
     const partnerField = document.getElementById("partnerField");
@@ -12,6 +12,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const doctorCompanionField = document.getElementById("doctorCompanionField");
     const timeLordDoctorField = document.getElementById("timeLordDoctorField");
     const backgroundField = document.getElementById("backgroundField");
+    const chooseABackgroundField = document.getElementById("chooseABackgroundField")
     
     let selectedCommanderId = null; 
 
@@ -51,45 +52,54 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 
         const commanderData = await response.json();
-        console.log("commanderData:", commanderData)
 
         selectedCommanderId = commanderData.id;
+
+        console.log("Datos del comandante recibidos:", commanderData, "END DE DATOS");
 
         partnerField.style.display = "none";
         friendsForeverField.style.display = "none";
         doctorCompanionField.style.display = "none";
         timeLordDoctorField.style.display = "none";
         backgroundField.style.display = "none";
+        chooseABackgroundField.style.display = "none";
 
         if (commanderData.partner) {
             partnerField.style.display = "block";
-            document.getElementById("partner_name").placeholder = "Partner Name";
+            document.getElementById("partner_name").placeholder = "Who is the Partner?";
             await populateSuggestions("partner");
         }
 
         if (commanderData.friends_forever) {
             friendsForeverField.style.display = "block";
-            document.getElementById("friendsForever_name").placeholder = "Friend Name";
+            document.getElementById("friendsForever_name").placeholder = "Who is the BFF?";
             await populateSuggestions("friendsForever");
         }
 
         if (commanderData.doctor_companion) {
             doctorCompanionField.style.display = "block";
-            document.getElementById("doctorCompanion_name").placeholder = "Doctor's Companion Name";
+            document.getElementById("doctorCompanion_name").placeholder = "Who is the Doctor?";
             await populateSuggestions("doctorCompanion");
         }
 
         if (commanderData.time_lord_doctor) {
             timeLordDoctorField.style.display = "block";
-            document.getElementById("timeLordDoctor_name").placeholder = "Time Lord Doctor Name";
+            document.getElementById("timeLordDoctor_name").placeholder = "Who is the Doctor's Companion?";
             await populateSuggestions("timeLordDoctor");
         }
 
         if (commanderData.background) {
             backgroundField.style.display = "block";
-            document.getElementById("background_name").placeholder = "Background Name";
+            document.getElementById("background_name").placeholder = "Choose a commander";
             await populateSuggestions("background");
         }
+
+        if (commanderData.choose_a_background) {
+            chooseABackgroundField.style.display = "block";
+            document.getElementById("chooseABackground_name").placeholder = "Choose a Background";
+            await populateSuggestions("chooseABackground");
+        }
+
     }
 
     async function populateSuggestions(type) {
@@ -104,6 +114,8 @@ document.addEventListener("DOMContentLoaded", function () {
             query = document.getElementById("timeLordDoctor_name").value.trim();
         } else if (type === "background") {
             query = document.getElementById("background_name").value.trim();
+        } else if (type === "chooseABackground") {
+            query = document.getElementById("chooseABackground_name").value.trim();
         } else {
             query = document.getElementById("commander_name").value.trim();
         }
@@ -115,7 +127,8 @@ document.addEventListener("DOMContentLoaded", function () {
             friendsForever: "friendsForever-suggestions",
             doctorCompanion: "doctorCompanion-suggestions",
             timeLordDoctor: "timeLordDoctor-suggestions",
-            background: "background-suggestions"
+            background: "background-suggestions",
+            chooseABackground: "chooseABackground-suggestions"
         };
         
         const suggestionsList = document.getElementById(suggestionMap[type]);
@@ -134,7 +147,8 @@ document.addEventListener("DOMContentLoaded", function () {
                     friendsForever: "friendsForever_name",
                     doctorCompanion: "doctorCompanion_name",
                     timeLordDoctor: "timeLordDoctor_name",
-                    background: "background_name"
+                    background: "background_name",
+                    chooseABackground: "chooseABackground_name"
                 };
             
                 const inputId = inputIds[type];
@@ -347,6 +361,31 @@ document.addEventListener("DOMContentLoaded", function () {
         
         this.searchTimeout = setTimeout(async () => {
             await populateSuggestions("background");
+        }, 100);
+    });
+
+    const chooseABackgroundInput = document.getElementById("chooseABackground_name");
+    chooseABackgroundInput.addEventListener("input", function() {
+        const query = chooseABackgroundInput.value.trim();
+        const chooseABackgroundSuggestions = document.getElementById("chooseABackground-suggestions");
+        chooseABackgroundSuggestions.innerHTML = "";
+
+        if (query.length < 1) {
+            chooseABackgroundSuggestions.style.display = "none";
+            return;
+        }
+
+        chooseABackgroundSuggestions.style.display = "block";
+        
+        const loadingItem = document.createElement("li");
+        loadingItem.classList.add("list-group-item", "text-center");
+        loadingItem.textContent = "Loading...";
+        chooseABackgroundSuggestions.appendChild(loadingItem);
+
+        if (this.searchTimeout) clearTimeout(this.searchTimeout);
+        
+        this.searchTimeout = setTimeout(async () => {
+            await populateSuggestions("chooseABackground");
         }, 100);
     });
 });
