@@ -9,23 +9,6 @@ from flask_bcrypt import Bcrypt
 bcrypt = Bcrypt()
 jwt = JWTManager()
 
-@pytest.fixture
-def app():
-    app = create_app("testing") 
-
-    bcrypt.init_app(app)    
-    jwt.init_app(app)
-
-    with app.app_context():
-        db.create_all()
-        yield app
-        db.session.remove()
-        db.drop_all()
-
-@pytest.fixture
-def client(app) -> FlaskClient:
-    return app.test_client()
-
 def test_invalid_partner_combination(client, app):
     with app.app_context():
         from backend.models import User
@@ -41,7 +24,8 @@ def test_invalid_partner_combination(client, app):
 
         access_token = create_access_token(identity=str(user.id))
         headers = {
-            "Authorization": f"Bearer {access_token}"
+            "Authorization": f"Bearer {access_token}",
+            "Content-Type": "application/json"
         }
 
         response = client.post("/api/register_deck",

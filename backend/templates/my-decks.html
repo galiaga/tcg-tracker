@@ -7,7 +7,7 @@
 {% block main %}
 <div class="container max-w-6xl mx-auto px-4 py-6 space-y-6">
 
-  <!-- 🔹 Sección de decks -->
+  <!-- Decks section -->
   <div class="space-y-2">
     <h2 class="text-xl font-semibold text-gray-800">My Decks</h2>
 
@@ -19,6 +19,21 @@
         <option value="matches">Matches</option>
         <option value="name">Deck name</option>
         <option value="winrate">Winrate</option>
+      </select>
+    </div>
+
+    <div>
+      <label for="filter_decks" class="block text-sm font-medium text-gray-700 mb-1">Format</label>
+      <select id="filter_decks"
+        class="w-full md:w-60 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50">
+        <option value="0" selected>All</option>
+        <option value="1">Standard</option>
+        <option value="2">Pioneer</option>
+        <option value="3">Modern</option>
+        <option value="4">Legacy</option>
+        <option value="5">Vintage</option>
+        <option value="6">Pauper</option>
+        <option value="7">Commander / EDH</option>
       </select>
     </div>
 
@@ -89,7 +104,7 @@
     </div>
   </div>
 
-  <!-- 🗂️ Contenedor de decks -->
+  <!-- Deck container -->
   <div id="decks-container" class="grid gap-4 md:grid-cols-2 xl:grid-cols-3"></div>
 </div>
 {% endblock %}
@@ -102,4 +117,5 @@
     <script src="/static/js/registerDeck.js"></script>
     <script type="module" src="{{ url_for('static', filename='js/ui/decks/sort_decks.js') }}"></script>
     <script src="{{ url_for('static', filename='js/ui/decks/new-deck-modal.js') }}"></script>
+    <script type="module" src="{{ url_for('static', filename='js/ui/decks/filter_decks.js') }}"></script>
 {% endblock %}
