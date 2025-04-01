@@ -198,13 +198,12 @@ def register_deck():
 
     except Exception as e:
         db.session.rollback()
-        print(f"❌ Database error: {e}") 
+        print(f"Database error: {e}") 
         return jsonify({"error": "Database error", "details": str(e)}), 500
     
 @decks_bp.route("/user_decks", methods=["GET"])
 @jwt_required()
 def user_decks():
-    print("--- Entrando a /api/user_decks ---")
     user_id = get_jwt_identity()
     user_decks = get_user_decks(user_id)
     deck_type_filter = request.args.get('deck_type_id', default=None)
@@ -233,3 +232,57 @@ def user_decks():
     ]
 
     return jsonify(decks_list), 200
+
+@decks_bp.route("/decks/<int:deck_id>", methods=["PATCH"]) 
+@jwt_required()
+def update_deck(deck_id):
+    user_id = get_jwt_identity()
+    deck = Deck.query.filter_by(id=deck_id, user_id=user_id).first_or_404()
+
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "No update data provided"}), 400
+    
+    if 'deck_name' in data:
+        new_name = data['deck_name']
+        if not new_name:
+             return jsonify({"error": "Deck Name cannot be empty"}), 400
+        print(f"new_name = {new_name}")
+        deck.name = new_name
+
+    try:
+        db.session.commit()
+        return jsonify({
+            "message": "Deck updated successfully",
+            "deck": deck.to_dict()
+        }), 200
+    
+    except Exception as e:
+        db.session.rollback()
+        print(f"❌ Database error during update: {e}")
+        return jsonify({"error": "Database error", "details": str(e)}), 500
+    
+@decks_bp.route("/decks/<int:deck_id>", methods=["DELETE"])
+@jwt_required()
+def delete_deck(deck_id):
+    user_id = get_jwt_identity()
+    deck = Deck.query.filter_by(id=deck_id, user_id=user_id).first_or_404()
+
+    try:
+        commander_deck_entry = CommanderDeck.query.filter_by(deck_id=deck.id).first()
+        if commander_deck_entry:
+            db.session.delete(commander_deck_entry)
+
+        user_deck_entry = UserDeck.query.filter_by(deck_id=deck.id, user_id=user_id).first()
+        if user_deck_entry:
+            db.session.delete(user_deck_entry)
+            
+        db.session.delete(deck)
+        db.session.commit()
+
+        return jsonify({"message": f"Deck {deck_id} deleted successfully"}), 200
+
+    except Exception as e:
+        db.session.rollback()
+        print(f"❌ Database error during deletion: {e}")
+        return jsonify({"error": "Database error", "details": str(e)}), 500
