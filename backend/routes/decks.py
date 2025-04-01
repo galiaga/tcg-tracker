@@ -204,10 +204,13 @@ def register_deck():
 @decks_bp.route("/user_decks", methods=["GET"])
 @jwt_required()
 def user_decks():
+    print("--- Entrando a /api/user_decks ---")
     user_id = get_jwt_identity()
     user_decks = get_user_decks(user_id)
+    deck_type_filter = request.args.get('deck_type_id', default=None)
+    user_decks_result = get_user_decks(user_id, deck_type_id=deck_type_filter)
 
-    if not user_decks:
+    if not user_decks_result:
         return jsonify([]), 200
     
     stats = {deck["id"]: deck for deck in get_all_decks_stats(user_id)}
@@ -226,7 +229,7 @@ def user_decks():
             "last_match": stats.get(deck.id, {}).get("last_match", 0)
 
         } 
-        for deck, deck_type in user_decks
+        for deck, deck_type in user_decks_result
     ]
 
     return jsonify(decks_list), 200
