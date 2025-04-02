@@ -80,10 +80,7 @@ document.addEventListener("DOMContentLoaded", function() {
             background_id: backgroundId
         };
 
-        console.log("Sending Payload:", JSON.stringify(payload, null, 2)); // Keep temporarily for debugging if needed
-
         try {
-            // Assuming authFetch exists and handles auth + fetch
             const response = await authFetch("/api/register_deck", {
                 method: "POST",
                 headers: {
