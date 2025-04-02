@@ -29,8 +29,6 @@ async function loadDeckMatches() {
         return;
     }
 
-    console.log("deckId for deckMatches =", deckId);
-
     try {
         const token = localStorage.getItem("access_token");
         if (!token) {
@@ -61,7 +59,6 @@ async function loadDeckMatches() {
          }
 
         let deckMatches = await response.json();
-        console.log("deckMatches =", deckMatches);
 
         if (!Array.isArray(deckMatches)) {
             console.warn("Unexpected response format, expected array:", deckMatches);
@@ -97,7 +94,6 @@ async function loadDeckMatches() {
                 resultColorClass = 'text-yellow-600';
             }
 
-            // Cambiado py-4 a py-2 para hacerla más compacta
             row.innerHTML = `
                 <td class="px-4 py-2 whitespace-nowrap text-sm font-medium ${resultColorClass}">
                     ${resultText}

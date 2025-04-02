@@ -262,5 +262,4 @@ function setupActionMenuListeners(deck) {
 
 function showFlashMessage(message, category) {
     console.log(`FLASH [${category}]: ${message}`);
-    // Implement your actual flash message display logic here
 }

@@ -117,8 +117,6 @@ document.addEventListener("DOMContentLoaded", function () {
             const commanderData = await response.json();
             selectedCommanderId = commanderData.id;
 
-            console.log("Commander Attributes:", commanderData);
-
             if (commanderData.partner) showAssociatedField('partner');
             if (commanderData.friends_forever) showAssociatedField('friendsForever');
             if (commanderData.doctor_companion) showAssociatedField('doctorCompanion');
@@ -147,8 +145,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
         inputElement.value = commander.name;
         inputElement.dataset[config.datasetKey] = commander.id;
-
-        console.log(`Dataset set for type ${type}:`, inputElement.dataset);
 
         suggestionsListElement.innerHTML = '';
         suggestionsListElement.style.display = 'none';
