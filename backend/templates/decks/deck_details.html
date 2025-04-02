@@ -5,13 +5,45 @@
 {% endblock %}
 
 {% block main %}
-<div class="max-w-2xl mx-auto px-4 py-6 space-y-6">
-    <h1 class="text-center text-2xl font-bold text-blue-600 uppercase tracking-wide">Deck</h1>
-    <div id="deck-details" class="rounded-2xl bg-white shadow-md border border-gray-200 p-6 space-y-2 text-sm text-gray-800"></div>
+<div class="bg-gray-50 pb-12">
+    <div class="max-w-2xl mx-auto px-4 py-6 sm:px-6 lg:px-8 sm:py-8 space-y-8">
+        <h1 class="text-center text-2xl sm:text-3xl font-bold text-blue-600 uppercase tracking-wider">Deck Details</h1>
+
+        <div id="deck-details" class="rounded-2xl bg-white shadow-lg border border-gray-100 overflow-hidden">
+            <div class="p-6 text-center text-gray-500">Loading deck details...</div>
+        </div>
+
+        <div class="rounded-2xl bg-white shadow-lg border border-gray-100 overflow-hidden">
+            <div class="p-4 sm:p-6">
+                 <h2 class="text-lg font-semibold text-gray-800 mb-4">
+                     Last 5 Matches
+                 </h2>
+                 <div class="overflow-x-auto">
+                     <table id="matches-list" class="min-w-full divide-y divide-gray-200">
+                         <thead class="bg-gray-50">
+                             <tr>
+                                 <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                     Result
+                                 </th>
+                                 <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                     Date & Time
+                                 </th>
+                             </tr>
+                         </thead>
+                         <tbody class="bg-white divide-y divide-gray-200">
+                             
+                         </tbody>
+                     </table>
+                 </div>
+                 <div id="no-matches-message" class="text-center text-gray-500 py-4 hidden">No matches recorded yet.</div>
+            </div>
+        </div>
+    </div>
 </div>
 {% endblock %}
 
 {% block scripts %}
 <script src="{{ url_for('static', filename='js/deckDetails.js') }}"></script>
+<script type="module" src="/static/js/ui/matches/deckMatches.js"></script>
 <script src="{{ url_for('static', filename='js/auth.js') }}"></script>
 {% endblock %}
