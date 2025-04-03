@@ -1,3 +1,5 @@
+import { authFetch } from './auth/auth.js';
+
 const COMMANDER_DECK_TYPE_ID = "7";
 
 document.addEventListener("DOMContentLoaded", function() {

@@ -1,5 +1,5 @@
 import { formatMatchResult } from "../../utils.js";
-import { authFetch } from '../../auth.js';
+import { authFetch } from '../../auth/auth.js';
 
 document.addEventListener("DOMContentLoaded", () => loadDeckMatches());
 
