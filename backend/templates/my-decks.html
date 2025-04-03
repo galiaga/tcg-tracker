@@ -114,10 +114,10 @@
 {% endblock %}
 
 {% block scripts %}
-    <script src="/static/js/deck_types.js"></script>
+    <script type="module" src="/static/js/deck_types.js"></script>
     <script type="module" src="{{ url_for('static', filename='js/deckForm.js') }}"></script>
     <script type="module" src="{{ url_for('static', filename='js/api/user_decks.js') }}"></script>
-    <script src="/static/js/registerDeck.js"></script>
+    <script type="module" src="{{ url_for('static', filename='js/registerDeck.js') }}"></script>
     <script type="module" src="{{ url_for('static', filename='js/ui/decks/sort_decks.js') }}"></script>
     <script src="{{ url_for('static', filename='js/ui/decks/new-deck-modal.js') }}"></script>
     <script type="module" src="{{ url_for('static', filename='js/ui/decks/filter_decks.js') }}"></script>

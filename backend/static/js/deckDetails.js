@@ -1,4 +1,4 @@
-import { authFetch } from '../js/auth.js';
+import { authFetch } from './auth/auth.js';
 
 function updatePageTitle(newTitle) {
     document.title = `TCG Tracker: ${newTitle}`;

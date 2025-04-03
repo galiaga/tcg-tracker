@@ -1,3 +1,5 @@
+import { authFetch } from './auth/auth.js';
+
 document.addEventListener("DOMContentLoaded", function () {
     loadDeckTypes();
 });
