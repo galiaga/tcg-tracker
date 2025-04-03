@@ -71,9 +71,9 @@ async function handleLogMatchSubmit(event) {
     const resultValue = selectedResultRadio.value;
 
     if (!deckId || selectedOption.disabled) {
-        if (typeof showFlashMessage === 'function') {
-            showFlashMessage("Please select a valid deck.", "warning");
-        }
+         if (typeof showFlashMessage === 'function') {
+             showFlashMessage("Please select a valid deck.", "warning");
+         }
         return;
     }
 
@@ -99,19 +99,19 @@ async function handleLogMatchSubmit(event) {
         const data = await response.json();
 
         if (response.ok) {
-            if (typeof showFlashMessage === 'function') {
-                showFlashMessage(`${matchResultText} with ${deckName} registered!`, "success");
-            }
-            form.reset();
-            if (typeof loadUserMatches === 'function') {
-                loadUserMatches();
-            } else {
-                 console.warn("loadUserMatches function not available to reload history.");
-            }
-        } else {
              if (typeof showFlashMessage === 'function') {
-                 showFlashMessage(data.error || `Error logging match: ${response.statusText}`, "danger");
+                 showFlashMessage(`${matchResultText} with ${deckName} registered!`, "success");
              }
+             form.dispatchEvent(new CustomEvent('matchLoggedSuccess'));
+             if (typeof loadUserMatches === 'function') {
+                 loadUserMatches();
+             } else {
+                  console.warn("loadUserMatches function not available to reload history.");
+             }
+        } else {
+              if (typeof showFlashMessage === 'function') {
+                  showFlashMessage(data.error || `Error logging match: ${response.statusText}`, "danger");
+              }
         }
     } catch (error) {
         console.error("Error submitting match:", error);
