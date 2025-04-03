@@ -29,6 +29,7 @@ async function loadUserDecks() {
         if (!response.ok) throw new Error("Error fetching user decks");
 
         window.userDecks = await response.json();
+
         sortAndRenderDecks("last_match");
 
         if (!Array.isArray(userDecks)) {

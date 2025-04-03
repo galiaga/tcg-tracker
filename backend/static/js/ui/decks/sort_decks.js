@@ -33,6 +33,14 @@ export function sortAndRenderDecks(sortOption) {
         case "winrate":
             userDecks.sort((a, b) => b.win_rate - a.win_rate);
             break;
+        
+            case "creation_date":
+                userDecks.sort((a, b) => {
+                    const dateA = new Date(a.creation_date);
+                    const dateB = new Date(b.creation_date);
+                    return dateB - dateA;
+                });
+                break;
 
         default:
             console.warn("Unknown sorting option:", sortOption);
