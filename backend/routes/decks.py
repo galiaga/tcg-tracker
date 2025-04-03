@@ -265,6 +265,7 @@ def user_decks():
             deck_stats = stats_map.get(deck.id, {})
             decks_list.append({
                 "id": deck.id,
+                "creation_date": deck.creation_date,
                 "name": deck.name,
                 "type": deck.deck_type_id,
                 "deck_type": {
