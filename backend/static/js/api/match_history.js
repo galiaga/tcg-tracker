@@ -14,15 +14,16 @@ export async function loadUserMatches() {
     }
 
     noMatchesMessage.classList.add('hidden');
+    loadingMessage.classList.remove('hidden');
 
     try {
         const token = localStorage.getItem("access_token");
         if (!token) {
-            showFlashMessage("Authentication required to view match history.", "warning");
             loadingMessage.textContent = "Please log in to view history.";
-            noMatchesMessage.textContent = "Please log in to view history.";
-            noMatchesMessage.classList.remove('hidden');
+            loadingMessage.classList.remove('hidden');
             matchesListContainer.innerHTML = '';
+            matchesListContainer.appendChild(loadingMessage);
+            noMatchesMessage.classList.add('hidden');
             return;
         }
 
@@ -56,27 +57,33 @@ export async function loadUserMatches() {
             return;
         }
 
+        noMatchesMessage.classList.add('hidden');
+
         const fragment = document.createDocumentFragment();
         const locale = navigator.language || 'en-US';
-        const dateOptions = { dateStyle: 'short', timeStyle: 'short' };
+        const dateOptions = { dateStyle: 'medium', timeStyle: 'short' };
 
         userMatches.forEach(match => {
-            const itemContainer = document.createElement("div");
+            const card = document.createElement("div");
+            card.className = `bg-white shadow-md rounded-xl border border-gray-200 p-4 hover:shadow-lg transition-shadow duration-200`;
+
             const resultText = formatMatchResult(match.result);
             const lowerResult = resultText.toLowerCase();
 
             let badgeBgColorClass = 'bg-gray-400';
-            let badgeTextColorClass = 'text-white';
+            let badgeTextColorClass = 'text-gray-800';
 
             if (lowerResult === 'win') {
-                badgeBgColorClass = 'bg-green-600';
+                badgeBgColorClass = 'bg-green-500';
+                badgeTextColorClass = 'text-white';
             } else if (lowerResult === 'loss') {
-                badgeBgColorClass = 'bg-red-600';
+                badgeBgColorClass = 'bg-red-500';
+                 badgeTextColorClass = 'text-white';
             } else if (lowerResult === 'draw') {
-                badgeBgColorClass = 'bg-yellow-500';
+                badgeBgColorClass = 'bg-yellow-400';
+                 badgeTextColorClass = 'text-gray-800';
             }
 
-            itemContainer.className = `p-3 border-b border-gray-200 md:border-0 md:p-0 md:flex md:items-center hover:bg-gray-50`;
 
             let formattedDate = 'N/A';
              if (match.date) {
@@ -88,29 +95,27 @@ export async function loadUserMatches() {
                  }
              }
 
-            itemContainer.innerHTML = `
-                <div class="grid grid-cols-2 gap-x-2 gap-y-1 text-sm md:flex md:w-full md:items-center">
-                    <div class="col-span-2 md:flex-1 md:px-4 md:py-3 md:whitespace-nowrap">
-                        <span class="text-xs font-medium text-gray-500 md:hidden">Deck: </span>
-                        <span class="text-gray-800 font-medium">${match.deck?.name ?? 'N/A'}</span>
+             const deckName = match.deck?.name ?? 'N/A';
+             const deckTypeName = match.deck_type?.name ?? 'N/A';
+
+             card.innerHTML = `
+                <div class="flex items-start justify-between gap-3">
+                    <div class="flex-grow min-w-0">
+                        <h3 class="text-lg font-bold text-gray-800 break-words leading-tight truncate">${deckName}</h3>
+                        <p class="text-xs text-gray-500 mt-1">${formattedDate}</p>
                     </div>
-                    <div class="text-left md:flex-1 md:px-4 md:py-3 md:whitespace-nowrap">
-                        <span class="text-xs font-medium text-gray-500 md:hidden">Type: </span>
-                        <span class="text-gray-700">${match.deck_type?.name ?? 'N/A'}</span>
-                    </div>
-                    <div class="text-right md:text-left md:w-28 md:px-4 md:py-3 md:whitespace-nowrap">
-                        <span class="text-xs font-medium text-gray-500 mr-1 md:hidden">Result:</span>
-                        <span class="inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold ${badgeBgColorClass} ${badgeTextColorClass}">
+                    <div class="flex flex-col items-end flex-shrink-0 space-y-1">
+                        <span class="text-xs ${badgeTextColorClass} ${badgeBgColorClass} px-2 py-0.5 rounded-full font-medium whitespace-nowrap">
                             ${resultText}
                         </span>
-                    </div>
-                    <div class="col-span-2 md:flex-1 md:px-4 md:py-3 md:whitespace-nowrap">
-                        <span class="text-xs font-medium text-gray-500 md:hidden">Date: </span>
-                        <span class="text-gray-700">${formattedDate}</span>
+                        <span class="text-xs bg-blue-500 text-white px-2 py-0.5 rounded-full font-medium whitespace-nowrap">
+                            ${deckTypeName}
+                        </span>
                     </div>
                 </div>
             `;
-            fragment.appendChild(itemContainer);
+
+            fragment.appendChild(card);
         });
 
         matchesListContainer.appendChild(fragment);

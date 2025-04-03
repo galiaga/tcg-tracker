@@ -2,18 +2,21 @@ export function renderDeckCard(deck) {
     const slug = deck.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
     const card = document.createElement("a");
     card.href = `/decks/${deck.id}-${slug}`;
-    card.className = "block rounded-xl shadow-md p-4 border border-gray-200 hover:shadow-lg transition-all duration-200 ease-in-out cursor-pointer hover:scale-[1.03]";
+    card.className = "block rounded-xl shadow-md p-4 border hover:shadow-lg transition-all duration-200 ease-in-out cursor-pointer hover:scale-[1.02]";
 
     const winrate = deck.win_rate ?? 0;
-    card.classList.remove("bg-green-100", "border-green-200", "bg-yellow-50", "border-yellow-200", "bg-red-100", "border-red-200");
+    card.classList.remove("bg-green-50", "border-green-200", "bg-yellow-50", "border-yellow-200", "bg-red-50", "border-red-200", "bg-white", "border-gray-200");
 
     if (winrate >= 60) {
-        card.classList.add("bg-green-50", "border-green-200"); 
-    } else if (winrate >= 30) {
+        card.classList.add("bg-green-50", "border-green-200");
+    } else if (winrate >= 40) { // Adjusted threshold slightly for yellow
         card.classList.add("bg-yellow-50", "border-yellow-200");
-    } else {
+    } else if (deck.total_matches > 0) { // Only color red if matches played
         card.classList.add("bg-red-50", "border-red-200");
+    } else {
+         card.classList.add("bg-white", "border-gray-200"); // Default for no matches
     }
+
 
     const formattedDate = formatDate(deck.last_match);
     const deckTypeName = deck.deck_type?.name ?? 'Unknown Format';
@@ -26,10 +29,10 @@ export function renderDeckCard(deck) {
             </span>
         </div>
         <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-sm text-gray-600 mt-3">
-            <div><span class="font-medium text-gray-800">Winrate:</span> ${winrate}%</div>
-            <div><span class="font-medium text-gray-800">Matches:</span> ${deck.total_matches ?? 0}</div>
-            <div><span class="font-medium text-gray-800">Wins:</span> ${deck.total_wins ?? 0}</div>
-            <div><span class="font-medium text-gray-800">Last Match:</span> ${formattedDate}</div>
+            <div><span class="font-medium text-gray-700">Winrate:</span> ${winrate}%</div>
+            <div><span class="font-medium text-gray-700">Matches:</span> ${deck.total_matches ?? 0}</div>
+            <div><span class="font-medium text-gray-700">Wins:</span> ${deck.total_wins ?? 0}</div>
+            <div><span class="font-medium text-gray-700">Last Match:</span> ${formattedDate}</div>
         </div>
     `;
 
@@ -52,8 +55,9 @@ function formatDate(isoString) {
 export function renderEmptyDecksMessage(containerElement) {
     if (!containerElement) return;
     containerElement.innerHTML = `
-        <div class="text-center text-gray-500 mt-8 p-4 text-base border border-dashed border-gray-300 rounded-lg">
+        <div class="text-center text-gray-500 mt-8 p-4 text-base border border-dashed border-gray-300 rounded-lg md:col-span-2 xl:col-span-3">
             No decks yet. Click 'New Deck' to get started!
         </div>
     `;
+     containerElement.className = "grid gap-4 md:grid-cols-2 xl:grid-cols-3"; // Ensure grid is reapplied
 }

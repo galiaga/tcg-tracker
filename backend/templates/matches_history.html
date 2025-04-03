@@ -7,11 +7,11 @@
 {% block main %}
 <div class="space-y-6">
 
-    <h1 class="text-2xl font-bold text-gray-900">Matches</h1>
+    <h1 class="text-2xl font-bold text-gray-900 mb-6">Matches</h1>
 
     <section aria-labelledby="log-match-heading">
         <div class="bg-white shadow-md rounded-xl border border-gray-200 p-4 sm:p-6">
-            <h2 id="log-match-heading" class="text-lg font-semibold text-gray-800 mb-4">
+            <h2 id="log-match-heading" class="text-xl font-semibold text-gray-800 mb-4">
                 Log New Match
             </h2>
             <form id="log-match-form" class="space-y-4">
@@ -41,7 +41,7 @@
                 </fieldset>
 
                 <div>
-                    <button type="submit" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-150 ease-in-out">
+                     <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium py-2 px-4 rounded-lg shadow-sm transition border border-transparent">
                         Log Match
                     </button>
                 </div>
@@ -50,20 +50,16 @@
     </section>
 
     <section aria-labelledby="match-history-heading">
-         <h2 id="match-history-heading" class="text-xl font-semibold text-gray-900 mb-3">
-             Match History
+         <h2 id="match-history-heading" class="text-xl font-semibold text-gray-800 mb-4">
+            Match History
          </h2>
-         <div class="bg-white shadow-md rounded-xl border border-gray-200 overflow-hidden">
-             <div class="hidden md:flex bg-gray-50 border-b border-gray-200">
-                 <div class="flex-1 px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Deck Name</div>
-                 <div class="flex-1 px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Deck Type</div>
-                 <div class="w-28 px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Result</div>
-                 <div class="flex-1 px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date & Time</div>
+         <div id="matches-list-items" class="space-y-4">
+             <div class="bg-white shadow-md rounded-xl border border-gray-200 p-6 text-center text-gray-500">
+                 Loading match history...
              </div>
-             <div id="matches-list-items" class="divide-y divide-gray-200 md:divide-y-0">
-                 <div class="p-6 text-center text-gray-500">Loading match history...</div>
-             </div>
-             <div id="no-matches-message-history" class="text-center text-gray-500 p-6 hidden">No match history found.</div>
+         </div>
+         <div id="no-matches-message-history" class="text-center text-gray-500 p-6 hidden mt-4 bg-white shadow-md rounded-xl border border-gray-200">
+             No match history found.
          </div>
     </section>
 

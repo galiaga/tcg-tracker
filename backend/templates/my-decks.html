@@ -5,62 +5,65 @@
 {% endblock %}
 
 {% block main %}
-<div class="container max-w-6xl mx-auto px-4 py-6 space-y-6">
+<div class="space-y-6">
 
-  <div class="space-y-4">
-    <h2 class="text-xl font-semibold text-gray-800">My Decks</h2>
+  <h1 class="text-2xl font-bold text-gray-900 mb-6">My Decks</h1>
 
-    <div class="flex items-center gap-4">
-      <div class="sm:hidden flex-shrink-0">
-        <button
-          id="toggle-filters-btn"
-          type="button"
-          class="w-36 inline-flex items-center justify-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 mr-2 text-gray-500">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 1 1-3 0m3 0a1.5 1.5 0 1 0-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-9.75 0h9.75" />
-          </svg>
-          <span id="toggle-filters-text">Sort & Filter</span>
-        </button>
-      </div>
+  <section aria-labelledby="deck-controls-heading">
+     <h2 id="deck-controls-heading" class="sr-only">Deck Controls</h2>
+     <div class="space-y-4">
+        <div class="flex items-center gap-4">
+          <div class="sm:hidden flex-shrink-0">
+            <button
+              id="toggle-filters-btn"
+              type="button"
+              class="w-36 inline-flex items-center justify-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 mr-2 text-gray-500">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 1 1-3 0m3 0a1.5 1.5 0 1 0-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-9.75 0h9.75" />
+              </svg>
+              <span id="toggle-filters-text">Sort & Filter</span>
+            </button>
+          </div>
 
-      <div class="flex-grow">
-        <button
-          id="newDeckModalButton"
-          type="button"
-          class="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium py-2 px-4 rounded-lg shadow-sm transition border border-transparent">
-          New Deck
-        </button>
-      </div>
-    </div>
+          <div class="flex-grow">
+            <button
+              id="newDeckModalButton"
+              type="button"
+              class="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium py-2 px-4 rounded-lg shadow-sm transition border border-transparent">
+              New Deck
+            </button>
+          </div>
+        </div>
 
-    <div id="filter-controls" class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4 hidden ">
-      <div>
-        <label for="sort_decks" class="block text-sm font-medium text-gray-700 mb-1">Sort by</label>
-        <select id="sort_decks"
-          class="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50">
-          <option value="last_match" selected>Last Played</option>
-          <option value="name">Deck Name</option>
-          <option value="winrate">Win Rate</option>
-          <option value="matches">Matches Played</option>
-          <option value="creation_date">Date Added</option>
-        </select>
-      </div>
-      <div>
-        <label for="filter_decks" class="block text-sm font-medium text-gray-700 mb-1">Format</label>
-        <select id="filter_decks"
-          class="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50">
-          <option value="0" selected>All</option>
-          <option value="1">Standard</option>
-          <option value="2">Pioneer</option>
-          <option value="3">Modern</option>
-          <option value="4">Legacy</option>
-          <option value="5">Vintage</option>
-          <option value="6">Pauper</option>
-          <option value="7">Commander / EDH</option>
-        </select>
-      </div>
-    </div>
-  </div>
+        <div id="filter-controls" class="grid grid-cols-1 sm:grid-cols-2 gap-4 hidden bg-white shadow-md rounded-xl border border-gray-200 p-4">
+          <div>
+            <label for="sort_decks" class="block text-sm font-medium text-gray-700 mb-1">Sort by</label>
+            <select id="sort_decks"
+              class="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50">
+              <option value="last_match" selected>Last Played</option>
+              <option value="name">Deck Name</option>
+              <option value="winrate">Win Rate</option>
+              <option value="matches">Matches Played</option>
+              <option value="creation_date">Date Added</option>
+            </select>
+          </div>
+          <div>
+            <label for="filter_decks" class="block text-sm font-medium text-gray-700 mb-1">Format</label>
+            <select id="filter_decks"
+              class="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50">
+              <option value="0" selected>All</option>
+              <option value="1">Standard</option>
+              <option value="2">Pioneer</option>
+              <option value="3">Modern</option>
+              <option value="4">Legacy</option>
+              <option value="5">Vintage</option>
+              <option value="6">Pauper</option>
+              <option value="7">Commander / EDH</option>
+            </select>
+          </div>
+        </div>
+     </div>
+  </section>
 
 
   <div id="newDeckModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center px-4 hidden">
@@ -109,7 +112,14 @@
     </div>
   </div>
 
-  <div id="decks-container" class="grid gap-4 md:grid-cols-2 xl:grid-cols-3"></div>
+  <section aria-labelledby="deck-list-heading">
+      <h2 id="deck-list-heading" class="sr-only">Deck List</h2>
+      <div id="decks-container" class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+         <div class="text-center text-gray-500 mt-8 p-4 text-base border border-dashed border-gray-300 rounded-lg md:col-span-2 xl:col-span-3">
+             Loading decks...
+         </div>
+      </div>
+  </section>
 
 </div>
 {% endblock %}
