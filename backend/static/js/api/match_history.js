@@ -3,7 +3,7 @@ import { authFetch } from '../auth/auth.js';
 
 document.addEventListener("DOMContentLoaded", loadUserMatches);
 
-async function loadUserMatches() {
+export async function loadUserMatches() {
     const matchesListContainer = document.getElementById("matches-list-items");
     const noMatchesMessage = document.getElementById("no-matches-message-history");
     const loadingMessage = matchesListContainer.querySelector('div');

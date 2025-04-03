@@ -22,8 +22,6 @@ def matches_history():
     if limit is None:
         offset = None
 
-    print(f"user_id = {user_id}, deck_id = {deck_id}, limit = {limit}, offset = {offset}")
-
     user_matches = get_matches_by_user(user_id, deck_id, limit=limit, offset=offset)
 
     if not user_matches:

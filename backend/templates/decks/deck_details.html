@@ -44,5 +44,5 @@
 
 {% block scripts %}
 <script type="module" src="{{ url_for('static', filename='js/deckDetails.js') }}"></script>
-<script type="module" src="/static/js/ui/matches/deckMatches.js"></script>
+<script type="module" src="{{ url_for('static', filename='js/ui/matches/deckMatches.js') }}"></script>
 {% endblock %}
