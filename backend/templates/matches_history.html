@@ -9,44 +9,14 @@
 
     <h1 class="text-2xl font-bold text-gray-900 mb-6">Matches</h1>
 
-    <section aria-labelledby="log-match-heading">
-        <div class="bg-white shadow-md rounded-xl border border-gray-200 p-4 sm:p-6">
-            <h2 id="log-match-heading" class="text-xl font-semibold text-gray-800 mb-4">
-                Log New Match
-            </h2>
-            <form id="log-match-form" class="space-y-4">
-                <div>
-                    <label for="deck-select" class="sr-only">Select Deck</label>
-                    <select id="deck-select" name="deck_id" required class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md shadow-sm">
-                        <option disabled selected value="">Select Deck</option>
-                    </select>
-                </div>
-
-                <fieldset>
-                    <legend class="sr-only">Match Result</legend>
-                    <div class="flex flex-wrap justify-center gap-3 pt-2">
-                        <label class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500 cursor-pointer has-[:checked]:ring-2 has-[:checked]:ring-offset-1 has-[:checked]:ring-green-500 has-[:checked]:border-green-400 has-[:checked]:bg-green-50 has-[:checked]:text-green-900">
-                            <input type="radio" name="match_result" value="0" class="sr-only" checked>
-                            <span>Won</span>
-                        </label>
-                        <label class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500 cursor-pointer has-[:checked]:ring-2 has-[:checked]:ring-offset-1 has-[:checked]:ring-red-500 has-[:checked]:border-red-400 has-[:checked]:bg-red-50 has-[:checked]:text-red-900">
-                            <input type="radio" name="match_result" value="1" class="sr-only">
-                            <span>Loss</span>
-                        </label>
-                        <label class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500 cursor-pointer has-[:checked]:ring-2 has-[:checked]:ring-offset-1 has-[:checked]:ring-yellow-500 has-[:checked]:border-yellow-400 has-[:checked]:bg-yellow-50 has-[:checked]:text-yellow-900">
-                            <input type="radio" name="match_result" value="2" class="sr-only">
-                            <span>Draw</span>
-                        </label>
-                    </div>
-                </fieldset>
-
-                <div>
-                     <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium py-2 px-4 rounded-lg shadow-sm transition border border-transparent">
-                        Log Match
-                    </button>
-                </div>
-            </form>
-        </div>
+    <section aria-labelledby="match-controls-heading">
+         <h2 id="match-controls-heading" class="sr-only">Match Controls</h2>
+         <button
+              id="logMatchModalButton"
+              type="button"
+              class="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium py-2 px-4 rounded-lg shadow-sm transition border border-transparent">
+              Log New Match
+         </button>
     </section>
 
     <section aria-labelledby="match-history-heading">
@@ -64,10 +34,56 @@
     </section>
 
 </div>
+
+<div id="logMatchModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center px-4 hidden">
+  <div class="bg-white rounded-xl shadow-xl w-full max-w-md p-6 space-y-5 transform transition-all scale-95 opacity-0">
+    <div class="flex items-center justify-between border-b pb-3">
+      <h2 class="text-lg font-bold text-gray-800">Log New Match</h2>
+      <button id="logMatchModalCloseButton" type="button" aria-label="Close modal"
+        class="text-gray-400 hover:text-gray-600 text-xl font-bold">
+        &times;
+      </button>
+    </div>
+    <form id="log-match-form" class="space-y-4">
+        <div>
+            <label for="deck-select" class="sr-only">Select Deck</label>
+            <select id="deck-select" name="deck_id" required class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md shadow-sm">
+                <option disabled selected value="">Select Deck</option>
+            </select>
+        </div>
+
+        <fieldset>
+            <legend class="sr-only">Match Result</legend>
+            <div class="flex flex-wrap justify-center gap-3 pt-2">
+                <label class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500 cursor-pointer has-[:checked]:ring-2 has-[:checked]:ring-offset-1 has-[:checked]:ring-green-500 has-[:checked]:border-green-400 has-[:checked]:bg-green-50 has-[:checked]:text-green-900">
+                    <input type="radio" name="match_result" value="0" class="sr-only" checked>
+                    <span>Won</span>
+                </label>
+                <label class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500 cursor-pointer has-[:checked]:ring-2 has-[:checked]:ring-offset-1 has-[:checked]:ring-red-500 has-[:checked]:border-red-400 has-[:checked]:bg-red-50 has-[:checked]:text-red-900">
+                    <input type="radio" name="match_result" value="1" class="sr-only">
+                    <span>Loss</span>
+                </label>
+                <label class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500 cursor-pointer has-[:checked]:ring-2 has-[:checked]:ring-offset-1 has-[:checked]:ring-yellow-500 has-[:checked]:border-yellow-400 has-[:checked]:bg-yellow-50 has-[:checked]:text-yellow-900">
+                    <input type="radio" name="match_result" value="2" class="sr-only">
+                    <span>Draw</span>
+                </label>
+            </div>
+        </fieldset>
+
+        <div>
+             <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium py-2 px-4 rounded-lg shadow-sm transition border border-transparent">
+                Log Match
+            </button>
+        </div>
+    </form>
+  </div>
+</div>
+
 {% endblock %}
 
 {% block scripts %}
     <script type="module" src="{{ url_for('static', filename='js/utils.js') }}"></script>
     <script type="module" src="{{ url_for('static', filename='js/api/match_history.js') }}"></script>
     <script type="module" src="{{ url_for('static', filename='js/logMatch.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/ui/matches/log-match-modal.js') }}"></script> {# <--- Nuevo script añadido #}
 {% endblock %}
