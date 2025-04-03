@@ -1,5 +1,6 @@
-import { renderDeckCard, renderEmptyDecksMessage } from "../ui/decks/deckCardComponent.js";
+import { renderEmptyDecksMessage } from "../ui/decks/deckCardComponent.js";
 import { sortAndRenderDecks } from "../ui/decks/sort_decks.js";
+import { authFetch } from '../auth.js';
 
 document.addEventListener("DOMContentLoaded", function () {
     loadUserDecks();

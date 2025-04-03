@@ -1,104 +1,115 @@
 <!DOCTYPE html>
-
-<html lang="en">
+<html lang="en" class="scroll-smooth">
 
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="initial-scale=1, width=device-width">
         <title>TCG Tracker: {% block title %}{% endblock %}</title>
         <link href="{{ url_for('static', filename='css/output.css') }}" rel="stylesheet">
+        {% block head_extra %}{% endblock %}
     </head>
 
-    <body>
+    <body class="bg-gray-100">
 
-        <nav id="main-navbar" class="bg-blue-600 shadow-md hidden md:block">
-            <div class="container-fluid">
-              <ul class="flex justify-between items-center py-4 space-x-6 text-white">
-                <!-- Usuario -->
-                <li id="nav-username" class="hidden text-lg font-semibold"></li>
-                
-                <!-- Links -->
-                <li id="nav-login" class="hidden">
-                  <a href="/login" class="text-white hover:text-blue-300">Login</a>
-                </li>
-                <li id="nav-register" class="hidden">
-                  <a href="/register" class="text-white hover:text-blue-300">Register</a>
-                </li>
-          
-                <!-- Menú principal -->
-                <li id="nav-home">
-                  <a href="/" data-path="/" class="desktop-nav-link text-white hover:text-blue-300 p-2">Home</a>
-                </li>
-                <li id="nav-matches">
-                  <a href="/matches_history" data-path="/matches_history" class="desktop-nav-link text-white hover:text-blue-300 p-2">Matches</a>
-                </li>
-                <li id="nav-my-decks">
-                  <a href="/my-decks" data-path="/my-decks" class="desktop-nav-link text-white hover:text-blue-300 p-2">My Decks</a>
-                </li>
-                <li id="nav-logout">
-                  <a href="#" onclick="logout()" class="desktop-nav-link text-white hover:text-blue-300 p-2">Logout</a>
-                </li>
-              </ul>
+        <nav id="main-navbar" class="bg-blue-600 shadow-md hidden md:block sticky top-0 z-50">
+            <div class="container mx-auto px-4">
+                <ul class="flex justify-between items-center h-16 space-x-6 text-white">
+                    <li id="nav-username" class="hidden text-lg font-semibold"></li>
+                    <li id="nav-login" class="hidden">
+                        <a href="/login" class="hover:text-blue-200 transition-colors duration-200">Login</a>
+                    </li>
+                    <li id="nav-register" class="hidden">
+                        <a href="/register" class="hover:text-blue-200 transition-colors duration-200">Register</a>
+                    </li>
+                    <li id="nav-home">
+                        <a href="/" data-path="/" class="desktop-nav-link hover:text-blue-200 p-2 transition-colors duration-200">Home</a>
+                    </li>
+                    <li id="nav-my-decks">
+                        <a href="/my-decks" data-path="/my-decks" class="desktop-nav-link hover:text-blue-200 p-2 transition-colors duration-200">Decks</a>
+                    </li>
+                    <li id="nav-matches">
+                        <a href="/matches_history" data-path="/matches_history" class="desktop-nav-link hover:text-blue-200 p-2 transition-colors duration-200">Matches</a>
+                    </li>
+                    <li id="nav-logout">
+                        <a href="#" onclick="logout(event)" class="desktop-nav-link hover:text-blue-200 p-2 transition-colors duration-200">Logout</a>
+                    </li>
+                </ul>
             </div>
-          </nav>
-          
-    
-    <main class="bg-gray-100 pb-20">
-        {% block main %}{% endblock %}
-    </main>
-    
-    <div id="flash-message-container"
-         class="fixed inset-x-0 z-50 flex justify-center pointer-events-none top-4 md:top-4 md:bottom-auto">
-        <div id="flash-message"
-             class="hidden transform transition-all duration-300 ease-out opacity-0 translate-y-[-20px] inline-flex items-center gap-2 px-4 py-3 text-sm text-white rounded-full shadow-lg pointer-events-auto max-w-fit md:max-w-md bg-red-500">
-            <span id="flash-message-text" class="break-words"></span>
-            <button type="button" id="flash-message-close"
-                    class="ml-2 text-white text-lg font-bold leading-none focus:outline-none">&times;</button>
-        </div>
-    </div>
+        </nav>
 
-        <script src="{{ url_for('static', filename='js/auth/fetchProtectedData.js') }}"></script>
+        <main class="container mx-auto px-2 pt-2 pb-24 md:pb-10">
+             {% block main %}{% endblock %}
+        </main>
+
+        <div id="flash-message-container" class="fixed inset-x-0 z-[60] flex justify-center pointer-events-none top-5 md:top-auto md:bottom-5">
+            <div id="flash-message" class="hidden transform transition-all duration-300 ease-out opacity-0 translate-y-[-20px] md:translate-y-[20px] inline-flex items-center gap-2 px-4 py-3 text-sm text-white rounded-full shadow-lg pointer-events-auto max-w-[90%] md:max-w-md bg-red-500">
+                <span id="flash-message-text" class="break-words"></span>
+                <button type="button" id="flash-message-close" aria-label="Close message" class="ml-2 text-white opacity-80 hover:opacity-100 text-xl font-bold leading-none focus:outline-none">&times;</button>
+            </div>
+        </div>
+
+        <button type="button" id="scrollToTopBtn" aria-label="Scroll to top" title="Scroll to top" class="fixed bottom-20 md:bottom-5 right-5 z-40 hidden h-10 w-10 rounded-full bg-blue-600 text-white shadow-md transition-opacity duration-300 ease-in-out hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M5 15l7-7 7 7" />
+            </svg>
+        </button>
+
+        <nav id="mobile-navbar" class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg md:hidden z-50">
+            <ul class="flex justify-around items-center h-16 text-blue-600">
+                <li>
+                    <a href="/" data-path="/" class="mobile-nav-link relative flex flex-col items-center justify-center p-2 rounded-md transition-colors duration-200 hover:bg-blue-100" aria-label="Home">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
+                        <span class="text-xs font-medium">Home</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="/my-decks" data-path="/my-decks" class="mobile-nav-link relative flex flex-col items-center justify-center p-2 rounded-md transition-colors duration-200 hover:bg-blue-100" aria-label="Decks">
+                         <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" /></svg>
+                        <span class="text-xs font-medium">Decks</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="/matches_history" data-path="/matches_history" class="mobile-nav-link relative flex flex-col items-center justify-center p-2 rounded-md transition-colors duration-200 hover:bg-blue-100" aria-label="Matches">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                        <span class="text-xs font-medium">Matches</span>
+                    </a>
+                </li>
+                <li>
+                    <button type="button" onclick="logout(event)" class="flex flex-col items-center justify-center p-2 text-red-600 rounded-md transition-colors duration-200 hover:bg-red-100" aria-label="Logout">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+                        <span class="text-xs font-medium">Logout</span>
+                    </button>
+                </li>
+            </ul>
+        </nav>
+
+        <script type="module" src="{{ url_for('static', filename='js/auth.js') }}"></script>
         <script src="{{ url_for('static', filename='js/ui/menu.js') }}"></script>
         <script src="{{ url_for('static', filename='js/ui/flashMessages.js') }}"></script>
+
+        <script>
+            const scrollToTopBtn = document.getElementById('scrollToTopBtn');
+            const scrollThreshold = 200;
+
+            if (scrollToTopBtn) {
+                const toggleVisibility = () => {
+                    if (window.scrollY > scrollThreshold) {
+                        scrollToTopBtn.classList.remove('hidden');
+                        scrollToTopBtn.classList.add('opacity-100');
+                    } else {
+                        scrollToTopBtn.classList.remove('opacity-100');
+                        scrollToTopBtn.classList.add('hidden');
+                    }
+                };
+                window.addEventListener('scroll', toggleVisibility, { passive: true });
+                scrollToTopBtn.addEventListener('click', () => {
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                });
+                toggleVisibility();
+            }
+        </script>
+
         {% block scripts %}{% endblock %}
 
-        <nav id="mobile-navbar" class="fixed bottom-0 left-0 right-0 bg-white border-t shadow-inner md:hidden z-50">
-          <ul class="flex justify-around text-blue-600">
-            <li>
-              <a href="/" data-path="/" class="mobile-nav-link relative flex flex-col items-center px-4 py-2 rounded-md transition-colors duration-300 hover:bg-blue-600 hover:text-white">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M13 5v6h6" />
-                </svg>
-                <span class="text-xs">Home</span>
-              </a>
-            </li>
-            <li>
-              <a href="/my-decks" data-path="/my-decks" class="mobile-nav-link relative flex flex-col items-center px-4 py-2 rounded-md transition-colors duration-300 hover:bg-blue-600 hover:text-white">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4" />
-                </svg>
-                <span class="text-xs">Decks</span>
-              </a>
-            </li>
-            <li>
-              <a href="/matches_history" data-path="/matches_history" class="mobile-nav-link relative flex flex-col items-center px-4 py-2 rounded-md transition-colors duration-300 hover:bg-blue-600 hover:text-white">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                </svg>
-                <span class="text-xs">Matches</span>
-              </a>
-            </li>
-            <li>
-              <button onclick="logout()" class="flex flex-col items-center p-2 text-red-500 rounded-md transition-colors duration-300 hover:bg-red-500 hover:text-white">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7" />
-                </svg>
-                <span class="text-xs">Logout</span>
-              </button>
-            </li>
-          </ul>
-      </nav>       
-          
     </body>
-
 </html>

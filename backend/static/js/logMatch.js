@@ -1,3 +1,5 @@
+import { authFetch } from '../js/auth.js';
+
 document.addEventListener("DOMContentLoaded", async function() {
     const token = localStorage.getItem("access_token");
     if (!token) {
