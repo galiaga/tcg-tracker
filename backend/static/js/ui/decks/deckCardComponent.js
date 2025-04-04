@@ -24,9 +24,9 @@ export function renderDeckCard(deck) {
     let tagPillsHtml = '';
     if (deck.tags && deck.tags.length > 0) {
         tagPillsHtml = deck.tags.map(tag =>
-            `<span class="tag-pill inline-flex items-center gap-1 bg-gray-200 text-gray-700 text-xs font-medium px-2 py-0.5 rounded-full mr-1 mb-1" data-tag-id="${tag.id}">
+            `<span class="tag-pill inline-flex items-center gap-1 bg-blue-100 text-blue-800 text-xs font-medium px-2 py-0.5 rounded-md mr-1 mb-1" data-tag-id="${tag.id}">
                 ${tag.name}
-                <button type="button" class="remove-tag-button ml-0.5 text-gray-400 hover:text-gray-600 font-bold focus:outline-none" aria-label="Remove tag ${tag.name}">&times;</button>
+                <button type="button" class="remove-tag-button ml-0.5 text-blue-500 hover:text-blue-700 font-bold focus:outline-none" aria-label="Remove tag ${tag.name}">&times;</button>
             </span>`
         ).join('');
     }

@@ -64,7 +64,7 @@
           <div class="relative">
             <label for="tag-filter-button" class="block text-sm font-medium text-gray-700 mb-1">Tags</label>
             <button type="button" id="tag-filter-button" aria-haspopup="listbox" aria-expanded="false"
-              class="relative w-full cursor-default rounded-md border border-gray-300 bg-white py-2 pl-3 pr-10 text-left text-sm text-gray-700 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500">
+              class="relative w-full cursor-default rounded-md border border-gray-300 bg-white py-2 pl-3 pr-10 text-left text-sm text-gray-700 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 hover:bg-gray-50">
               <span id="tag-filter-button-text" class="block truncate">All Tags</span>
               <span class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
                 <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
@@ -73,9 +73,16 @@
                 </svg>
               </span>
             </button>
-            <div id="tag-filter-dropdown" class="absolute z-10 mt-1 w-full rounded-md bg-white shadow-lg border border-gray-200 hidden max-h-60 overflow-y-auto focus:outline-none">
-               <div id="tag-filter-options" class="p-2 space-y-1" role="listbox">
+
+            <div id="tag-filter-dropdown"
+                 class="absolute z-10 mt-1 w-full rounded-md bg-white shadow-lg border border-gray-200 hidden max-h-60 overflow-y-auto focus:outline-none ring-1 ring-black ring-opacity-5">
+               <div id="tag-filter-options" class="px-2 py-1 space-y-1" role="listbox">
                   <div class="text-center text-xs text-gray-500 py-2">Loading tags...</div>
+               </div>
+               <div class="border-t border-gray-200 px-3 py-2">
+                  <button type="button" id="clear-tag-filter-button" class="w-full text-center text-xs font-medium text-blue-600 hover:text-blue-800 focus:outline-none">
+                    Clear selection
+                  </button>
                </div>
             </div>
           </div>
