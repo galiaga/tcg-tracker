@@ -9,7 +9,6 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 
 export function sortAndRenderDecks(decksToSort, sortOption) {
-    console.log(`sortAndRenderDecks RECEIVED:`, decksToSort, `Is Array: ${Array.isArray(decksToSort)}`, `Sort Option: ${sortOption}`);
 
     if (!decksToSort || !Array.isArray(decksToSort)) {
         console.warn("sortAndRenderDecks called with invalid decks data.");

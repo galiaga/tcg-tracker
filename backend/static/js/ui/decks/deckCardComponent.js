@@ -2,7 +2,8 @@ export function renderDeckCard(deck) {
     const slug = deck.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
     const card = document.createElement("a");
     card.href = `/decks/${deck.id}-${slug}`;
-    card.className = "block rounded-xl shadow-md p-4 border hover:shadow-lg transition-all duration-200 ease-in-out cursor-pointer hover:scale-[1.02]";
+    card.className = "relative block rounded-xl shadow-md p-4 border hover:shadow-lg transition-all duration-200 ease-in-out cursor-pointer hover:scale-[1.02]";
+    card.dataset.deckId = deck.id;
 
     const winrate = deck.win_rate ?? 0;
     card.classList.remove("bg-green-50", "border-green-200", "bg-yellow-50", "border-yellow-200", "bg-red-50", "border-red-200", "bg-white", "border-gray-200");
@@ -20,15 +21,24 @@ export function renderDeckCard(deck) {
     const formattedDate = formatDate(deck.last_match);
     const deckTypeName = deck.deck_type?.name ?? 'Unknown Format';
 
-    let tagsHtml = '';
+    let tagPillsHtml = '';
     if (deck.tags && deck.tags.length > 0) {
-        const tagPills = deck.tags.map(tag =>
-            `<span class="inline-block bg-gray-200 text-gray-700 text-xs font-medium px-2.5 py-0.5 rounded-full mr-1 mb-1">
+        tagPillsHtml = deck.tags.map(tag =>
+            `<span class="tag-pill inline-flex items-center gap-1 bg-gray-200 text-gray-700 text-xs font-medium px-2 py-0.5 rounded-full mr-1 mb-1" data-tag-id="${tag.id}">
                 ${tag.name}
+                <button type="button" class="remove-tag-button ml-0.5 text-gray-400 hover:text-gray-600 font-bold focus:outline-none" aria-label="Remove tag ${tag.name}">&times;</button>
             </span>`
         ).join('');
-        tagsHtml = `<div class="mt-3 pt-2 border-t border-gray-200 flex flex-wrap">${tagPills}</div>`;
     }
+
+    const addTagButtonHtml = `
+        <button type="button" class="add-deck-tag-button inline-flex items-center text-xs font-medium px-2 py-0.5 rounded border border-dashed border-gray-400 text-gray-500 hover:bg-gray-100 hover:text-gray-700 hover:border-solid mb-1" aria-label="Add tag to deck ${deck.name}" data-deck-id="${deck.id}">
+            + Tag
+        </button>
+    `;
+
+    const tagsContainerHtml = `<div class="mt-2 flex flex-wrap items-center gap-x-1">${tagPillsHtml}${addTagButtonHtml}</div>`;
+
 
     card.innerHTML = `
         <div class="flex items-start justify-between mb-2 gap-2">
@@ -43,7 +53,7 @@ export function renderDeckCard(deck) {
             <div><span class="font-medium text-gray-700">Wins:</span> ${deck.total_wins ?? 0}</div>
             <div><span class="font-medium text-gray-700">Last Match:</span> ${formattedDate}</div>
         </div>
-        ${tagsHtml}
+        ${tagsContainerHtml}
     `;
 
     return card;

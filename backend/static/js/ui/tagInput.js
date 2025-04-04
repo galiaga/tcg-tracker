@@ -27,7 +27,7 @@ const TagInputManager = (() => {
     }
 
     function renderTagPill(tagData, options) {
-        const { containerElement, inputElement, suggestionsElement, selectedTags } = options;
+        const { containerElement, inputElement, suggestionsElement, selectedTags, onTagAdded } = options;
 
         if (!tagData || typeof tagData.id === 'undefined' || typeof tagData.name === 'undefined') {
              console.error("Invalid tag data provided to renderTagPill", tagData);
@@ -66,6 +66,10 @@ const TagInputManager = (() => {
         pill.appendChild(removeBtn);
         containerElement.appendChild(pill);
 
+        if (typeof onTagAdded === 'function') {
+            onTagAdded(tagData); 
+        }
+
         inputElement.value = '';
         suggestionsElement.innerHTML = '';
         suggestionsElement.classList.add('hidden');
@@ -98,9 +102,6 @@ const TagInputManager = (() => {
                       userTags.sort((a, b) => a.name.localeCompare(b.name));
                  }
                  renderTagPill(newTagData, options);
-                 if (typeof showFlashMessage === 'function') {
-                     showFlashMessage(`Tag "${newTagData.name}" created and added.`, 'success');
-                 }
             } else if (response.status === 409) {
                  const existingTag = userTags.find(t => t.name === normalizedTagName);
                  if (existingTag) {
@@ -126,7 +127,7 @@ const TagInputManager = (() => {
 
 
     function showSuggestions(options) {
-        const { inputElement, suggestionsElement, containerElement, selectedTags } = options;
+        const { inputElement, suggestionsElement, selectedTags } = options;
         const inputValue = inputElement.value.trim();
         const lowerInputValue = inputValue.toLowerCase();
 
@@ -144,38 +145,28 @@ const TagInputManager = (() => {
 
         let exactMatchFound = userTags.some(tag => tag.name.toLowerCase() === lowerInputValue);
 
-        if (filteredTags.length === 0 && !exactMatchFound) {
+        filteredTags.slice(0, 10).forEach(tag => {
              const li = document.createElement('li');
-             li.className = 'px-3 py-2 cursor-pointer hover:bg-green-100 text-sm text-green-700';
-             li.textContent = `Create new tag: "${inputValue}"`;
+             li.className = 'px-3 py-2 cursor-pointer hover:bg-gray-100 text-sm';
+             li.textContent = tag.name;
+             li.dataset.id = tag.id;
+             li.dataset.name = tag.name;
              li.addEventListener('click', () => {
-                  handleCreateTag(inputValue, options);
+                   renderTagPill({ id: tag.id, name: tag.name }, options);
              });
              suggestionsElement.appendChild(li);
+         });
 
-        } else {
-             filteredTags.slice(0, 10).forEach(tag => {
-                 const li = document.createElement('li');
-                 li.className = 'px-3 py-2 cursor-pointer hover:bg-gray-100 text-sm';
-                 li.textContent = tag.name;
-                 li.dataset.id = tag.id;
-                 li.dataset.name = tag.name;
-                 li.addEventListener('click', () => {
-                      renderTagPill({ id: tag.id, name: tag.name }, options);
-                 });
-                 suggestionsElement.appendChild(li);
-             });
-
-             if (!exactMatchFound && inputValue) {
-                  const createLi = document.createElement('li');
-                  createLi.className = 'px-3 py-2 cursor-pointer hover:bg-green-100 text-sm text-green-700 border-t border-gray-100';
-                  createLi.textContent = `Create new tag: "${inputValue}"`;
-                  createLi.addEventListener('click', () => {
-                       handleCreateTag(inputValue, options);
-                  });
-                  suggestionsElement.appendChild(createLi);
-             }
+        if (!exactMatchFound && inputValue) {
+              const createLi = document.createElement('li');
+              createLi.className = 'px-3 py-2 cursor-pointer hover:bg-green-100 text-sm text-green-700' + (filteredTags.length > 0 ? ' border-t border-gray-100' : '');
+              createLi.textContent = `Create new tag: "${inputValue}"`;
+              createLi.addEventListener('click', () => {
+                   handleCreateTag(inputValue, options);
+              });
+              suggestionsElement.appendChild(createLi);
         }
+
 
         if (suggestionsElement.hasChildNodes()) {
              suggestionsElement.classList.remove('hidden');
@@ -186,7 +177,7 @@ const TagInputManager = (() => {
 
 
     function initTagInput(options) {
-        const { inputId, suggestionsId, containerId } = options;
+        const { inputId, suggestionsId, containerId, onTagAdded } = options;
         const inputElement = document.getElementById(inputId);
         const suggestionsElement = document.getElementById(suggestionsId);
         const containerElement = document.getElementById(containerId);
@@ -202,7 +193,8 @@ const TagInputManager = (() => {
             inputElement,
             suggestionsElement,
             containerElement,
-            selectedTags
+            selectedTags,
+            onTagAdded
         };
 
         if (!hasFetched) {
@@ -235,7 +227,7 @@ const TagInputManager = (() => {
                       handleCreateTag(currentVal, instanceOptions);
                  }
              } else if (event.key === 'Backspace' && inputElement.value === '' && selectedTags.length > 0) {
-                 const lastPill = containerElement.querySelector('span:last-child');
+                 const lastPill = containerElement.querySelector('span:last-child[data-tag-id]'); 
                  if (lastPill) {
                       const lastTagId = parseInt(lastPill.dataset.tagId, 10);
                       const index = selectedTags.findIndex(t => t.id === lastTagId);
@@ -251,7 +243,6 @@ const TagInputManager = (() => {
 
          inputElement.addEventListener('focus', () => {
          });
-
 
         return {
             getSelectedTagIds: () => selectedTags.map(tag => tag.id),
