@@ -216,8 +216,7 @@ function setupActionMenuListeners(deck) {
              console.error('Network error while renaming deck:', error);
              showFlashMessage('Network error. Please try again.', "danger");
         } finally {
-             // TODO: Hide loading indicator
-        }
+          }
     }
 
     function showDeleteConfirmation(deckId, deckName) {
@@ -257,7 +256,6 @@ function setupActionMenuListeners(deck) {
              console.error('Network error while deleting deck:', error);
              showFlashMessage('Network error. Please try again.', "danger");
         } finally {
-            // TODO: Hide loading indicator
         }
     }
 }

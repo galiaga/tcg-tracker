@@ -83,6 +83,26 @@
             </ul>
         </nav>
 
+        <div id="quickAddTagModal" class="fixed inset-0 bg-black bg-opacity-50 z-[70] flex items-center justify-center px-4 hidden" aria-labelledby="quickAddTagModalTitle" role="dialog" aria-modal="true">
+            <div class="bg-white rounded-xl shadow-xl w-full max-w-sm p-5 space-y-4 transform transition-all scale-95 opacity-0">
+              <div class="flex items-center justify-between">
+                <h2 id="quickAddTagModalTitle" class="text-lg font-semibold text-gray-800">Add Tag to Item</h2>
+                <button id="quickAddTagModalCloseButton" type="button" aria-label="Close modal" class="text-gray-400 hover:text-gray-600 text-xl font-bold leading-none">&times;</button>
+              </div>
+              <div class="mt-2">
+                 <label for="quick-add-tag-input" class="sr-only">Add tags</label>
+                 <div id="quick-add-tags-container" class="mb-2 flex flex-wrap gap-1 min-h-[28px]">
+                 </div>
+                 <div class="relative">
+                    <input type="text" id="quick-add-tag-input" autocomplete="off" placeholder="Search or create tag..."
+                      class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-800 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50" />
+                    <div id="quick-add-tags-suggestions" class="absolute z-20 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-40 overflow-y-auto hidden">
+                    </div>
+                  </div>
+              </div>
+            </div>
+          </div>
+
         <script type="module" src="{{ url_for('static', filename='js/auth/auth.js') }}"></script>
         <script src="{{ url_for('static', filename='js/ui/menu.js') }}"></script>
         <script src="{{ url_for('static', filename='js/ui/flashMessages.js') }}"></script>
