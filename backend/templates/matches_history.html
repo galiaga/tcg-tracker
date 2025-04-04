@@ -14,9 +14,18 @@
          <button
               id="logMatchModalButton"
               type="button"
-              class="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium py-2 px-4 rounded-lg shadow-sm transition border border-transparent">
+              class="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium py-2 px-4 rounded-lg shadow-sm transition border border-transparent mb-4">
               Log New Match
          </button>
+
+         <div id="match-filter-controls" class="bg-white shadow-md rounded-xl border border-gray-200 p-4 mb-4">
+              <label for="filter-match-tags-select" class="block text-sm font-medium text-gray-700 mb-1">Filter by Tags</label>
+              <select id="filter-match-tags-select" name="tags_filter" multiple
+                 class="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 h-24">
+                  <option value="" disabled>Loading tags...</option>
+              </select>
+              <p class="mt-1 text-xs text-gray-500">Ctrl+Click to select multiple.</p>
+         </div>
     </section>
 
     <section aria-labelledby="match-history-heading">
@@ -51,7 +60,6 @@
                 <option disabled selected value="">Select Deck</option>
             </select>
         </div>
-
         <fieldset>
             <legend class="sr-only">Match Result</legend>
             <div class="flex flex-wrap justify-center gap-3 pt-2">
@@ -69,7 +77,17 @@
                 </label>
             </div>
         </fieldset>
-
+        <div>
+          <label for="match-tags-input" class="block text-sm font-medium text-gray-700 mb-1">Tags (Optional)</label>
+          <div id="match-tags-container" class="mb-2 flex flex-wrap gap-1 min-h-[28px]">
+          </div>
+           <div class="relative">
+             <input type="text" id="match-tags-input" autocomplete="off" placeholder="Add tags..."
+               class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-800 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50" />
+             <div id="match-tags-suggestions" class="absolute z-20 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-40 overflow-y-auto hidden">
+             </div>
+           </div>
+        </div>
         <div>
              <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium py-2 px-4 rounded-lg shadow-sm transition border border-transparent">
                 Log Match
@@ -83,7 +101,9 @@
 
 {% block scripts %}
     <script type="module" src="{{ url_for('static', filename='js/utils.js') }}"></script>
-    <script type="module" src="{{ url_for('static', filename='js/api/match_history.js') }}"></script>
-    <script type="module" src="{{ url_for('static', filename='js/logMatch.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/ui/matches/log-match-modal.js') }}"></script> {# <--- Nuevo script añadido #}
+    <script type="module" src="{{ url_for('static', filename='js/ui/matches/match-list-manager.js') }}"></script>
+    <script type="module" src="{{ url_for('static', filename='js/ui/matches/filter-matches-by-tag.js') }}"></script>
+    <script type="module" src="{{ url_for('static', filename='js/log-match.js') }}"></script> 
+    <script src="{{ url_for('static', filename='js/ui/matches/log-match-modal.js') }}"></script>
+    <script type="module" src="{{ url_for('static', filename='js/ui/tagInput.js') }}"></script>
 {% endblock %}

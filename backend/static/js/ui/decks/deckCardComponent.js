@@ -9,17 +9,26 @@ export function renderDeckCard(deck) {
 
     if (winrate >= 60) {
         card.classList.add("bg-green-50", "border-green-200");
-    } else if (winrate >= 40) { // Adjusted threshold slightly for yellow
+    } else if (winrate >= 40) {
         card.classList.add("bg-yellow-50", "border-yellow-200");
-    } else if (deck.total_matches > 0) { // Only color red if matches played
+    } else if (deck.total_matches > 0) {
         card.classList.add("bg-red-50", "border-red-200");
     } else {
-         card.classList.add("bg-white", "border-gray-200"); // Default for no matches
+         card.classList.add("bg-white", "border-gray-200");
     }
-
 
     const formattedDate = formatDate(deck.last_match);
     const deckTypeName = deck.deck_type?.name ?? 'Unknown Format';
+
+    let tagsHtml = '';
+    if (deck.tags && deck.tags.length > 0) {
+        const tagPills = deck.tags.map(tag =>
+            `<span class="inline-block bg-gray-200 text-gray-700 text-xs font-medium px-2.5 py-0.5 rounded-full mr-1 mb-1">
+                ${tag.name}
+            </span>`
+        ).join('');
+        tagsHtml = `<div class="mt-3 pt-2 border-t border-gray-200 flex flex-wrap">${tagPills}</div>`;
+    }
 
     card.innerHTML = `
         <div class="flex items-start justify-between mb-2 gap-2">
@@ -34,6 +43,7 @@ export function renderDeckCard(deck) {
             <div><span class="font-medium text-gray-700">Wins:</span> ${deck.total_wins ?? 0}</div>
             <div><span class="font-medium text-gray-700">Last Match:</span> ${formattedDate}</div>
         </div>
+        ${tagsHtml}
     `;
 
     return card;
@@ -43,7 +53,7 @@ function formatDate(isoString) {
     if (!isoString) return "—";
     const date = new Date(isoString);
     if (isNaN(date.getTime())) return "—";
-    const options = { year: "numeric", month: "short", day: "numeric" };
+    const options = { month: "short", day: "numeric", year: "numeric" };
     try {
         return date.toLocaleDateString(undefined, options);
     } catch (e) {
@@ -59,5 +69,5 @@ export function renderEmptyDecksMessage(containerElement) {
             No decks yet. Click 'New Deck' to get started!
         </div>
     `;
-     containerElement.className = "grid gap-4 md:grid-cols-2 xl:grid-cols-3"; // Ensure grid is reapplied
+     containerElement.className = "grid gap-4 md:grid-cols-2 xl:grid-cols-3";
 }

@@ -1,58 +1,64 @@
-import { formatMatchResult } from "../utils.js";
-import { authFetch } from '../auth/auth.js';
+import { authFetch } from '../../auth/auth.js';
+import { formatMatchResult } from '../../utils.js';
 
-document.addEventListener("DOMContentLoaded", loadUserMatches);
+function getSelectedMatchTagIds() {
+    const tagFilterSelect = document.getElementById("filter-match-tags-select");
+    const selectedIds = [];
+    if (!tagFilterSelect) return selectedIds;
 
-export async function loadUserMatches() {
+    for (const option of tagFilterSelect.options) {
+        if (option.selected) {
+            if (option.value && option.value !== "") {
+                 selectedIds.push(option.value);
+            }
+        }
+    }
+    return selectedIds;
+}
+
+async function updateMatchHistoryView() {
     const matchesListContainer = document.getElementById("matches-list-items");
     const noMatchesMessage = document.getElementById("no-matches-message-history");
-    const loadingMessage = matchesListContainer.querySelector('div');
 
-    if (!matchesListContainer || !noMatchesMessage || !loadingMessage) {
-        console.error("Required UI elements for match history list not found.");
+    if (!matchesListContainer || !noMatchesMessage) {
+        console.error("Required UI elements for match history rendering not found.");
         return;
     }
 
+    matchesListContainer.innerHTML = '<div class="p-6 text-center text-gray-500">Loading match history...</div>';
     noMatchesMessage.classList.add('hidden');
-    loadingMessage.classList.remove('hidden');
+
+    const selectedTagIds = getSelectedMatchTagIds();
+
+    const params = new URLSearchParams();
+    if (selectedTagIds.length > 0) {
+        params.append('tags', selectedTagIds.join(','));
+    }
+
+    const apiUrl = `/api/matches_history?${params.toString()}`;
 
     try {
-        const token = localStorage.getItem("access_token");
-        if (!token) {
-            loadingMessage.textContent = "Please log in to view history.";
-            loadingMessage.classList.remove('hidden');
-            matchesListContainer.innerHTML = '';
-            matchesListContainer.appendChild(loadingMessage);
-            noMatchesMessage.classList.add('hidden');
-            return;
-        }
+        const response = await authFetch(apiUrl);
 
-        const response = await authFetch("/api/matches_history", {
-            method: "GET",
-            headers: { "Authorization": `Bearer ${token}` }
-        });
-
-        if (!response.ok) {
-            let errorMsg = `Error loading match history: ${response.status}`;
-            try { const errorData = await response.json(); errorMsg = errorData.error || errorMsg; } catch(e) {}
-            showFlashMessage(errorMsg, "danger");
-            matchesListContainer.innerHTML = "";
-            noMatchesMessage.textContent = "Could not load match history.";
-            noMatchesMessage.classList.remove('hidden');
-            return;
+        if (!response) {
+            throw new Error("Authentication or network error.");
         }
+         if (!response.ok) {
+             let errorMsg = `Error loading match history: ${response.status}`;
+             try { const errorData = await response.json(); errorMsg = errorData.error || errorMsg; } catch(e) {}
+             throw new Error(errorMsg);
+         }
 
         const userMatches = await response.json();
 
         if (!Array.isArray(userMatches)) {
-            console.error("API response is not an array:", userMatches);
-            throw new Error("Received invalid data format from server.");
+             throw new Error("Received invalid data format from server.");
         }
 
         matchesListContainer.innerHTML = "";
 
         if (userMatches.length === 0) {
-            noMatchesMessage.textContent = "No match history found.";
+            noMatchesMessage.textContent = "No match history found for the selected filters.";
             noMatchesMessage.classList.remove('hidden');
             return;
         }
@@ -63,7 +69,7 @@ export async function loadUserMatches() {
         const locale = navigator.language || 'en-US';
         const dateOptions = { dateStyle: 'medium', timeStyle: 'short' };
 
-        userMatches.forEach(match => {
+        userMatches.forEach(match => { 
             const card = document.createElement("div");
             card.className = `bg-white shadow-md rounded-xl border border-gray-200 p-4 hover:shadow-lg transition-shadow duration-200`;
 
@@ -84,7 +90,6 @@ export async function loadUserMatches() {
                  badgeTextColorClass = 'text-gray-800';
             }
 
-
             let formattedDate = 'N/A';
              if (match.date) {
                  try {
@@ -97,6 +102,16 @@ export async function loadUserMatches() {
 
              const deckName = match.deck?.name ?? 'N/A';
              const deckTypeName = match.deck_type?.name ?? 'N/A';
+
+             let tagsHtml = '';
+             if (match.tags && match.tags.length > 0) {
+                 const tagPills = match.tags.map(tag =>
+                     `<span class="inline-block bg-gray-200 text-gray-700 text-xs font-medium px-2.5 py-0.5 rounded-full mr-1 mb-1">
+                         ${tag.name}
+                     </span>`
+                 ).join('');
+                 tagsHtml = `<div class="mt-3 pt-2 border-t border-gray-100 flex flex-wrap">${tagPills}</div>`;
+             }
 
              card.innerHTML = `
                 <div class="flex items-start justify-between gap-3">
@@ -113,6 +128,7 @@ export async function loadUserMatches() {
                         </span>
                     </div>
                 </div>
+                ${tagsHtml}
             `;
 
             fragment.appendChild(card);
@@ -122,9 +138,19 @@ export async function loadUserMatches() {
 
     } catch (error) {
         console.error("Failed to fetch or render match history:", error);
-        showFlashMessage(error.message || "An unexpected error occurred loading history.", "danger");
-        matchesListContainer.innerHTML = "";
+        if (typeof showFlashMessage === 'function') {
+             showFlashMessage(error.message || "An unexpected error occurred loading history.", "danger");
+        }
+        matchesListContainer.innerHTML = ""; 
         noMatchesMessage.textContent = "Could not load match history due to an error.";
         noMatchesMessage.classList.remove('hidden');
     }
 }
+
+export { updateMatchHistoryView };
+
+document.addEventListener('DOMContentLoaded', () => {
+    if (document.getElementById("matches-list-items")) {
+        updateMatchHistoryView();
+    }
+});

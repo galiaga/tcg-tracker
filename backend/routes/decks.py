@@ -1,10 +1,12 @@
 from flask import Blueprint, jsonify, request, Response
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from backend import db
-from backend.models import CommanderDeck, Commander, UserDeck, Deck
+from backend.models import CommanderDeck, Commander, UserDeck, Deck, Tag, DeckType
 from backend.services.matches.match_service import get_deck_stats, get_all_decks_stats
 from backend.services.decks.get_user_decks_service import get_user_decks
 from backend.services.decks.get_commander_attributes_service import get_commander_attributes_by_id
+from sqlalchemy.orm import selectinload
+from sqlalchemy.exc import IntegrityError
 import json
 import logging
 
@@ -25,25 +27,24 @@ def get_all_decks():
 @decks_bp.route("/decks/<int:deck_id>", methods=["GET"])
 @jwt_required()
 def deck_details(deck_id):
-    user_id = get_jwt_identity()
-    deck = Deck.query.filter_by(id=deck_id, user_id=user_id).first_or_404(
-        description=f"Deck with id {deck_id} not found for this user."
-    )
+    user_id_str = get_jwt_identity()
+    try:
+        user_id = int(user_id_str)
+    except (ValueError, TypeError):
+        return jsonify({"error": "Invalid user identity format"}), 400
+
+    deck = Deck.query.filter_by(id=deck_id, user_id=user_id).first()
+    if not deck:
+         return jsonify({"error": f"Deck with id {deck_id} not found for this user."}), 404
+
     deck_data = deck.to_dict()
 
     stats = get_deck_stats(user_id, deck_id)
-    if stats:
-        deck_data.update({
-            "win_rate": stats.get("win_rate", 0),
-            "total_matches": stats.get("total_matches", 0),
-            "total_wins": stats.get("total_wins", 0)
-        })
-    else:
-         deck_data.update({
-            "win_rate": 0,
-            "total_matches": 0,
-            "total_wins": 0
-        })
+    deck_data.update({
+        "win_rate": stats.get("win_rate", 0) if stats else 0,
+        "total_matches": stats.get("total_matches", 0) if stats else 0,
+        "total_wins": stats.get("total_wins", 0) if stats else 0
+    })
 
     if deck_data.get("deck_type", {}).get("id") == COMMANDER_DECK_TYPE_ID:
         commander_deck_info = CommanderDeck.query.filter_by(deck_id=deck.id).first()
@@ -66,9 +67,11 @@ def deck_details(deck_id):
 @decks_bp.route("/register_deck", methods=["POST"])
 @jwt_required()
 def register_deck():
-    user_id = get_jwt_identity()
-    if not user_id:
-        return jsonify({"error": "User not authenticated"}), 401
+    user_id_str = get_jwt_identity()
+    try:
+        user_id = int(user_id_str)
+    except (ValueError, TypeError):
+        return jsonify({"error": "Invalid user identity format"}), 400
 
     data = request.get_json()
     if not data:
@@ -87,25 +90,27 @@ def register_deck():
     except (ValueError, TypeError):
         return jsonify({"error": "Invalid Deck Type ID"}), 400
 
-    commander_id = data.get("commander_id")
-    partner_id = data.get("partner_id")
-    friends_forever_id = data.get("friends_forever_id")
-    doctor_companion_id = data.get("doctor_companion_id")
-    time_lord_doctor_id = data.get("time_lord_doctor_id")
-    background_id = data.get("background_id")
+    commander_id_str = data.get("commander_id")
+    partner_id_str = data.get("partner_id")
+    friends_forever_id_str = data.get("friends_forever_id")
+    doctor_companion_id_str = data.get("doctor_companion_id")
+    time_lord_doctor_id_str = data.get("time_lord_doctor_id")
+    background_id_str = data.get("background_id")
 
-    if deck_type_id == COMMANDER_DECK_TYPE_ID and not commander_id:
-        return jsonify({"error": "Add your Commander"}), 400
-
+    commander_id = None
     commander = None
-    if commander_id:
+    if commander_id_str:
         try:
-            commander_id = int(commander_id)
+            commander_id = int(commander_id_str)
             commander = db.session.get(Commander, commander_id)
             if not commander:
                  return jsonify({"error": "Selected Commander not found."}), 404
         except (ValueError, TypeError):
              return jsonify({"error": "Invalid Commander ID format."}), 400
+
+    if deck_type_id == COMMANDER_DECK_TYPE_ID and not commander_id:
+        return jsonify({"error": "Add your Commander"}), 400
+
 
     try:
         new_deck = Deck(user_id=user_id, name=deck_name, deck_type_id=deck_type_id)
@@ -115,23 +120,23 @@ def register_deck():
         user_deck = UserDeck(user_id=user_id, deck_id=new_deck.id)
         db.session.add(user_deck)
 
-        if deck_type_id == COMMANDER_DECK_TYPE_ID and commander_id:
+        if deck_type_id == COMMANDER_DECK_TYPE_ID and commander:
             associations = {
-                "partner_id": partner_id,
-                "friends_forever_id": friends_forever_id,
-                "time_lord_doctor_id": time_lord_doctor_id,
-                "doctor_companion_id": doctor_companion_id,
-                "background_id": background_id
+                "partner_id": partner_id_str,
+                "friends_forever_id": friends_forever_id_str,
+                "time_lord_doctor_id": time_lord_doctor_id_str,
+                "doctor_companion_id": doctor_companion_id_str,
+                "background_id": background_id_str
             }
 
             non_null_associations = {}
-            for key, value in associations.items():
-                if value is not None:
+            for key, value_str in associations.items():
+                if value_str is not None:
                     try:
-                        non_null_associations[key] = int(value)
+                        non_null_associations[key] = int(value_str)
                     except (ValueError, TypeError):
-                         db.session.rollback()
-                         return jsonify({"error": f"Invalid ID format for {key}."}), 400
+                        db.session.rollback()
+                        return jsonify({"error": f"Invalid ID format for {key}."}), 400
 
             if len(non_null_associations) > 1:
                 db.session.rollback()
@@ -192,17 +197,16 @@ def register_deck():
                 db.session.add(commander_deck)
 
             else:
-                if commander.partner or commander.friends_forever or commander.choose_a_background or commander.time_lord_doctor or commander.doctor_companion:
-                    required_partner_type = ""
-                    if commander.partner: required_partner_type = "Partner"
-                    elif commander.friends_forever: required_partner_type = "Friends Forever"
-                    elif commander.choose_a_background: required_partner_type = "Background"
-                    elif commander.time_lord_doctor: required_partner_type = "Doctor's Companion"
-                    elif commander.doctor_companion: required_partner_type = "Time Lord Doctor"
+                required_partner_type = ""
+                if commander.partner: required_partner_type = "Partner"
+                elif commander.friends_forever: required_partner_type = "Friends Forever"
+                elif commander.choose_a_background: required_partner_type = "Background"
+                elif commander.time_lord_doctor: required_partner_type = "Doctor's Companion"
+                elif commander.doctor_companion: required_partner_type = "Time Lord Doctor"
 
-                    if required_partner_type:
-                        db.session.rollback()
-                        return jsonify({"error": f"'{commander.name}' requires a {required_partner_type} commander."}), 400
+                if required_partner_type:
+                    db.session.rollback()
+                    return jsonify({"error": f"'{commander.name}' requires a {required_partner_type} commander."}), 400
 
                 commander_deck = CommanderDeck(
                     deck_id=new_deck.id,
@@ -248,11 +252,28 @@ def register_deck():
 @decks_bp.route("/user_decks", methods=["GET"])
 @jwt_required()
 def user_decks():
-    user_id = get_jwt_identity()
+    user_id_str = get_jwt_identity()
+    try:
+        user_id = int(user_id_str)
+    except (ValueError, TypeError):
+        return jsonify({"error": "Invalid user identity format"}), 400
+
     deck_type_filter = request.args.get('deck_type_id', default=None)
+    tags_param = request.args.get('tags', default=None)
+
+    tag_ids = None
+    if tags_param:
+        try:
+            tag_ids = [int(tag_id.strip()) for tag_id in tags_param.split(',') if tag_id.strip().isdigit()]
+            if not tag_ids:
+                 tag_ids = None
+        except ValueError:
+             return jsonify({"error": "Invalid character in 'tags' parameter. Use comma-separated integers."}), 400
+        except Exception:
+             tag_ids = None
 
     try:
-        user_decks_result = get_user_decks(user_id, deck_type_id=deck_type_filter)
+        user_decks_result = get_user_decks(user_id, deck_type_id=deck_type_filter, tag_ids=tag_ids)
 
         if not user_decks_result:
             return jsonify([]), 200
@@ -269,13 +290,14 @@ def user_decks():
                 "name": deck.name,
                 "type": deck.deck_type_id,
                 "deck_type": {
-                    "id": deck_type.id,
-                    "name": deck_type.name
+                    "id": deck_type.id if deck_type else None,
+                    "name": deck_type.name if deck_type else None
                 },
                 "win_rate": deck_stats.get("win_rate", 0),
                 "total_matches": deck_stats.get("total_matches", 0),
                 "total_wins": deck_stats.get("total_wins", 0),
-                "last_match": deck_stats.get("last_match", None)
+                "last_match": deck_stats.get("last_match", None),
+                "tags": [{"id": tag.id, "name": tag.name} for tag in deck.tags] 
             })
 
         return jsonify(decks_list), 200
@@ -284,14 +306,18 @@ def user_decks():
          logger.error(f"Error fetching user decks: {e}", exc_info=True)
          return jsonify({"error": "Failed to fetch user decks"}), 500
 
-
 @decks_bp.route("/decks/<int:deck_id>", methods=["PATCH"])
 @jwt_required()
 def update_deck(deck_id):
-    user_id = get_jwt_identity()
-    deck = Deck.query.filter_by(id=deck_id, user_id=user_id).first_or_404(
-         description=f"Deck with id {deck_id} not found for this user."
-    )
+    user_id_str = get_jwt_identity()
+    try:
+        user_id = int(user_id_str)
+    except (ValueError, TypeError):
+        return jsonify({"error": "Invalid user identity format"}), 400
+
+    deck = Deck.query.filter_by(id=deck_id, user_id=user_id).first()
+    if not deck:
+        return jsonify({"error": f"Deck with id {deck_id} not found for this user."}), 404
 
     data = request.get_json()
     if not data:
@@ -326,15 +352,19 @@ def update_deck(deck_id):
 @decks_bp.route("/decks/<int:deck_id>", methods=["DELETE"])
 @jwt_required()
 def delete_deck(deck_id):
-    user_id = get_jwt_identity()
-    deck = Deck.query.filter_by(id=deck_id, user_id=user_id).first_or_404(
-        description=f"Deck with id {deck_id} not found for this user."
-    )
+    user_id_str = get_jwt_identity()
+    try:
+        user_id = int(user_id_str)
+    except (ValueError, TypeError):
+        return jsonify({"error": "Invalid user identity format"}), 400
+
+    deck = Deck.query.filter_by(id=deck_id, user_id=user_id).first()
+    if not deck:
+        return jsonify({"error": f"Deck with id {deck_id} not found for this user."}), 404
 
     try:
-        CommanderDeck.query.filter_by(deck_id=deck.id).delete()
-        UserDeck.query.filter_by(deck_id=deck.id, user_id=user_id).delete()
-
+        CommanderDeck.query.filter_by(deck_id=deck.id).delete(synchronize_session=False)
+        UserDeck.query.filter_by(deck_id=deck.id, user_id=user_id).delete(synchronize_session=False)
         db.session.delete(deck)
         db.session.commit()
 
@@ -345,3 +375,82 @@ def delete_deck(deck_id):
         db.session.rollback()
         logger.error(f"Database error during deck deletion: {e}", exc_info=True)
         return jsonify({"error": "Database error", "details": str(e)}), 500
+
+@decks_bp.route('/decks/<int:deck_id>/tags', methods=['POST'])
+@jwt_required()
+def add_tag_to_deck(deck_id):
+    current_user_id_str = get_jwt_identity()
+    try:
+        current_user_id = int(current_user_id_str)
+    except (ValueError, TypeError):
+        return jsonify({"error": "Invalid user identity format"}), 400
+
+    data = request.get_json()
+
+    if not data or 'tag_id' not in data:
+        return jsonify({"error": "Missing 'tag_id' in request body"}), 400
+
+    tag_id = data.get('tag_id')
+    if not isinstance(tag_id, int):
+         return jsonify({"error": "'tag_id' must be an integer"}), 400
+
+    user_deck = UserDeck.query.filter_by(user_id=current_user_id, deck_id=deck_id).first()
+    if not user_deck:
+        return jsonify({"error": "Deck not found or not owned by user"}), 404
+
+    deck = db.session.get(Deck, user_deck.deck_id)
+    if not deck:
+         return jsonify({"error": "Deck data inconsistency"}), 500
+
+
+    tag_to_add = Tag.query.filter_by(id=tag_id, user_id=current_user_id).first()
+    if not tag_to_add:
+        return jsonify({"error": "Tag not found or not owned by user"}), 404
+
+    db.session.refresh(deck)
+    if tag_to_add in deck.tags:
+         return jsonify({"message": "Tag already associated with this deck"}), 200
+
+    try:
+        deck.tags.append(tag_to_add)
+        db.session.commit()
+        return jsonify({"message": "Tag associated successfully"}), 201
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error adding tag to deck: {e}")
+        return jsonify({"error": "An unexpected error occurred while associating the tag"}), 500
+
+
+@decks_bp.route('/decks/<int:deck_id>/tags/<int:tag_id>', methods=['DELETE'])
+@jwt_required()
+def remove_tag_from_deck(deck_id, tag_id):
+    current_user_id_str = get_jwt_identity()
+    try:
+        current_user_id = int(current_user_id_str)
+    except (ValueError, TypeError):
+        return jsonify({"error": "Invalid user identity format"}), 400
+
+    user_deck = UserDeck.query.filter_by(user_id=current_user_id, deck_id=deck_id).first()
+    if not user_deck:
+        return jsonify({"error": "Deck not found or not owned by user"}), 404
+
+    deck = db.session.get(Deck, user_deck.deck_id)
+    if not deck:
+         return jsonify({"error": "Deck data inconsistency"}), 500
+
+    tag_to_remove = db.session.get(Tag, tag_id)
+    if not tag_to_remove:
+        return jsonify({"error": "Tag not found"}), 404
+
+    db.session.refresh(deck)
+    if tag_to_remove not in deck.tags:
+         return jsonify({"error": "Tag is not associated with this deck"}), 404
+
+    try:
+        deck.tags.remove(tag_to_remove)
+        db.session.commit()
+        return '', 204
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error removing tag from deck: {e}")
+        return jsonify({"error": "An unexpected error occurred while disassociating the tag"}), 500

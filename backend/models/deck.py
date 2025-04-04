@@ -1,6 +1,7 @@
 from backend import db
 from backend.models.deck_type import DeckType
 from backend.models.commander_deck import CommanderDeck 
+from backend.models.tag import deck_tags
 from sqlalchemy.sql import func
 
 
@@ -8,13 +9,19 @@ class Deck(db.Model):
     __tablename__ = "decks"
 
     id = db.Column(db.Integer, primary_key=True) 
-    user_id = db.Column(db.Integer, nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
     name = db.Column(db.String(100), nullable=False)
     deck_type_id = db.Column(db.Integer, db.ForeignKey('deck_types.id'), nullable=False)
     creation_date = db.Column(
         db.DateTime,
         nullable=False,
         server_default=func.now()
+    )
+
+    tags = db.relationship(
+        "Tag",
+        secondary=deck_tags,
+        back_populates="decks"
     )
 
     deck_type = db.relationship("DeckType", back_populates="decks")
