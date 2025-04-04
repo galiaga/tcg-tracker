@@ -30,8 +30,8 @@ const TagInputManager = (() => {
         const { containerElement, inputElement, suggestionsElement, selectedTags, onTagAdded } = options;
 
         if (!tagData || typeof tagData.id === 'undefined' || typeof tagData.name === 'undefined') {
-             console.error("Invalid tag data provided to renderTagPill", tagData);
-             return;
+            console.error("Invalid tag data provided to renderTagPill", tagData);
+            return;
         }
 
         if (selectedTags.some(t => t.id === tagData.id)) {
@@ -44,13 +44,13 @@ const TagInputManager = (() => {
         selectedTags.push(tagData);
 
         const pill = document.createElement('span');
-        pill.className = 'inline-flex items-center gap-1 bg-blue-100 text-blue-700 text-sm font-medium px-2.5 py-0.5 rounded-full';
+        pill.className = 'inline-flex items-center gap-1 bg-blue-100 text-blue-800 text-xs font-medium px-2 py-0.5 rounded-md mr-1 mb-1'; // Clases actualizadas
         pill.dataset.tagId = tagData.id;
         pill.textContent = tagData.name;
 
         const removeBtn = document.createElement('button');
         removeBtn.type = 'button';
-        removeBtn.className = 'ml-1 text-blue-500 hover:text-blue-700 font-bold focus:outline-none';
+        removeBtn.className = 'ml-0.5 text-blue-600 hover:text-blue-800 font-bold focus:outline-none'; // Clases actualizadas
         removeBtn.innerHTML = '&times;';
         removeBtn.ariaLabel = `Remove ${tagData.name}`;
 
@@ -64,10 +64,11 @@ const TagInputManager = (() => {
         });
 
         pill.appendChild(removeBtn);
+
         containerElement.appendChild(pill);
 
         if (typeof onTagAdded === 'function') {
-            onTagAdded(tagData); 
+            onTagAdded(tagData);
         }
 
         inputElement.value = '';
