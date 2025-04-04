@@ -1,4 +1,5 @@
 import { authFetch } from './auth/auth.js';
+import { TagInputManager } from './ui/tagInput.js'; 
 
 const COMMANDER_DECK_TYPE_ID = "7";
 
@@ -9,13 +10,59 @@ document.addEventListener("DOMContentLoaded", function() {
         return;
     }
 
+    let deckTagInputInstance = null;
+    const openModalBtn = document.getElementById('newDeckModalButton');
+    const modal = document.getElementById('newDeckModal');
+    const closeModalBtn = document.getElementById('newDeckModalCloseButton');
+
+    function initializeTagInput() {
+        if (typeof TagInputManager !== 'undefined') {
+            deckTagInputInstance = TagInputManager.init({
+                inputId: 'deck-tags-input',
+                suggestionsId: 'deck-tags-suggestions',
+                containerId: 'deck-tags-container'
+            });
+            if (deckTagInputInstance) {
+                deckTagInputInstance.clearTags();
+            } else {
+                 console.error("Failed to initialize TagInputManager for decks.");
+            }
+        } else {
+             console.warn("TagInputManager not loaded before registerDeck.js attempted init.");
+        }
+    }
+
+    function clearTagInput() {
+         if (deckTagInputInstance) {
+             deckTagInputInstance.clearTags();
+         }
+    }
+
+    if (openModalBtn) {
+        openModalBtn.addEventListener('click', initializeTagInput);
+    } else {
+        console.warn("Button 'newDeckModalButton' not found for tag input init binding.");
+    }
+
+     if(closeModalBtn) {
+         closeModalBtn.addEventListener('click', clearTagInput);
+     }
+     if(modal) {
+        modal.addEventListener('click', (event) => {
+           if (event.target === modal) {
+               clearTagInput();
+           }
+        });
+     }
+
     registerForm.addEventListener("submit", async function(event) {
         event.preventDefault();
 
         const token = localStorage.getItem("access_token");
         if (!token) {
-            // Assuming showFlashMessage exists and handles UI
-            showFlashMessage("Authentication error. Please log in again.", "error");
+            if (typeof showFlashMessage === 'function') {
+                showFlashMessage("Authentication error. Please log in again.", "error");
+            }
             return;
         }
 
@@ -32,11 +79,11 @@ document.addEventListener("DOMContentLoaded", function() {
         const deckName = deckNameElement ? deckNameElement.value.trim() : "";
 
         if (!deckName) {
-            showFlashMessage("Please enter a Deck Name.", "error");
+            if (typeof showFlashMessage === 'function') showFlashMessage("Please enter a Deck Name.", "error");
             return;
         }
         if (!deckTypeId) {
-            showFlashMessage("Please select a Deck Type.", "error");
+            if (typeof showFlashMessage === 'function') showFlashMessage("Please select a Deck Type.", "error");
             return;
         }
 
@@ -48,10 +95,10 @@ document.addEventListener("DOMContentLoaded", function() {
         let backgroundId = null;
 
         if (deckTypeId === COMMANDER_DECK_TYPE_ID) {
-             if (!commanderInputElement || !commanderInputElement.dataset.commanderId) {
-                 showFlashMessage("Please select a Commander.", "error");
-                 return;
-             }
+            if (!commanderInputElement || !commanderInputElement.dataset.commanderId) {
+                if (typeof showFlashMessage === 'function') showFlashMessage("Please select a Commander.", "error");
+                return;
+            }
             commanderId = commanderInputElement.dataset.commanderId;
 
             if (partnerInputElement && partnerInputElement.dataset.partnerId) {
@@ -63,11 +110,11 @@ document.addEventListener("DOMContentLoaded", function() {
             if (doctorCompanionInputElement && doctorCompanionInputElement.dataset.timeLordDoctorId) {
                 timeLordDoctorId = doctorCompanionInputElement.dataset.timeLordDoctorId;
             }
-             if (timeLordDoctorInputElement && timeLordDoctorInputElement.dataset.doctorCompanionId) {
-                doctorCompanionId = timeLordDoctorInputElement.dataset.doctorCompanionId;
+            if (timeLordDoctorInputElement && timeLordDoctorInputElement.dataset.doctorCompanionId) {
+                 doctorCompanionId = timeLordDoctorInputElement.dataset.doctorCompanionId;
             }
             if (backgroundInputElement && backgroundInputElement.dataset.backgroundId) {
-                backgroundId = backgroundInputElement.dataset.backgroundId;
+                 backgroundId = backgroundInputElement.dataset.backgroundId;
             }
         }
 
@@ -82,32 +129,54 @@ document.addEventListener("DOMContentLoaded", function() {
             background_id: backgroundId
         };
 
+        const selectedTagIds = deckTagInputInstance ? deckTagInputInstance.getSelectedTagIds() : [];
+
         try {
             const response = await authFetch("/api/register_deck", {
                 method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
                 body: JSON.stringify(payload)
             });
 
             if (!response) {
-                 showFlashMessage("Network error or authFetch failed.", "error");
-                 return;
+                if (typeof showFlashMessage === 'function') showFlashMessage("Network error or authFetch failed.", "error");
+                return;
             }
 
             const data = await response.json();
 
             if (response.ok) {
-                sessionStorage.setItem("flashMessage", data.message || `Deck "${deckName}" registered!`);
-                sessionStorage.setItem("flashType", "success");
+                const newDeckId = data.deck?.id;
+                let associationErrors = false;
+
+                if (newDeckId && selectedTagIds.length > 0) {
+                    const associationPromises = selectedTagIds.map(tagId => {
+                        return authFetch(`/api/decks/${newDeckId}/tags`, {
+                            method: 'POST',
+                            body: JSON.stringify({ tag_id: tagId })
+                        }).catch(err => {
+                             console.error(`Error associating tag ${tagId} with deck ${newDeckId}:`, err);
+                             associationErrors = true;
+                             return null;
+                        });
+                    });
+
+                    await Promise.all(associationPromises);
+                }
+
+                let finalMessage = data.message || `Deck "${deckName}" registered!`;
+                if (associationErrors) {
+                     finalMessage += " (Note: Some tags might not have been associated due to errors - check console).";
+                }
+                sessionStorage.setItem("flashMessage", finalMessage);
+                sessionStorage.setItem("flashType", associationErrors ? "warning" : "success");
                 window.location.href = "/";
+
             } else {
-                showFlashMessage(data.error || `Error: ${response.statusText}`, "error");
+                if (typeof showFlashMessage === 'function') showFlashMessage(data.error || `Error: ${response.statusText}`, "error");
             }
         } catch (error) {
              console.error("Error during deck registration fetch:", error);
-             showFlashMessage("An unexpected error occurred during registration.", "error");
+             if (typeof showFlashMessage === 'function') showFlashMessage("An unexpected error occurred during registration.", "error");
         }
     });
 });

@@ -1,5 +1,9 @@
 import { authFetch } from './auth/auth.js';
-import { loadUserMatches } from './api/match_history.js';
+import { updateMatchHistoryView } from './ui/matches/match-list-manager.js';
+import { TagInputManager } from './ui/tagInput.js';
+import { populateTagFilter } from './ui/matches/filter-matches-by-tag.js';
+
+let matchTagInputInstance = null;
 
 document.addEventListener("DOMContentLoaded", () => {
     populateDeckSelect();
@@ -8,8 +12,52 @@ document.addEventListener("DOMContentLoaded", () => {
     if (logMatchForm) {
         logMatchForm.addEventListener("submit", handleLogMatchSubmit);
     } else {
-         console.warn("logMatch.js: Log match form not found in this view.");
+         console.warn("log-match.js: Log match form not found in this view.");
     }
+
+    const openModalBtn = document.getElementById('logMatchModalButton');
+    const modal = document.getElementById('logMatchModal');
+    const closeModalBtn = document.getElementById('logMatchModalCloseButton');
+
+     function initializeTagInput() {
+         if (typeof TagInputManager !== 'undefined') {
+             matchTagInputInstance = TagInputManager.init({
+                 inputId: 'match-tags-input',
+                 suggestionsId: 'match-tags-suggestions',
+                 containerId: 'match-tags-container'
+             });
+             if (matchTagInputInstance) {
+                 matchTagInputInstance.clearTags();
+             } else {
+                  console.error("Failed to initialize TagInputManager for matches.");
+             }
+         } else {
+              console.warn("TagInputManager not loaded before log-match.js attempted init.");
+         }
+     }
+
+     function clearTagInput() {
+          if (matchTagInputInstance) {
+              matchTagInputInstance.clearTags();
+          }
+     }
+
+     if (openModalBtn) {
+         openModalBtn.addEventListener('click', initializeTagInput);
+     } else {
+         console.warn("Button 'logMatchModalButton' not found for tag input init binding.");
+     }
+     if (closeModalBtn) {
+          closeModalBtn.addEventListener('click', clearTagInput);
+     }
+      if (modal) {
+         modal.addEventListener('click', (event) => {
+            if (event.target === modal) {
+                clearTagInput();
+            }
+         });
+      }
+
 });
 
 async function populateDeckSelect() {
@@ -17,6 +65,8 @@ async function populateDeckSelect() {
     if (!deckSelect) return;
 
     deckSelect.disabled = true;
+    const originalOption = '<option disabled selected value="">Select Deck</option>';
+    deckSelect.innerHTML = '<option disabled selected value="">Loading decks...</option>';
 
     try {
         const response = await authFetch("/api/user_decks");
@@ -26,7 +76,7 @@ async function populateDeckSelect() {
         }
         const decks = await response.json();
 
-        deckSelect.innerHTML = '<option disabled selected value="">Select Deck</option>';
+        deckSelect.innerHTML = originalOption;
 
         if (Array.isArray(decks) && decks.length > 0) {
             decks.forEach(deck => {
@@ -38,12 +88,11 @@ async function populateDeckSelect() {
             });
              deckSelect.disabled = false;
         } else {
-             console.warn("Received no decks or non-array response:", decks);
              deckSelect.innerHTML = '<option disabled selected value="">No decks available</option>';
         }
 
     } catch (error) {
-        console.error("Failed to fetch decks:", error);
+        console.error("Failed to fetch decks for log match:", error);
         deckSelect.innerHTML = '<option disabled selected value="">Could not load decks</option>';
          if (typeof showFlashMessage === 'function') {
             showFlashMessage(error.message || "Could not load your decks.", "danger");
@@ -82,6 +131,8 @@ async function handleLogMatchSubmit(event) {
         match_result: resultValue
     };
 
+    const selectedTagIds = matchTagInputInstance ? matchTagInputInstance.getSelectedTagIds() : [];
+
     const resultMapping = { "0": "Victory", "1": "Defeat", "2": "Draw" };
     const matchResultText = resultMapping[resultValue] ?? 'Result';
     const originalButtonText = submitButton.textContent;
@@ -99,15 +150,41 @@ async function handleLogMatchSubmit(event) {
         const data = await response.json();
 
         if (response.ok) {
+            const newMatchId = data.match?.id;
+            let associationErrors = false;
+
+            if (newMatchId && selectedTagIds.length > 0) {
+                 const associationPromises = selectedTagIds.map(tagId => {
+                     return authFetch(`/api/matches/${newMatchId}/tags`, {
+                         method: 'POST',
+                         body: JSON.stringify({ tag_id: tagId })
+                     }).catch(err => {
+                          console.error(`Error associating tag ${tagId} with match ${newMatchId}:`, err);
+                          associationErrors = true;
+                          return null;
+                     });
+                 });
+                 await Promise.all(associationPromises);
+            }
+
+            let successMessage = `${matchResultText} with ${deckName} registered!`;
+             if (associationErrors) {
+                  successMessage += " (Note: Some tags might not have been associated due to errors - check console).";
+             }
              if (typeof showFlashMessage === 'function') {
-                 showFlashMessage(`${matchResultText} with ${deckName} registered!`, "success");
+                 showFlashMessage(successMessage, associationErrors ? "warning" : "success");
              }
-             form.dispatchEvent(new CustomEvent('matchLoggedSuccess'));
-             if (typeof loadUserMatches === 'function') {
-                 loadUserMatches();
-             } else {
-                  console.warn("loadUserMatches function not available to reload history.");
-             }
+
+            form.dispatchEvent(new CustomEvent('matchLoggedSuccess'));
+
+            if (typeof updateMatchHistoryView === 'function') {
+                updateMatchHistoryView();
+                 if(typeof populateTagFilter === 'function') {
+                     populateTagFilter();
+                 }
+            } else {
+                 console.warn("updateMatchHistoryView function not available to reload history.");
+            }
         } else {
               if (typeof showFlashMessage === 'function') {
                   showFlashMessage(data.error || `Error logging match: ${response.statusText}`, "danger");

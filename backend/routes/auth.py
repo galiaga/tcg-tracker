@@ -40,7 +40,7 @@ def register():
     
     user_id = create_user(username, password)
 
-    if isinstance(user_id, tuple):  # Esto significa que devolvió (error, código)
+    if isinstance(user_id, tuple): 
         error_response, status_code = user_id
         return jsonify(error_response), status_code 
     

@@ -35,7 +35,7 @@
           </div>
         </div>
 
-        <div id="filter-controls" class="grid grid-cols-1 sm:grid-cols-2 gap-4 hidden bg-white shadow-md rounded-xl border border-gray-200 p-4">
+        <div id="filter-controls" class="grid grid-cols-1 sm:grid-cols-3 gap-4 hidden bg-white shadow-md rounded-xl border border-gray-200 p-4">
           <div>
             <label for="sort_decks" class="block text-sm font-medium text-gray-700 mb-1">Sort by</label>
             <select id="sort_decks"
@@ -60,6 +60,14 @@
               <option value="6">Pauper</option>
               <option value="7">Commander / EDH</option>
             </select>
+          </div>
+          <div>
+             <label for="filter-tags-select" class="block text-sm font-medium text-gray-700 mb-1">Tags</label>
+             <select id="filter-tags-select" name="tags_filter" multiple
+                class="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 h-24">
+                 <option value="" disabled>Loading tags...</option>
+             </select>
+             <p class="mt-1 text-xs text-gray-500">Ctrl+Click to select multiple.</p>
           </div>
         </div>
      </div>
@@ -104,6 +112,19 @@
           <input id="deck_name" type="text" autocomplete="off" placeholder="Enter a deck name"
             class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-800 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50" />
         </div>
+
+         <div>
+          <label for="deck-tags-input" class="block text-sm font-medium text-gray-700 mb-1">Tags</label>
+          <div id="deck-tags-container" class="mb-2 flex flex-wrap gap-1 min-h-[28px]">
+          </div>
+          <div class="relative">
+             <input type="text" id="deck-tags-input" autocomplete="off" placeholder="Add tags..."
+               class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-800 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50" />
+             <div id="deck-tags-suggestions" class="absolute z-20 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-40 overflow-y-auto hidden">
+             </div>
+           </div>
+        </div>
+
         <button type="submit"
           class="w-full md:w-auto bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg shadow-sm transition">
           Register Deck
@@ -125,12 +146,18 @@
 {% endblock %}
 
 {% block scripts %}
-    <script type="module" src="/static/js/deck_types.js"></script>
+    <script type="module" src="{{ url_for('static', filename='js/ui/decks/deckCardComponent.js') }}"></script>
+    <script type="module" src="{{ url_for('static', filename='js/ui/tagInput.js') }}"></script>
+
+    <script type="module" src="{{ url_for('static', filename='js/deck_types.js') }}"></script>
     <script type="module" src="{{ url_for('static', filename='js/deckForm.js') }}"></script>
-    <script type="module" src="{{ url_for('static', filename='js/api/user_decks.js') }}"></script>
     <script type="module" src="{{ url_for('static', filename='js/registerDeck.js') }}"></script>
-    <script type="module" src="{{ url_for('static', filename='js/ui/decks/sort_decks.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/ui/decks/new-deck-modal.js') }}"></script>
-    <script type="module" src="{{ url_for('static', filename='js/ui/decks/filter_decks.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/ui/decks/mobile_sort_filter.js') }}"></script>
+
+    <script type="module" src="{{ url_for('static', filename='js/ui/decks/sort-decks.js') }}"></script>
+    <script type="module" src="{{ url_for('static', filename='js/ui/decks/deck-list-manager.js') }}"></script>
+    <script type="module" src="{{ url_for('static', filename='js/ui/decks/filter-decks.js') }}"></script>
+    <script type="module" src="{{ url_for('static', filename='js/ui/decks/filter-decks-by-tag.js') }}"></script>
+
+    <script src="{{ url_for('static', filename='js/ui/decks/new-deck-modal.js') }}" defer></script>
+    <script src="{{ url_for('static', filename='js/ui/decks/mobile_sort_filter.js') }}" defer></script>
 {% endblock %}

@@ -1,5 +1,4 @@
-from flask import Blueprint, render_template, redirect, url_for
-from flask_jwt_extended import verify_jwt_in_request, get_jwt_identity
+from flask import Blueprint, render_template
 
 frontend_bp = Blueprint("frontend", __name__)
 

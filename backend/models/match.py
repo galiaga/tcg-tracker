@@ -1,6 +1,7 @@
 from backend import db
 from sqlalchemy.sql import func
 from sqlalchemy import CheckConstraint
+from backend.models.tag import match_tags
 
 class Match(db.Model):
     __tablename__ = "matches"
@@ -11,6 +12,12 @@ class Match(db.Model):
     user_deck_id = db.Column(db.Integer, db.ForeignKey("user_decks.id"), nullable=False)
 
     user_deck = db.relationship("UserDeck", back_populates="matches")
+
+    tags = db.relationship(
+        "Tag",
+        secondary=match_tags,
+        back_populates="matches",
+    )
 
     __table_args__ = (
         CheckConstraint("result IN (0, 1, 2)", name="check_match_result"),  
