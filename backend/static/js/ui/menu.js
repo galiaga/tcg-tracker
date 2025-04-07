@@ -6,7 +6,7 @@ document.addEventListener("DOMContentLoaded", function () {
         const element = document.getElementById(id);
         if (element) element.classList.remove("hidden");
     };
-    
+
     const hideElement = (id) => {
         const element = document.getElementById(id);
         if (element) element.classList.add("hidden");
@@ -29,42 +29,63 @@ document.addEventListener("DOMContentLoaded", function () {
         showElement("mobile-navbar");
     } else {
         hideElement("nav-username");
-        hideElement("nav-login");
-        hideElement("nav-register");
+        showElement("nav-login");
+        showElement("nav-register");
         hideElement("nav-home");
         hideElement("nav-matches");
         hideElement("nav-my-decks");
         hideElement("nav-logout");
-        hideElement("mobile-navbar");
+        showElement("mobile-navbar");
     }
 
     const currentPath = window.location.pathname;
 
-    document.querySelectorAll('.desktop-nav-link, .mobile-nav-link').forEach(link => {
-        link.classList.remove('bg-blue-600', 'text-white', 'font-bold', 'rounded-md');
-    });
+    const desktopActiveClasses = ['bg-blue-600', 'text-white', 'font-bold', 'rounded-full'];
+    const mobileActiveClasses = ['bg-blue-600', 'text-white', 'font-bold', 'rounded-full']; 
 
     const desktopLinks = document.querySelectorAll('.desktop-nav-link');
-    const mobileLinks = document.querySelectorAll('.mobile-nav-link');
-
     desktopLinks.forEach(link => {
-        const expectedPath = link.getAttribute('data-path');
-        if (currentPath === expectedPath) {
-            link.classList.add('bg-blue-600', 'text-white', 'font-bold', 'rounded-full');
+        const linkPath = link.dataset.path;
+        let isActive = false;
+
+        if (linkPath === '/') {
+             isActive = (currentPath === linkPath);
+        } else if (linkPath === '/my-decks') {
+            isActive = currentPath.startsWith('/my-decks') || currentPath.startsWith('/decks/');
+        } else {
+             isActive = currentPath.startsWith(linkPath);
+        }
+
+
+        if (isActive) {
+            link.classList.add(...desktopActiveClasses);
+        } else {
+            link.classList.remove(...desktopActiveClasses);
         }
     });
 
+    const mobileLinks = document.querySelectorAll('.mobile-nav-link');
     mobileLinks.forEach(link => {
-        const expectedPath = link.getAttribute('data-path');
-        if (currentPath === expectedPath) {
-            link.classList.add('bg-blue-600', 'text-white');
+        const linkPath = link.dataset.path;
+        let isActive = false;
+
+        if (linkPath === '/') {
+            isActive = (currentPath === linkPath);
+        } else if (linkPath === '/my-decks') {
+            isActive = currentPath.startsWith('/my-decks') || currentPath.startsWith('/decks/');
         } else {
-            link.classList.remove('bg-blue-600', 'text-white');
+            isActive = currentPath.startsWith(linkPath);
+        }
+
+        if (isActive) {
+            link.classList.add(...mobileActiveClasses);
+        } else {
+            link.classList.remove(...mobileActiveClasses);
         }
     });
 });
 
-function logout() {
+function logout(event) {
     localStorage.removeItem("access_token");
     localStorage.removeItem("username");
     window.location.href = "/login";
