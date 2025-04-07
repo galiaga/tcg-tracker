@@ -61,6 +61,8 @@ def deck_details(deck_id):
                     deck_data["associated_commander_name"] = associated_commander_attributes.get("name")
                     deck_data["associated_commander_id"] = commander_deck_info.associated_commander_id
 
+    deck_data["tags"] = [{"id": tag.id, "name": tag.name} for tag in deck.tags]
+    
     return jsonify(deck_data), 200
 
 
