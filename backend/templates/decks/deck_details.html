@@ -17,9 +17,11 @@
 
         <div class="rounded-2xl bg-white shadow-lg border border-gray-100 overflow-hidden">
             <div class="p-4 sm:p-6">
-                <h2 class="text-lg font-semibold text-gray-800 mb-4">
-                    Last 5 Matches
-                </h2>
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-lg font-semibold text-gray-800 mb-4">
+                        Last 5 Matches
+                    </h2>
+                </div>
                 <div class="overflow-x-auto">
                     <table id="matches-list" class="min-w-full divide-y divide-gray-200">
                         <thead class="bg-gray-50">
@@ -48,6 +50,13 @@
 {% endblock %}
 
 {% block scripts %}
-<script type="module" src="{{ url_for('static', filename='js/ui/decks/deck-details.js') }}"></script>
-<script type="module" src="{{ url_for('static', filename='js/ui/matches/deckMatches.js') }}"></script>
+    <script type="module" src="{{ url_for('static', filename='js/ui/decks/deck-details.js') }}"></script>
+    <script type="module" src="{{ url_for('static', filename='js/ui/matches/deck-matches.js') }}"></script>
+
+    <script type="module" src="{{ url_for('static', filename='js/ui/tagUtils.js') }}"></script>
+    <script type="module" src="{{ url_for('static', filename='js/ui/tagInput.js') }}"></script>
+
+    <script type="module" src="{{ url_for('static', filename='js/ui/matches/log-match-modal.js') }}"></script>
+    <script type="module" src="{{ url_for('static', filename='js/ui/matches/log-match.js') }}"></script>
+
 {% endblock %}

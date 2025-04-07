@@ -3,7 +3,7 @@ import { authFetch } from '../../auth/auth.js';
 
 document.addEventListener("DOMContentLoaded", () => loadDeckMatches());
 
-async function loadDeckMatches() {
+export async function loadDeckMatches() {
     const matchesTableBody = document.querySelector("#matches-list tbody");
     const noMatchesMessage = document.getElementById("no-matches-message");
 
