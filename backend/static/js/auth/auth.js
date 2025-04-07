@@ -66,7 +66,6 @@ function autoRefreshAccessToken() {
         const refreshThreshold = 2 * 60 * 1000;
 
         if (timeUntilExpiration < refreshThreshold) {
-            console.log("Attempting token auto-refresh...");
 
             fetch("/api/auth/refresh", {
                 method: "POST",
@@ -88,7 +87,6 @@ function autoRefreshAccessToken() {
             .then(data => {
                 if (data.access_token) {
                     localStorage.setItem("access_token", data.access_token);
-                    console.log("Access token refreshed via auto-refresh.");
                 } else {
                      console.warn("Refresh response missing access token.");
                      logout();
