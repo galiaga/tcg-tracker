@@ -1,7 +1,86 @@
 import { authFetch } from '../../auth/auth.js';
 import { openQuickAddTagModal, closeQuickAddTagModal } from '../tagUtils.js';
+import { loadDeckMatches } from '../matches/deck-matches.js';
 
 function updatePageTitle(newTitle) { document.title = `TCG Tracker: ${newTitle}`; }
+
+async function quickLogMatch(deckId, resultValue) {
+    const payload = {
+        deck_id: parseInt(deckId, 10),
+        match_result: parseInt(resultValue, 10)
+    };
+    const resultMapping = { "0": "Win", "1": "Loss", "2": "Draw" };
+    const resultText = resultMapping[resultValue] ?? 'Result';
+
+    try {
+        const response = await authFetch("/api/log_match", {
+            method: "POST",
+            body: JSON.stringify(payload)
+        });
+
+        if (!response) throw new Error("Network or Authentication Error during quick match log.");
+
+        const data = await response.json();
+
+        if (response.ok) {
+            if (typeof showFlashMessage === 'function') {
+                showFlashMessage(`${resultText} logged successfully!`, "success");
+            }
+            return true;
+        } else {
+             throw new Error(data.error || `Error logging match: ${response.statusText}`);
+        }
+    } catch (error) {
+        console.error("Error in quickLogMatch:", error);
+        if (typeof showFlashMessage === 'function') {
+            showFlashMessage(error.message || "An unexpected error occurred.", "danger");
+        }
+        throw error;
+    }
+}
+
+function setupQuickLogButtonsListener() {
+    const container = document.getElementById("deck-details");
+    if (!container || container.dataset.quickLogListenerAttached === 'true') return;
+
+    container.addEventListener('click', async (event) => {
+        const button = event.target.closest('.quick-log-btn');
+        if (!button || button.disabled) return;
+
+        const resultValue = button.dataset.result;
+        const deckId = container.dataset.deckId;
+
+        if (!deckId || typeof resultValue === 'undefined') {
+            console.error("Missing deckId or resultValue for quick log");
+            return;
+        }
+
+        const allButtons = container.querySelectorAll('.quick-log-btn');
+        allButtons.forEach(btn => {
+             btn.disabled = true;
+             btn.classList.add('opacity-50', 'cursor-not-allowed');
+             if (btn === button) btn.innerHTML = `<span class="spinner-tiny"></span>Logging...`; 
+         });
+
+
+        try {
+            await quickLogMatch(deckId, resultValue);
+            loadDeckDetails(deckId); 
+            loadDeckMatches();
+        } catch (error) {
+             allButtons.forEach(btn => {
+                 btn.disabled = false;
+                 btn.classList.remove('opacity-50', 'cursor-not-allowed');
+                  if (btn.dataset.result === "0") btn.textContent = "Win";
+                  else if (btn.dataset.result === "1") btn.textContent = "Loss";
+                  else if (btn.dataset.result === "2") btn.textContent = "Draw";
+              });
+
+        }
+    });
+    container.dataset.quickLogListenerAttached = 'true';
+}
+
 
 function renderDeckDetails(deck, container) {
     const escapedDeckName = deck.name.replace(/"/g, '&quot;');
@@ -15,7 +94,7 @@ function renderDeckDetails(deck, container) {
         ).join('');
     }
     const addTagButtonHtml = `<button type="button" class="add-deck-tag-button inline-flex items-center text-xs font-medium px-2 py-0.5 rounded border border-dashed border-gray-400 text-gray-500 hover:bg-gray-100 hover:text-gray-700 hover:border-solid mb-1" aria-label="Add tag to deck ${deck.name}" data-deck-id="${deck.id}">+ Tag</button>`;
-    
+
     const tagsContainerHtml = `
         <div class="mt-4 pt-4 border-t border-gray-100 px-4 sm:px-6">
              <h3 class="text-sm font-medium text-gray-500 mb-2">Tags:</h3>
@@ -53,7 +132,6 @@ function renderDeckDetails(deck, container) {
             <span class="text-gray-900">${deck.associated_commander_name}</span>
           </div>` : ""}
         </div>
-
         <div class="border-t border-gray-100 pt-3 space-y-2">
             <div class="flex items-center justify-between gap-x-4">
                 <div>
@@ -83,7 +161,7 @@ function renderDeckDetails(deck, container) {
             <div id="deck-detail-action-menu" class="action-menu hidden absolute right-0 mt-2 w-48 origin-top-right bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-20" role="menu" aria-orientation="vertical">
                 <div class="py-1" role="none">
                     <button type="button" class="menu-rename-btn text-gray-700 group flex items-center w-full px-4 py-2 text-sm text-left hover:bg-gray-100 hover:text-gray-900" role="menuitem" data-deck-id="${deck.id}" data-current-name="${escapedDeckName}">
-                        <svg class="mr-3 h-5 w-5 text-gray-400 group-hover:text-gray-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" /></svg>Update Name
+                       <svg class="mr-3 h-5 w-5 text-gray-400 group-hover:text-gray-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" /></svg>Update Name
                     </button>
                     <button type="button" class="menu-delete-btn text-red-600 group flex items-center w-full px-4 py-2 text-sm text-left hover:bg-red-50 hover:text-red-700" role="menuitem" data-deck-id="${deck.id}" data-deck-name="${escapedDeckName}">
                         <svg class="mr-3 h-5 w-5 text-red-400 group-hover:text-red-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" /></svg>Delete Deck
@@ -92,19 +170,32 @@ function renderDeckDetails(deck, container) {
             </div>
         </div>`;
 
+     const quickLogButtonsHtml = `
+       <div class="px-4 sm:px-6 mt-4 pt-4 border-t border-gray-100">
+         <h3 class="text-sm font-medium text-gray-500 mb-2 text-center">Quick Log Result:</h3>
+         <div class="flex justify-center space-x-3">
+           <button type="button" data-result="0" class="quick-log-btn bg-green-500 hover:bg-green-600 text-white font-medium py-2 px-5 rounded-lg shadow-sm transition flex-1 max-w-[100px]">Win</button>
+           <button type="button" data-result="1" class="quick-log-btn bg-red-500 hover:bg-red-600 text-white font-medium py-2 px-5 rounded-lg shadow-sm transition flex-1 max-w-[100px]">Loss</button>
+           <button type="button" data-result="2" class="quick-log-btn bg-yellow-500 hover:bg-yellow-600 text-white font-medium py-2 px-5 rounded-lg shadow-sm transition flex-1 max-w-[100px]">Draw</button>
+         </div>
+       </div>
+     `;
+
     container.innerHTML = `
         <div class="pb-4">
-            <div class="flex items-start justify-between pb-4 mb-4 border-b border-gray-200 px-4 sm:px-6 pt-4 sm:pt-6">
+            <div class="flex items-start justify-between pb-4 mb-2 border-b border-gray-200 px-4 sm:px-6 pt-4 sm:pt-6">
                 <h2 id="deck-detail-name" class="text-xl sm:text-2xl font-semibold text-gray-900 min-w-0 break-words pr-3">${deck.name}</h2>
                 ${actionMenuHtml}
             </div>
             ${statsHtml}
+            ${quickLogButtonsHtml} 
             ${tagsContainerHtml}
         </div>
         `;
 
     setupActionMenuListeners(deck);
     setupTagActionListeners(deck.id);
+    // No llamar a setupLogMatchButtonListener aquí
 }
 
 
@@ -114,7 +205,7 @@ async function handleTagClickEvents(event) {
     const removeButton = event.target.closest('.remove-tag-button');
     const addButton = event.target.closest('.add-deck-tag-button');
     const container = document.getElementById("deck-details");
-    const deckId = container?.querySelector('[data-deck-id]')?.dataset.deckId;
+    const deckId = container?.dataset.deckId;
 
     if (!deckId) return;
 
@@ -130,7 +221,6 @@ async function handleTagClickEvents(event) {
             const response = await authFetch(`/api/decks/${deckId}/tags/${tagId}`, { method: 'DELETE' });
             if (!response) throw new Error("Auth/Network Error");
             if (response.ok) {
-                tagPill.remove();
                 loadDeckDetails(deckId);
             } else {
                 const errorData = await response.json().catch(() => ({}));
@@ -155,17 +245,17 @@ async function handleTagClickEvents(event) {
 
 function setupTagActionListeners(deckId) {
     const container = document.getElementById("deck-details");
-    if (!container || isTagListenerAttached) return;
-
+    if (!container || container.dataset.tagListenerAttached === 'true') return;
     container.addEventListener('click', handleTagClickEvents);
-    isTagListenerAttached = true;
+    container.dataset.tagListenerAttached = 'true';
 }
 
 async function loadDeckDetails(deckId) {
     const container = document.getElementById("deck-details");
     if (!container) return;
     container.innerHTML = `<div class="p-6 text-center text-gray-500">Loading deck details...</div>`;
-    isTagListenerAttached = false;
+    container.removeAttribute('data-tag-listener-attached');
+    container.removeAttribute('data-quick-log-listener-attached');
 
     try {
         const response = await authFetch(`/api/decks/${deckId}`);
@@ -175,15 +265,26 @@ async function loadDeckDetails(deckId) {
             else throw new Error(`Error loading deck details (${response.status})`);
         }
         const deck = await response.json();
-        if (!deck) {
-             throw new Error("Received empty deck data from API.");
+        if (!deck || typeof deck !== 'object' || deck === null) {
+             throw new Error("Received invalid or empty deck data from API.");
         }
+
+        container.dataset.deckId = deck.id;
+        container.dataset.deckName = deck.name;
+
         renderDeckDetails(deck, container);
         updatePageTitle(deck.name);
+
+        setupQuickLogButtonsListener();
+
     } catch(error) {
         console.error("Error fetching or rendering deck details:", error);
         if (typeof showFlashMessage === 'function') showFlashMessage(error.message, "danger");
-        if (container) container.innerHTML = `<div class="p-6 text-center text-red-500">${error.message || 'Error loading details.'}</div>`;
+        if (container) {
+             container.innerHTML = `<div class="p-6 text-center text-red-500">${error.message || 'Error loading details.'}</div>`;
+             delete container.dataset.deckId;
+             delete container.dataset.deckName;
+         }
         updatePageTitle("Error");
     }
 }
@@ -191,15 +292,19 @@ async function loadDeckDetails(deckId) {
 document.addEventListener("DOMContentLoaded", () => {
     const pathParts = window.location.pathname.split("/");
     const idSlug = pathParts[pathParts.length - 1];
-    const deckId = parseInt(idSlug.split("-")[0]);
-
-    if (isNaN(deckId)) {
-        console.error("Invalid Deck ID in URL");
-        if (typeof showFlashMessage === 'function') showFlashMessage("Invalid Deck ID.", "danger");
-        const container = document.getElementById("deck-details");
-        if (container) container.innerHTML = '<div class="p-6 text-center text-red-500">Invalid Deck ID in URL.</div>';
-        return;
-    }
+    let deckId;
+    try {
+        deckId = parseInt(idSlug.split("-")[0], 10);
+        if (isNaN(deckId)) {
+            throw new Error("Parsed Deck ID is NaN");
+        }
+    } catch(e) {
+         console.error("Invalid Deck ID in URL:", e);
+         if (typeof showFlashMessage === 'function') showFlashMessage("Invalid Deck ID in URL.", "danger");
+         const container = document.getElementById("deck-details");
+         if (container) container.innerHTML = '<div class="p-6 text-center text-red-500">Invalid Deck ID in URL.</div>';
+         return;
+     }
 
     loadDeckDetails(deckId);
 
@@ -221,36 +326,67 @@ function setupActionMenuListeners(deck) {
     if (!optionsBtn || !actionMenu) return;
     const renameBtn = actionMenu.querySelector('.menu-rename-btn');
     const deleteBtn = actionMenu.querySelector('.menu-delete-btn');
-    
-    let currentName = deck.name; 
 
-    optionsBtn.dataset.deckName = deck.name.replace(/"/g, '&quot;');
+    let currentName = deck.name;
+    const escapedDeckName = currentName.replace(/"/g, '&quot;');
+
+    optionsBtn.dataset.deckId = deck.id;
+    optionsBtn.dataset.deckName = escapedDeckName;
+    optionsBtn.ariaLabel = `Deck options for ${currentName}`;
+    if (renameBtn) {
+        renameBtn.dataset.deckId = deck.id;
+        renameBtn.dataset.currentName = escapedDeckName;
+    }
+    if (deleteBtn) {
+        deleteBtn.dataset.deckId = deck.id;
+        deleteBtn.dataset.deckName = escapedDeckName;
+    }
+
 
     function closeMenu() { actionMenu.classList.add('hidden'); }
 
-    optionsBtn.addEventListener('click', (event) => {
+    const newOptionsBtn = optionsBtn.cloneNode(true);
+    optionsBtn.parentNode.replaceChild(newOptionsBtn, optionsBtn);
+
+    newOptionsBtn.addEventListener('click', (event) => {
         event.stopPropagation();
         actionMenu.classList.toggle('hidden');
     });
+
+
     if (renameBtn) {
-        renameBtn.dataset.currentName = currentName.replace(/"/g, '&quot;'); 
-        renameBtn.addEventListener('click', () => {
+        const newRenameBtn = renameBtn.cloneNode(true);
+        renameBtn.parentNode.replaceChild(newRenameBtn, renameBtn);
+        newRenameBtn.addEventListener('click', () => {
             closeMenu();
             promptForRename(deck.id, currentName);
         });
+         newRenameBtn.dataset.currentName = escapedDeckName;
+
     }
     if (deleteBtn) {
-        deleteBtn.dataset.deckName = currentName.replace(/"/g, '&quot;'); 
-        deleteBtn.addEventListener('click', () => {
-            closeMenu();
-            showDeleteConfirmation(deck.id, currentName);
-        });
+         const newDeleteBtn = deleteBtn.cloneNode(true);
+         deleteBtn.parentNode.replaceChild(newDeleteBtn, deleteBtn);
+         newDeleteBtn.addEventListener('click', () => {
+             closeMenu();
+             showDeleteConfirmation(deck.id, currentName);
+         });
+         newDeleteBtn.dataset.deckName = escapedDeckName;
     }
-    document.addEventListener('click', (event) => {
-        if (!optionsBtn.contains(event.target) && !actionMenu.contains(event.target)) {
-            if (!actionMenu.classList.contains('hidden')) { closeMenu(); }
+
+    const clickOutsideListener = (event) => {
+        const currentOptionsBtn = document.getElementById('deck-detail-options-btn');
+        const currentActionMenu = document.getElementById('deck-detail-action-menu');
+        if (currentActionMenu && currentOptionsBtn && !currentOptionsBtn.contains(event.target) && !currentActionMenu.contains(event.target)) {
+            if (!currentActionMenu.classList.contains('hidden')) {
+                closeMenu();
+            }
         }
-    });
+    };
+
+    document.removeEventListener('click', clickOutsideListener);
+    document.addEventListener('click', clickOutsideListener);
+
 
     function promptForRename(deckId, name) {
         const newName = window.prompt(`Enter new name for "${name}":`, name);
@@ -268,18 +404,8 @@ function setupActionMenuListeners(deck) {
                 body: JSON.stringify({ deck_name: newName })
             });
             if (response.ok) {
-                const titleElement = document.getElementById('deck-detail-name');
-                if (titleElement) titleElement.textContent = newName;
-                currentName = newName;
-
-                const updatedEscapedName = newName.replace(/"/g, '&quot;');
-                optionsBtn.dataset.deckName = updatedEscapedName;
-                optionsBtn.ariaLabel = `Deck options for ${newName}`;
-                if (renameBtn) renameBtn.dataset.currentName = updatedEscapedName;
-                if (deleteBtn) deleteBtn.dataset.deckName = updatedEscapedName;
-
+                loadDeckDetails(deckId);
                 if (typeof showFlashMessage === 'function') showFlashMessage("Deck renamed successfully!", "success");
-                updatePageTitle(newName);
             } else {
                 const errorData = await response.json().catch(() => ({}));
                 console.error(`Failed to rename deck ${deckId}. Status: ${response.status}`, errorData);

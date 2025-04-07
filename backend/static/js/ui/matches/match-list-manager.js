@@ -126,36 +126,59 @@ export { updateMatchHistoryView };
 
 document.addEventListener('DOMContentLoaded', () => {
     const matchesContainer = document.getElementById('matches-list-items');
+    const noMatchesMessage = document.getElementById("no-matches-message-history");
     const tagFilterButton = document.getElementById("match-tag-filter-button");
     const tagFilterDropdown = document.getElementById("match-tag-filter-dropdown");
+    const tagFilterOptions = document.getElementById("match-tag-filter-options");
+    const clearTagFilterButton = document.getElementById("clear-match-tag-filter-button"); 
+
     const quickAddModal = document.getElementById("quickAddTagModal");
     const quickAddModalCloseBtn = document.getElementById("quickAddTagModalCloseButton");
 
-    if (matchesContainer && tagFilterButton && tagFilterDropdown && quickAddModal && quickAddModalCloseBtn) {
-        updateMatchHistoryView();
+    let initializedSomething = false;
 
-        matchesContainer.addEventListener('click', (event) => {
-            if (event.target.closest('.remove-match-tag-button')) {
+    if (matchesContainer && noMatchesMessage) {
+        updateMatchHistoryView();
+        initializedSomething = true;
+    } else {
+       
+    }
+
+    if (tagFilterButton && tagFilterDropdown && tagFilterOptions && clearTagFilterButton) {
+         initializedSomething = true;
+    } else {
+    }
+
+    if (matchesContainer && quickAddModal && quickAddModalCloseBtn) {
+         matchesContainer.addEventListener('click', (event) => {
+             if (event.target.closest('.remove-match-tag-button')) {
                  handleRemoveMatchTagClick(event);
-            } else if (event.target.closest('.add-match-tag-button')) {
+             } else if (event.target.closest('.add-match-tag-button')) {
                  const addButton = event.target.closest('.add-match-tag-button');
                  event.preventDefault();
                  event.stopPropagation();
                  const matchId = addButton.dataset.matchId;
-                 if (matchId) {
-                      openQuickAddTagModal(matchId, 'match', updateMatchHistoryView);
+                 if (matchId && typeof openQuickAddTagModal === 'function') {
+                     openQuickAddTagModal(matchId, 'match', updateMatchHistoryView);
+                 } else if (!matchId) {
+                     console.error("Add tag button clicked on match, but no matchId found.");
+                 } else {
+                     console.error("openQuickAddTagModal function not available.");
                  }
-            }
-        });
+             }
+         });
 
-        quickAddModalCloseBtn.addEventListener('click', closeQuickAddTagModal);
-        quickAddModal.addEventListener('click', (event) => {
-            if (event.target === quickAddModal) {
+         quickAddModalCloseBtn.addEventListener('click', closeQuickAddTagModal);
+         quickAddModal.addEventListener('click', (event) => {
+             if (event.target === quickAddModal) {
                  closeQuickAddTagModal();
-            }
-        });
-
+             }
+         });
+         initializedSomething = true;
     } else {
-         console.warn("Match list manager could not initialize fully - required elements missing (incl. quick add modal or filters).");
     }
+
+    if (!initializedSomething) {
+    }
+
 });

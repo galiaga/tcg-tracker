@@ -77,59 +77,6 @@
 
 </div>
 
-<div id="logMatchModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center px-4 hidden">
-  <div class="bg-white rounded-xl shadow-xl w-full max-w-md p-6 space-y-5 transform transition-all scale-95 opacity-0">
-    <div class="flex items-center justify-between border-b pb-3">
-      <h2 class="text-lg font-bold text-gray-800">Log New Match</h2>
-      <button id="logMatchModalCloseButton" type="button" aria-label="Close modal"
-        class="text-gray-400 hover:text-gray-600 text-xl font-bold">
-        &times;
-      </button>
-    </div>
-    <form id="log-match-form" class="space-y-4">
-        <div>
-            <label for="deck-select" class="sr-only">Select Deck</label>
-            <select id="deck-select" name="deck_id" required class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md shadow-sm">
-                <option disabled selected value="">Select Deck</option>
-            </select>
-        </div>
-        <fieldset>
-            <legend class="sr-only">Match Result</legend>
-            <div class="flex flex-wrap justify-center gap-3 pt-2">
-                <label class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500 cursor-pointer has-[:checked]:ring-2 has-[:checked]:ring-offset-1 has-[:checked]:ring-green-500 has-[:checked]:border-green-400 has-[:checked]:bg-green-50 has-[:checked]:text-green-900">
-                    <input type="radio" name="match_result" value="0" class="sr-only" checked>
-                    <span>Won</span>
-                </label>
-                <label class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500 cursor-pointer has-[:checked]:ring-2 has-[:checked]:ring-offset-1 has-[:checked]:ring-red-500 has-[:checked]:border-red-400 has-[:checked]:bg-red-50 has-[:checked]:text-red-900">
-                    <input type="radio" name="match_result" value="1" class="sr-only">
-                    <span>Loss</span>
-                </label>
-                <label class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500 cursor-pointer has-[:checked]:ring-2 has-[:checked]:ring-offset-1 has-[:checked]:ring-yellow-500 has-[:checked]:border-yellow-400 has-[:checked]:bg-yellow-50 has-[:checked]:text-yellow-900">
-                    <input type="radio" name="match_result" value="2" class="sr-only">
-                    <span>Draw</span>
-                </label>
-            </div>
-        </fieldset>
-        <div>
-          <label for="match-tags-input" class="block text-sm font-medium text-gray-700">Tags (Optional)</label>
-          <div id="match-tags-container" class="mb-2 flex flex-wrap gap-1 min-h-[28px]">
-          </div>
-           <div class="relative">
-             <input type="text" id="match-tags-input" autocomplete="off" placeholder="Add tags..."
-               class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-800 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50" />
-             <div id="match-tags-suggestions" class="absolute z-20 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-40 overflow-y-auto hidden">
-             </div>
-           </div>
-        </div>
-        <div>
-             <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium py-2 px-4 rounded-lg shadow-sm transition border border-transparent">
-                Log Match
-            </button>
-        </div>
-    </form>
-  </div>
-</div>
-
 {% endblock %}
 
 {% block scripts %}
@@ -138,8 +85,6 @@
     <script type="module" src="{{ url_for('static', filename='js/ui/tagInput.js') }}"></script>
     <script type="module" src="{{ url_for('static', filename='js/ui/matches/match-list-manager.js') }}"></script>
     <script type="module" src="{{ url_for('static', filename='js/ui/matches/filter-matches-by-tag.js') }}"></script>
-    <script type="module" src="{{ url_for('static', filename='js/log-match.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/ui/matches/log-match-modal.js') }}"></script>
-
-    <script src="{{ url_for('static', filename='js/ui/matches/mobile-match-filter.js') }}" defer></script>
+    <script type="module" src="{{ url_for('static', filename='js/ui/matches/log-match.js') }}"></script>
+    <script type="module" src="{{ url_for('static', filename='js/ui/matches/log-match-modal.js') }}"></script>
 {% endblock %}
