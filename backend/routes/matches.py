@@ -81,21 +81,31 @@ def log_match():
 def get_matches_history():
     current_user_id = get_jwt_identity()
     tag_ids_str = request.args.get('tags')
+    deck_id_str = request.args.get('deck_id')
 
     try:
         query = db.session.query(Match).join(UserDeck, Match.user_deck_id == UserDeck.id)\
                                        .filter(UserDeck.user_id == current_user_id)
 
+        deck_id = None
+        if deck_id_str and deck_id_str.isdigit():
+            try:
+                deck_id = int(deck_id_str)
+                query = query.filter(UserDeck.deck_id == deck_id)
+            except ValueError:
+                 pass
+
+        apply_tag_filter = False
         tag_ids = []
         if tag_ids_str:
             try:
                 tag_ids = [int(tid) for tid in tag_ids_str.split(',') if tid.strip().isdigit()]
+                if tag_ids:
+                    apply_tag_filter = True
             except ValueError:
                 return jsonify({"error": "Invalid tags format. Use comma-separated integers."}), 400
 
-            if not tag_ids:
-                return jsonify([])
-
+        if apply_tag_filter:
             query = query.join(match_tags, Match.id == match_tags.c.match_id)\
                          .filter(match_tags.c.tag_id.in_(tag_ids))\
                          .distinct()
@@ -106,7 +116,6 @@ def get_matches_history():
                 .joinedload(Deck.deck_type),
             joinedload(Match.tags)
         )
-
         query = query.order_by(Match.timestamp.desc())
 
         matches = query.all()
