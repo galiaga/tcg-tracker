@@ -1,19 +1,35 @@
 import { renderDeckCard, renderEmptyDecksMessage } from "./deckCardComponent.js";
-import { updateDeckListView } from "./deck-list-manager.js";
 
-document.addEventListener("DOMContentLoaded", function () {
-    const sortSelect = document.getElementById("sort_decks");
-    if (sortSelect) {
-        sortSelect.addEventListener('change', updateDeckListView); 
+function renderDecks(decks, containerElement) {
+    if (!containerElement) {
+        console.error("Render container not provided to renderDecks.");
+        return;
     }
-});
+    containerElement.innerHTML = '';
 
-export function sortAndRenderDecks(decksToSort, sortOption) {
+    if (!decks || decks.length === 0) {
+        renderEmptyDecksMessage(containerElement);
+        return;
+    }
 
-    if (!decksToSort || !Array.isArray(decksToSort)) {
-        console.warn("sortAndRenderDecks called with invalid decks data.");
-         const decksContainer = document.getElementById('decks-container');
-         if(decksContainer) renderEmptyDecksMessage(decksContainer);
+    const fragment = document.createDocumentFragment();
+    decks.forEach(deck => {
+        const card = renderDeckCard(deck);
+        fragment.appendChild(card);
+    });
+    containerElement.appendChild(fragment);
+}
+
+export function sortAndRenderDecks(decksToSort, sortOption, containerElement) {
+
+    if (!containerElement) {
+        console.error("Container element is required for sortAndRenderDecks.");
+        return;
+    }
+
+    if (!decksToSort || !Array.isArray(decksToSort) || decksToSort.length === 0) {
+        console.warn("sortAndRenderDecks called with invalid or empty decks data. Rendering empty message.");
+        renderDecks([], containerElement);
         return;
     }
 
@@ -44,31 +60,7 @@ export function sortAndRenderDecks(decksToSort, sortOption) {
             });
             break;
         default:
-            console.warn("Unknown sorting option:", sortOption);
-            renderDecks(sortedDecks);
-            return;
     }
 
-    renderDecks(sortedDecks);
-}
-
-function renderDecks(decks) {
-    const decksContainer = document.getElementById('decks-container');
-    if (!decksContainer) {
-        console.error("Decks container not found.");
-        return;
-    }
-    decksContainer.innerHTML = '';
-
-    if (decks.length === 0) {
-        renderEmptyDecksMessage(decksContainer);
-        return;
-    }
-
-    const fragment = document.createDocumentFragment();
-    decks.forEach(deck => {
-        const card = renderDeckCard(deck);
-        fragment.appendChild(card);
-    });
-    decksContainer.appendChild(fragment);
+    renderDecks(sortedDecks, containerElement);
 }

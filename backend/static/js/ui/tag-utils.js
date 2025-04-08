@@ -19,11 +19,11 @@ async function fetchUserTags(forceRefresh = false) {
     try {
         const response = await authFetch("/api/tags");
         if (!response) {
-             throw new Error("Auth or network error fetching tags");
+            throw new Error("Auth or network error fetching tags");
         }
         if (!response.ok) {
-             console.error("tagUtils.js: API response not OK", response);
-             throw new Error(`Failed to fetch tags: ${response.status}`);
+            console.error("tagUtils.js: API response not OK", response);
+            throw new Error(`Failed to fetch tags: ${response.status}`);
         }
         const tags = await response.json();
         tags.sort((a, b) => a.name.localeCompare(b.name));
@@ -31,6 +31,7 @@ async function fetchUserTags(forceRefresh = false) {
         return tags;
     } catch (error) {
          console.error("Error in fetchUserTags utility:", error);
+         cachedUserTags = null;
          return null;
     } finally {
          isFetchingTags = false;
@@ -38,8 +39,8 @@ async function fetchUserTags(forceRefresh = false) {
 }
 
 function invalidateTagCache() {
-     cachedUserTags = null;
-     isFetchingTags = false;
+    cachedUserTags = null;
+    isFetchingTags = false;
 }
 
 async function associateTag(tagData) {
@@ -52,8 +53,8 @@ async function associateTag(tagData) {
       const itemType = currentItemTypeForTagging;
 
       const apiUrl = itemType === 'deck'
-                   ? `/api/decks/${itemId}/tags`
-                   : `/api/matches/${itemId}/tags`;
+                      ? `/api/decks/${itemId}/tags`
+                      : `/api/matches/${itemId}/tags`;
       try {
           const response = await authFetch(apiUrl, {
               method: 'POST',
@@ -61,26 +62,29 @@ async function associateTag(tagData) {
           });
            if (!response) throw new Error("Auth/Network Error");
 
-          if (response.ok) {
-               if (typeof showFlashMessage === 'function') {
-                   showFlashMessage(`Tag "${tagData.name}" added to ${itemType} ${itemId}.`, 'success', 2000);
-               }
-               closeQuickAddTagModal();
-               if (typeof currentRefreshCallback === 'function') {
+          if (response.ok || response.status === 201) {
+                const responseData = await response.json().catch(()=>({}));
+                if (typeof showFlashMessage === 'function') {
+                    const flashMsg = response.status === 201 ? `Tag "${tagData.name}" added.` : `Tag "${tagData.name}" was already associated.`;
+                }
+                if (typeof currentRefreshCallback === 'function') {
                     currentRefreshCallback();
-               }
+                }
+
+                closeQuickAddTagModal();
+
           } else {
-               const errorData = await response.json().catch(() => ({}));
-               throw new Error(errorData.error || `Failed to add tag (${response.status})`);
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.error || `Failed to add tag (${response.status})`);
           }
       } catch (error) {
            console.error(`Error associating tag ${tagId} with ${itemType} ${itemId}:`, error);
            if (typeof showFlashMessage === 'function') {
                 showFlashMessage(error.message || `Could not add tag.`, 'danger');
            }
-           closeQuickAddTagModal();
       }
 }
+
 
 function openQuickAddTagModal(itemId, itemType, refreshCallback) {
     const modal = document.getElementById("quickAddTagModal");
@@ -97,23 +101,25 @@ function openQuickAddTagModal(itemId, itemType, refreshCallback) {
     currentItemTypeForTagging = itemType;
     currentRefreshCallback = refreshCallback;
 
-    title.textContent = `Add Tag to ${itemType} #${itemId}`;
+    title.textContent = `Add Tag to ${itemType === 'deck' ? 'Deck' : 'Match'} #${itemId}`;
 
-    if (typeof TagInputManager !== 'undefined') {
+    if (typeof TagInputManager !== 'undefined' && typeof TagInputManager.init === 'function') {
         quickAddTagInputInstance = TagInputManager.init({
-             inputId: 'quick-add-tag-input',
-             suggestionsId: 'quick-add-tags-suggestions',
-             containerId: 'quick-add-tags-container',
-             onTagAdded: (tagData) => {
-                 associateTag(tagData);
-             }
+            inputId: 'quick-add-tag-input',
+            suggestionsId: 'quick-add-tags-suggestions',
+            containerId: 'quick-add-tags-container',
+            onTagAdded: (tagData) => {
+                associateTag(tagData);
+            },
         });
         if (quickAddTagInputInstance) {
              quickAddTagInputInstance.clearTags();
              setTimeout(() => tagInputElement.focus(), 50);
+        } else {
+              console.error("Failed to initialize TagInputManager instance.");
         }
     } else {
-         console.error("TagInputManager is not defined. Cannot initialize quick add modal input.");
+         console.error("TagInputManager is not defined or init is not a function.");
     }
 
     modal.classList.remove("hidden");
@@ -129,7 +135,7 @@ function closeQuickAddTagModal() {
     if (!modal || !modalContent) return;
 
     if (quickAddTagInputInstance) {
-         quickAddTagInputInstance.clearTags();
+        quickAddTagInputInstance.clearTags();
     }
     currentItemIdForTagging = null;
     currentItemTypeForTagging = null;

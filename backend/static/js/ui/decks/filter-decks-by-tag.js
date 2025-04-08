@@ -1,6 +1,6 @@
 import { authFetch } from '../../auth/auth.js';
 import { updateDeckListView } from "./deck-list-manager.js";
-import { fetchUserTags } from '../tagUtils.js';
+import { fetchUserTags } from '../tag-utils.js';
 
 document.addEventListener("DOMContentLoaded", () => {
     const tagFilterButton = document.getElementById("tag-filter-button");

@@ -59,18 +59,18 @@
                       </div>
                    </div>
                  </div>
-                 </div>
+            </div>
         </div>
     </section>
 
     <section aria-labelledby="match-history-container-heading">
-         <h2 id="match-history-container-heading" class="sr-only">Match List</h2> {# Cambiado el propósito del H2 invisible #}
+         <h2 id="match-history-container-heading" class="sr-only">Match List</h2>
          <div id="matches-list-items" class="space-y-4">
              <div class="bg-white shadow-md rounded-xl border border-gray-200 p-6 text-center text-gray-500">
                  Loading match history...
              </div>
          </div>
-         <div id="no-matches-message-history" class="text-center text-gray-500 p-6 hidden mt-4 bg-white shadow-md rounded-xl border border-gray-200">
+         <div id="no-matches-message-history" class="text-center text-gray-500 mt-8 p-4 text-base border border-dashed border-gray-300 rounded-lg md:col-span-2 xl:col-span-3">
              No match history found.
          </div>
     </section>
@@ -81,7 +81,7 @@
 
 {% block scripts %}
     <script type="module" src="{{ url_for('static', filename='js/utils.js') }}"></script>
-    <script type="module" src="{{ url_for('static', filename='js/ui/tagUtils.js') }}"></script>
+    <script type="module" src="{{ url_for('static', filename='js/ui/tag-utils.js') }}"></script>
     <script type="module" src="{{ url_for('static', filename='js/ui/tagInput.js') }}"></script>
     <script type="module" src="{{ url_for('static', filename='js/ui/matches/match-list-manager.js') }}"></script>
     <script type="module" src="{{ url_for('static', filename='js/ui/matches/filter-matches-by-tag.js') }}"></script>

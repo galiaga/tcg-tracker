@@ -1,6 +1,6 @@
 import { authFetch } from '../../auth/auth.js';
 import { formatMatchResult } from '../../utils.js';
-import { openQuickAddTagModal, closeQuickAddTagModal } from '../tagUtils.js';
+import { openQuickAddTagModal, closeQuickAddTagModal } from '../tag-utils.js';
 
 function getSelectedMatchTagIds() {
     const optionsContainer = document.getElementById("match-tag-filter-options");
@@ -15,7 +15,7 @@ function getSelectedMatchTagIds() {
     return selectedIds;
 }
 
-async function handleRemoveMatchTagClick(event) {
+export async function handleRemoveMatchTagClick(event) {
     const removeButton = event.target.closest('.remove-match-tag-button');
     if (!removeButton) return;
     event.preventDefault();
@@ -36,34 +36,107 @@ async function handleRemoveMatchTagClick(event) {
         const response = await authFetch(`/api/matches/${matchId}/tags/${tagId}`, { method: 'DELETE' });
         if (!response) throw new Error("Authentication or network error.");
         if (response.ok) {
-             tagPill.remove();
+            tagPill.remove();
         } else {
-             const errorData = await response.json().catch(() => ({}));
-             throw new Error(errorData.error || `Failed to remove tag (${response.status})`);
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.error || `Failed to remove tag (${response.status})`);
         }
     } catch (error) {
-         console.error("Error removing match tag:", error);
-         if (typeof showFlashMessage === 'function') showFlashMessage(error.message || "Could not remove tag.", "danger");
-         removeButton.disabled = false;
-         tagPill.style.opacity = '1';
+        console.error("Error removing match tag:", error);
+        if (typeof showFlashMessage === 'function') showFlashMessage(error.message || "Could not remove tag.", "danger");
+        if (document.body.contains(removeButton)) {
+             removeButton.disabled = false;
+        }
+         if (document.body.contains(tagPill)){
+            tagPill.style.opacity = '1';
+         }
     }
+}
+
+function displayMatches(matches, containerElement, noMatchesElement) {
+    if (!containerElement) {
+        console.error("Container element not provided for displayMatches.");
+        return;
+    }
+
+    containerElement.innerHTML = "";
+    if(noMatchesElement) {
+        noMatchesElement.classList.add('hidden');
+    }
+
+    if (!matches || !Array.isArray(matches) || matches.length === 0) {
+        if(noMatchesElement) {
+            noMatchesElement.textContent = "No matches found matching the criteria.";
+            noMatchesElement.classList.remove('hidden');
+        } else {
+            containerElement.innerHTML = `
+                <div class="text-center text-gray-500 mt-8 p-4 text-base border border-dashed border-gray-300 rounded-lg md:col-span-2 xl:col-span-3">
+                    No matches found.
+                </div>
+            `;
+        }
+        return;
+    }
+
+    const fragment = document.createDocumentFragment();
+    const locale = navigator.language || 'en-US';
+    const dateOptions = { dateStyle: 'medium', timeStyle: 'short' };
+
+    matches.forEach(match => {
+        const card = document.createElement("div");
+        card.className = `relative bg-white shadow-md rounded-xl border border-gray-200 p-4 hover:shadow-lg transition-shadow duration-200`;
+        card.dataset.matchId = match.id;
+
+        const resultText = formatMatchResult(match.result);
+        const lowerResult = resultText.toLowerCase();
+        let badgeBgColorClass = 'bg-gray-400'; let badgeTextColorClass = 'text-gray-800';
+        if (lowerResult === 'win') { badgeBgColorClass = 'bg-green-500'; badgeTextColorClass = 'text-white'; }
+        else if (lowerResult === 'loss') { badgeBgColorClass = 'bg-red-500'; badgeTextColorClass = 'text-white'; }
+        else if (lowerResult === 'draw') { badgeBgColorClass = 'bg-yellow-400'; badgeTextColorClass = 'text-gray-800'; }
+
+        let formattedDate = 'N/A';
+         if (match.date) { try { formattedDate = new Date(match.date).toLocaleString(locale, dateOptions); } catch(e) { formattedDate = match.date; } }
+
+         const deckName = match.deck?.name ?? 'N/A';
+         const deckTypeName = match.deck_type?.name ?? 'N/A';
+
+         let tagPillsHtml = '';
+         if (match.tags && match.tags.length > 0) {
+             tagPillsHtml = match.tags.map(tag =>
+                 `<span class="tag-pill inline-flex items-center gap-1 bg-blue-100 text-blue-800 text-xs font-medium px-2 py-0.5 rounded-md mr-1 mb-1" data-tag-id="${tag.id}">
+                     ${tag.name}
+                     <button type="button" class="remove-match-tag-button ml-0.5 text-blue-500 hover:text-blue-700 font-bold focus:outline-none" aria-label="Remove tag ${tag.name}">&times;</button>
+                 </span>`
+             ).join('');
+         }
+         const addTagButtonHtml = `<button type="button" class="add-match-tag-button inline-flex items-center text-xs font-medium px-2 py-0.5 rounded border border-dashed border-gray-400 text-gray-500 hover:bg-gray-100 hover:text-gray-700 hover:border-solid mb-1" aria-label="Add tag to match ${match.id}" data-match-id="${match.id}">+ Tag</button>`;
+         const tagsContainerHtml = `<div class="mt-2 flex flex-wrap items-center gap-x-1">${tagPillsHtml}${addTagButtonHtml}</div>`;
+
+         card.innerHTML = `<div class="flex items-start justify-between gap-3"><div class="flex-grow min-w-0"><h3 class="text-lg font-bold text-gray-800 break-words leading-tight truncate">${deckName}</h3><p class="text-xs text-gray-500 mt-1">${formattedDate}</p></div><div class="flex flex-col items-end flex-shrink-0 space-y-1"><span class="text-xs ${badgeTextColorClass} ${badgeBgColorClass} px-2 py-0.5 rounded-full font-medium whitespace-nowrap">${resultText}</span><span class="text-xs bg-blue-500 text-white px-2 py-0.5 rounded-full font-medium whitespace-nowrap">${deckTypeName}</span></div></div>${tagsContainerHtml}`;
+         fragment.appendChild(card);
+     });
+     containerElement.appendChild(fragment);
 }
 
 async function updateMatchHistoryView() {
     const matchesListContainer = document.getElementById("matches-list-items");
     const noMatchesMessage = document.getElementById("no-matches-message-history");
+
     if (!matchesListContainer || !noMatchesMessage) {
-        console.error("Required UI elements for match history rendering not found.");
+        console.error("Required UI elements for match history not found.");
         return;
     }
+
     matchesListContainer.innerHTML = '<div class="p-6 text-center text-gray-500">Loading match history...</div>';
     noMatchesMessage.classList.add('hidden');
+
     const selectedTagIds = getSelectedMatchTagIds();
     const params = new URLSearchParams();
     if (selectedTagIds.length > 0) {
         params.append('tags', selectedTagIds.join(','));
     }
     const apiUrl = `/api/matches_history?${params.toString()}`;
+
     try {
         const response = await authFetch(apiUrl);
         if (!response) throw new Error("Authentication or network error.");
@@ -74,63 +147,24 @@ async function updateMatchHistoryView() {
          }
         const userMatches = await response.json();
         if (!Array.isArray(userMatches)) throw new Error("Received invalid data format from server.");
-        matchesListContainer.innerHTML = "";
-        if (userMatches.length === 0) {
-            noMatchesMessage.textContent = "No match history found for the selected filters.";
-            noMatchesMessage.classList.remove('hidden');
-            return;
-        }
-        noMatchesMessage.classList.add('hidden');
-        const fragment = document.createDocumentFragment();
-        const locale = navigator.language || 'en-US';
-        const dateOptions = { dateStyle: 'medium', timeStyle: 'short' };
-        userMatches.forEach(match => {
-            const card = document.createElement("div");
-            card.className = `relative bg-white shadow-md rounded-xl border border-gray-200 p-4 hover:shadow-lg transition-shadow duration-200`;
-            card.dataset.matchId = match.id;
-            const resultText = formatMatchResult(match.result);
-            const lowerResult = resultText.toLowerCase();
-            let badgeBgColorClass = 'bg-gray-400'; let badgeTextColorClass = 'text-gray-800';
-            if (lowerResult === 'win') { badgeBgColorClass = 'bg-green-500'; badgeTextColorClass = 'text-white'; }
-            else if (lowerResult === 'loss') { badgeBgColorClass = 'bg-red-500'; badgeTextColorClass = 'text-white'; }
-            else if (lowerResult === 'draw') { badgeBgColorClass = 'bg-yellow-400'; badgeTextColorClass = 'text-gray-800'; }
-            let formattedDate = 'N/A';
-             if (match.date) { try { formattedDate = new Date(match.date).toLocaleString(locale, dateOptions); } catch(e) { formattedDate = match.date; } }
-             const deckName = match.deck?.name ?? 'N/A';
-             const deckTypeName = match.deck_type?.name ?? 'N/A';
-             let tagPillsHtml = '';
-             if (match.tags && match.tags.length > 0) {
-                 tagPillsHtml = match.tags.map(tag =>
-                     `<span class="tag-pill inline-flex items-center gap-1 bg-blue-100 text-blue-800 text-xs font-medium px-2 py-0.5 rounded-md mr-1 mb-1" data-tag-id="${tag.id}">
-                         ${tag.name}
-                         <button type="button" class="remove-match-tag-button ml-0.5 text-blue-500 hover:text-blue-700 font-bold focus:outline-none" aria-label="Remove tag ${tag.name}">&times;</button>
-                     </span>`
-                 ).join('');
-             }
-             const addTagButtonHtml = `<button type="button" class="add-match-tag-button inline-flex items-center text-xs font-medium px-2 py-0.5 rounded border border-dashed border-gray-400 text-gray-500 hover:bg-gray-100 hover:text-gray-700 hover:border-solid mb-1" aria-label="Add tag to match ${match.id}" data-match-id="${match.id}">+ Tag</button>`;
-             const tagsContainerHtml = `<div class="mt-2 flex flex-wrap items-center gap-x-1">${tagPillsHtml}${addTagButtonHtml}</div>`;
-             card.innerHTML = `<div class="flex items-start justify-between gap-3"><div class="flex-grow min-w-0"><h3 class="text-lg font-bold text-gray-800 break-words leading-tight truncate">${deckName}</h3><p class="text-xs text-gray-500 mt-1">${formattedDate}</p></div><div class="flex flex-col items-end flex-shrink-0 space-y-1"><span class="text-xs ${badgeTextColorClass} ${badgeBgColorClass} px-2 py-0.5 rounded-full font-medium whitespace-nowrap">${resultText}</span><span class="text-xs bg-blue-500 text-white px-2 py-0.5 rounded-full font-medium whitespace-nowrap">${deckTypeName}</span></div></div>${tagsContainerHtml}`;
-            fragment.appendChild(card);
-        });
-        matchesListContainer.appendChild(fragment);
+
+        displayMatches(userMatches, matchesListContainer, noMatchesMessage);
+
     } catch (error) {
-        console.error("Failed to fetch or render match history:", error);
+        console.error("Failed to fetch or process match history:", error);
         if (typeof showFlashMessage === 'function') showFlashMessage(error.message || "An unexpected error occurred loading history.", "danger");
-        matchesListContainer.innerHTML = "";
-        noMatchesMessage.textContent = "Could not load match history due to an error.";
-        noMatchesMessage.classList.remove('hidden');
+
+        displayMatches([], matchesListContainer, noMatchesMessage);
     }
 }
 
-export { updateMatchHistoryView };
-
 document.addEventListener('DOMContentLoaded', () => {
     const matchesContainer = document.getElementById('matches-list-items');
+    if (!matchesContainer) {
+        return;
+    }
+
     const noMatchesMessage = document.getElementById("no-matches-message-history");
-    const tagFilterButton = document.getElementById("match-tag-filter-button");
-    const tagFilterDropdown = document.getElementById("match-tag-filter-dropdown");
-    const tagFilterOptions = document.getElementById("match-tag-filter-options");
-    const clearTagFilterButton = document.getElementById("clear-match-tag-filter-button"); 
 
     const quickAddModal = document.getElementById("quickAddTagModal");
     const quickAddModalCloseBtn = document.getElementById("quickAddTagModalCloseButton");
@@ -140,45 +174,41 @@ document.addEventListener('DOMContentLoaded', () => {
     if (matchesContainer && noMatchesMessage) {
         updateMatchHistoryView();
         initializedSomething = true;
-    } else {
-       
-    }
 
-    if (tagFilterButton && tagFilterDropdown && tagFilterOptions && clearTagFilterButton) {
+        matchesContainer.addEventListener('click', (event) => {
+            if (event.target.closest('.remove-match-tag-button')) {
+                handleRemoveMatchTagClick(event);
+            } else if (event.target.closest('.add-match-tag-button')) {
+                const addButton = event.target.closest('.add-match-tag-button');
+                event.preventDefault();
+                event.stopPropagation();
+                const matchId = addButton.dataset.matchId;
+                if (matchId && typeof openQuickAddTagModal === 'function') {
+                    openQuickAddTagModal(matchId, 'match', updateMatchHistoryView);
+                } else if (!matchId) {
+                    console.error("Add tag button clicked on match, but no matchId found.");
+                } else {
+                    console.error("openQuickAddTagModal function not available.");
+                }
+            }
+        });
+
+        if (quickAddModal && quickAddModalCloseBtn && typeof closeQuickAddTagModal === 'function') {
+            quickAddModalCloseBtn.addEventListener('click', closeQuickAddTagModal);
+            quickAddModal.addEventListener('click', (event) => {
+                if (event.target === quickAddModal) {
+                    closeQuickAddTagModal();
+                }
+            });
+        }
          initializedSomething = true;
+
     } else {
     }
 
-    if (matchesContainer && quickAddModal && quickAddModalCloseBtn) {
-         matchesContainer.addEventListener('click', (event) => {
-             if (event.target.closest('.remove-match-tag-button')) {
-                 handleRemoveMatchTagClick(event);
-             } else if (event.target.closest('.add-match-tag-button')) {
-                 const addButton = event.target.closest('.add-match-tag-button');
-                 event.preventDefault();
-                 event.stopPropagation();
-                 const matchId = addButton.dataset.matchId;
-                 if (matchId && typeof openQuickAddTagModal === 'function') {
-                     openQuickAddTagModal(matchId, 'match', updateMatchHistoryView);
-                 } else if (!matchId) {
-                     console.error("Add tag button clicked on match, but no matchId found.");
-                 } else {
-                     console.error("openQuickAddTagModal function not available.");
-                 }
-             }
-         });
-
-         quickAddModalCloseBtn.addEventListener('click', closeQuickAddTagModal);
-         quickAddModal.addEventListener('click', (event) => {
-             if (event.target === quickAddModal) {
-                 closeQuickAddTagModal();
-             }
-         });
-         initializedSomething = true;
-    } else {
-    }
-
-    if (!initializedSomething) {
-    }
+    if (initializedSomething) {
+     }
 
 });
+
+export { updateMatchHistoryView, displayMatches };

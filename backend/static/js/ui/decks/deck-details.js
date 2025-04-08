@@ -1,5 +1,5 @@
 import { authFetch } from '../../auth/auth.js';
-import { openQuickAddTagModal, closeQuickAddTagModal } from '../tagUtils.js';
+import { openQuickAddTagModal, closeQuickAddTagModal } from '../tag-utils.js';
 import { loadDeckMatches } from '../matches/deck-matches.js';
 
 function updatePageTitle(newTitle) { document.title = `TCG Tracker: ${newTitle}`; }
