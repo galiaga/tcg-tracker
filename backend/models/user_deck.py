@@ -7,6 +7,9 @@ class UserDeck(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
     deck_id = db.Column(db.Integer, db.ForeignKey("decks.id"), nullable=False)
 
+    deck = db.relationship("Deck")
+    user = db.relationship("User")
+
     matches = db.relationship(
         "Match",
         back_populates="user_deck",

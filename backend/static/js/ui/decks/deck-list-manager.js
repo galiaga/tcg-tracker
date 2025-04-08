@@ -1,6 +1,6 @@
 import { authFetch } from '../../auth/auth.js';
 import { sortAndRenderDecks } from './sort-decks.js';
-import { openQuickAddTagModal, closeQuickAddTagModal } from '../tagUtils.js';
+import { openQuickAddTagModal, closeQuickAddTagModal } from '../tag-utils.js';
 
 function getSelectedTagIds() {
     const optionsContainer = document.getElementById("tag-filter-options");
@@ -15,7 +15,7 @@ function getSelectedTagIds() {
     return selectedIds;
 }
 
-async function handleRemoveTagClick(event) {
+export async function handleRemoveTagClick(event) {
     const removeButton = event.target.closest('.remove-tag-button');
     if (!removeButton) return;
     event.preventDefault();
@@ -74,7 +74,7 @@ async function updateDeckListView() {
         if (!response) throw new Error("Authentication or network error.");
         if (!response.ok) throw new Error(`API Error: ${response.status}`);
         const filteredDecks = await response.json();
-        sortAndRenderDecks(filteredDecks || [], sortValue);
+        sortAndRenderDecks(filteredDecks || [], sortValue, decksContainer);
     } catch (error) {
         console.error("Error fetching or rendering decks:", error);
         if (typeof showFlashMessage === 'function') showFlashMessage("Error loading decks. " + error.message, "danger");
@@ -92,6 +92,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const tagFilterDropdown = document.getElementById("tag-filter-dropdown");
     const quickAddModal = document.getElementById("quickAddTagModal");
     const quickAddModalCloseBtn = document.getElementById("quickAddTagModalCloseButton");
+
+    if (!decksContainer || !sortSelect || !formatSelect) {
+        return;
+    }
 
     if (sortSelect && formatSelect && tagFilterButton && tagFilterDropdown && decksContainer && quickAddModal && quickAddModalCloseBtn)
     {

@@ -26,6 +26,7 @@ document.addEventListener("DOMContentLoaded", function () {
         showElement("nav-matches");
         showElement("nav-my-decks");
         showElement("nav-logout");
+        showElement("nav-tags");
         showElement("mobile-navbar");
     } else {
         hideElement("nav-username");
@@ -34,8 +35,9 @@ document.addEventListener("DOMContentLoaded", function () {
         hideElement("nav-home");
         hideElement("nav-matches");
         hideElement("nav-my-decks");
+        hideElement("nav-tags");
         hideElement("nav-logout");
-        showElement("mobile-navbar");
+        hideElement("mobile-navbar");
     }
 
     const currentPath = window.location.pathname;

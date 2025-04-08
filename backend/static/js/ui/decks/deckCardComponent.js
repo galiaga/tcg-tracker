@@ -76,7 +76,7 @@ export function renderEmptyDecksMessage(containerElement) {
     if (!containerElement) return;
     containerElement.innerHTML = `
         <div class="text-center text-gray-500 mt-8 p-4 text-base border border-dashed border-gray-300 rounded-lg md:col-span-2 xl:col-span-3">
-            No decks yet. Click 'New Deck' to get started!
+            No decks yet. Create a deck to get started!
         </div>
     `;
      containerElement.className = "grid gap-4 md:grid-cols-2 xl:grid-cols-3";

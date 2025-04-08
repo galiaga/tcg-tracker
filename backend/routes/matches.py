@@ -1,8 +1,9 @@
 from flask import jsonify, Blueprint, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from backend import db
-from backend.models import Match, UserDeck, Tag
-from sqlalchemy.orm import selectinload
+from backend.models import Match, UserDeck, Tag, Deck, DeckType
+from backend.models.tag import match_tags
+from sqlalchemy.orm import joinedload, selectinload
 import logging
 
 matches_bp = Blueprint("matches", __name__, url_prefix="/api")
@@ -74,7 +75,83 @@ def log_match():
         db.session.rollback()
         logger.error(f"Database error logging match for user {user_id}, deck {deck_id}: {e}", exc_info=True)
         return jsonify({"error": "Database error", "details": str(e)}), 500
-    
+
+@matches_bp.route('/matches_history', methods=['GET'])
+@jwt_required()
+def get_matches_history():
+    current_user_id = get_jwt_identity()
+    tag_ids_str = request.args.get('tags')
+    deck_id_str = request.args.get('deck_id')
+
+    try:
+        query = db.session.query(Match).join(UserDeck, Match.user_deck_id == UserDeck.id)\
+                                       .filter(UserDeck.user_id == current_user_id)
+
+        deck_id = None
+        if deck_id_str and deck_id_str.isdigit():
+            try:
+                deck_id = int(deck_id_str)
+                query = query.filter(UserDeck.deck_id == deck_id)
+            except ValueError:
+                 pass
+
+        apply_tag_filter = False
+        tag_ids = []
+        if tag_ids_str:
+            try:
+                tag_ids = [int(tid) for tid in tag_ids_str.split(',') if tid.strip().isdigit()]
+                if tag_ids:
+                    apply_tag_filter = True
+            except ValueError:
+                return jsonify({"error": "Invalid tags format. Use comma-separated integers."}), 400
+
+        if apply_tag_filter:
+            query = query.join(match_tags, Match.id == match_tags.c.match_id)\
+                         .filter(match_tags.c.tag_id.in_(tag_ids))\
+                         .distinct()
+
+        query = query.options(
+            joinedload(Match.user_deck)
+                .joinedload(UserDeck.deck)
+                .joinedload(Deck.deck_type),
+            joinedload(Match.tags)
+        )
+        query = query.order_by(Match.timestamp.desc())
+
+        matches = query.all()
+
+        matches_list = []
+        for match in matches:
+            deck_info = None
+            deck_type_info = None
+            if match.user_deck and match.user_deck.deck:
+                deck_info = {
+                    'id': match.user_deck.deck.id,
+                    'name': match.user_deck.deck.name
+                }
+                if match.user_deck.deck.deck_type:
+                    deck_type_info = {
+                         'id': match.user_deck.deck.deck_type.id,
+                         'name': match.user_deck.deck.deck_type.name
+                    }
+
+            matches_list.append({
+                'id': match.id,
+                'result': match.result,
+                'date': match.timestamp.isoformat() if match.timestamp else None,
+                'user_deck_id': match.user_deck_id,
+                'deck': deck_info,
+                'deck_type': deck_type_info,
+                'tags': [{'id': tag.id, 'name': tag.name} for tag in match.tags]
+            })
+
+        return jsonify(matches_list)
+
+    except Exception as e:
+        logger.error(f"Error fetching match history for user {current_user_id}: {e}", exc_info=True)
+        return jsonify({"error": "An internal error occurred while fetching match history."}), 500
+
+
 @matches_bp.route('/matches/<int:match_id>/tags', methods=['POST'])
 @jwt_required()
 def add_tag_to_match(match_id):
@@ -95,7 +172,7 @@ def add_tag_to_match(match_id):
     match = db.session.query(Match).join(Match.user_deck).filter(
         Match.id == match_id,
         UserDeck.user_id == current_user_id
-    ).options(selectinload(Match.tags)).first() 
+    ).options(selectinload(Match.tags)).first()
 
     if not match:
         return jsonify({"error": "Match not found or not owned by user"}), 404
@@ -137,6 +214,9 @@ def remove_tag_from_match(match_id, tag_id):
     tag_to_remove = db.session.get(Tag, tag_id)
     if not tag_to_remove:
         return jsonify({"error": "Tag not found"}), 404
+
+    if tag_to_remove.user_id != current_user_id:
+         return jsonify({"error": "Tag not owned by user"}), 403
 
     if tag_to_remove not in match.tags:
          return jsonify({"error": "Tag is not associated with this match"}), 404
