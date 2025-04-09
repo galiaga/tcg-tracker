@@ -22,7 +22,6 @@ document.addEventListener("DOMContentLoaded", function () {
         }
         hideElement("nav-login");
         hideElement("nav-register");
-        showElement("nav-home");
         showElement("nav-matches");
         showElement("nav-my-decks");
         showElement("nav-logout");
@@ -32,7 +31,6 @@ document.addEventListener("DOMContentLoaded", function () {
         hideElement("nav-username");
         showElement("nav-login");
         showElement("nav-register");
-        hideElement("nav-home");
         hideElement("nav-matches");
         hideElement("nav-my-decks");
         hideElement("nav-tags");
@@ -42,20 +40,20 @@ document.addEventListener("DOMContentLoaded", function () {
 
     const currentPath = window.location.pathname;
 
-    const desktopActiveClasses = ['bg-blue-600', 'text-white', 'font-bold', 'rounded-full'];
-    const mobileActiveClasses = ['bg-blue-600', 'text-white', 'font-bold', 'rounded-full']; 
+    const desktopActiveClasses = ['bg-violet-700', 'text-white', 'font-bold', 'rounded-full'];
+    const mobileActiveClasses = ['bg-violet-700', 'text-white', 'font-bold', 'rounded-full']; 
 
     const desktopLinks = document.querySelectorAll('.desktop-nav-link');
     desktopLinks.forEach(link => {
         const linkPath = link.dataset.path;
         let isActive = false;
 
-        if (linkPath === '/') {
-             isActive = (currentPath === linkPath);
-        } else if (linkPath === '/my-decks') {
-            isActive = currentPath.startsWith('/my-decks') || currentPath.startsWith('/decks/');
+        if (linkPath === '/my-decks') {
+            isActive = (currentPath === '/') || currentPath.startsWith('/my-decks') || currentPath.startsWith('/decks/');
+        } else if (linkPath === '/') {
+            isActive = false; 
         } else {
-             isActive = currentPath.startsWith(linkPath);
+            isActive = currentPath.startsWith(linkPath);
         }
 
 
@@ -71,10 +69,10 @@ document.addEventListener("DOMContentLoaded", function () {
         const linkPath = link.dataset.path;
         let isActive = false;
 
-        if (linkPath === '/') {
-            isActive = (currentPath === linkPath);
-        } else if (linkPath === '/my-decks') {
-            isActive = currentPath.startsWith('/my-decks') || currentPath.startsWith('/decks/');
+        if (linkPath === '/my-decks') {
+            isActive = (currentPath === '/') || currentPath.startsWith('/my-decks') || currentPath.startsWith('/decks/');
+        } else if (linkPath === '/') {
+            isActive = false;
         } else {
             isActive = currentPath.startsWith(linkPath);
         }

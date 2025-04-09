@@ -24,9 +24,9 @@ export function renderDeckCard(deck) {
     let tagPillsHtml = '';
     if (deck.tags && deck.tags.length > 0) {
         tagPillsHtml = deck.tags.map(tag =>
-            `<span class="tag-pill inline-flex items-center gap-1 bg-blue-100 text-blue-800 text-xs font-medium px-2 py-0.5 rounded-md mr-1 mb-1" data-tag-id="${tag.id}">
+            `<span class="tag-pill inline-flex items-center gap-1 bg-violet-100 text-violet-800 text-xs font-medium px-2 py-0.5 rounded-md mr-1 mb-1" data-tag-id="${tag.id}">
                 ${tag.name}
-                <button type="button" class="remove-tag-button ml-0.5 text-blue-500 hover:text-blue-700 font-bold focus:outline-none" aria-label="Remove tag ${tag.name}">&times;</button>
+                <button type="button" class="remove-tag-button ml-0.5 text-bvioletlue-500 hover:text-violet-700 font-bold focus:outline-none" aria-label="Remove tag ${tag.name}">&times;</button>
             </span>`
         ).join('');
     }
@@ -43,7 +43,7 @@ export function renderDeckCard(deck) {
     card.innerHTML = `
         <div class="flex items-start justify-between mb-2 gap-2">
             <h2 class="text-lg font-bold text-gray-800 min-w-0 break-words leading-tight flex-grow">${deck.name}</h2>
-            <span class="text-xs bg-blue-500 text-white px-2 py-0.5 rounded-full font-medium whitespace-nowrap flex-shrink-0">
+            <span class="text-xs bg-violet-500 text-white px-2 py-0.5 rounded-full font-medium whitespace-nowrap flex-shrink-0">
                 ${deckTypeName}
             </span>
         </div>
@@ -75,8 +75,8 @@ function formatDate(isoString) {
 export function renderEmptyDecksMessage(containerElement) {
     if (!containerElement) return;
     containerElement.innerHTML = `
-        <div class="text-center text-gray-500 mt-8 p-4 text-base border border-dashed border-gray-300 rounded-lg md:col-span-2 xl:col-span-3">
-            No decks yet. Create a deck to get started!
+        <div class="text-center text-violet-800 mt-4 p-4 text-base border border-dashed border-violet-300 rounded-lg md:col-span-2 xl:col-span-3">
+            No decks found. Create a deck to get started!
         </div>
     `;
      containerElement.className = "grid gap-4 md:grid-cols-2 xl:grid-cols-3";

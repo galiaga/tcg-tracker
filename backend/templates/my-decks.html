@@ -6,9 +6,12 @@
 
 {% block main %}
 <div class="space-y-6">
-
-  <h1 class="text-2xl font-bold text-gray-900 mb-6">My Decks</h1>
-
+  <div class="flex items-center mb-4">
+    <img src="{{ url_for('static', filename='img/logo.png') }}"
+    alt="Logo TCG Tracker"
+    class="h-10 w-10 mr-3">
+    <h1 class="text-2xl font-bold text-violet-900">My Decks</h1>
+  </div>
   <section aria-labelledby="deck-controls-heading">
      <h2 id="deck-controls-heading" class="sr-only">Deck Controls</h2>
      <div class="space-y-4">
@@ -17,8 +20,8 @@
             <button
               id="toggle-filters-btn"
               type="button"
-              class="w-36 inline-flex items-center justify-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 mr-2 text-gray-500">
+              class="w-36 inline-flex items-center justify-center px-4 py-2 border border-violet-300 rounded-md shadow-sm text-sm font-medium text-violet-900 bg-violet-100 hover:bg-violet-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-violet-500">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 mr-2 text-violet-500">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 1 1-3 0m3 0a1.5 1.5 0 1 0-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-9.75 0h9.75" />
               </svg>
               <span id="toggle-filters-text">Sort & Filter</span>
@@ -29,17 +32,17 @@
             <button
               id="newDeckModalButton"
               type="button"
-              class="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium py-2 px-4 rounded-lg shadow-sm transition border border-transparent">
+              class="w-full bg-violet-700 hover:bg-violet-600 text-white text-sm font-medium py-2 px-4 rounded-lg shadow-sm transition border border-transparent">
               New Deck
             </button>
           </div>
         </div>
 
-        <div id="filter-controls" class="hidden md:grid md:grid-cols-3 gap-4 bg-white shadow-md rounded-xl border border-gray-200 p-4">
+        <div id="filter-controls" class="hidden md:grid md:grid-cols-3 gap-4 bg-white shadow-md rounded-xl border border-violet-200 p-4">
           <div>
-            <label for="sort_decks" class="block text-sm font-medium text-gray-700 mb-1">Sort by</label>
+            <label for="sort_decks" class="block text-sm font-medium text-violet-900 mb-1">Sort by</label>
             <select id="sort_decks"
-              class="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50">
+              class="w-full rounded-md border border-violet-300 bg-white px-3 py-2 text-sm text-violet-900 shadow-sm focus:border-violet-500 focus:ring focus:ring-violet-200 focus:ring-opacity-50">
               <option value="last_match" selected>Last Played</option>
               <option value="name">Deck Name</option>
               <option value="winrate">Win Rate</option>
@@ -48,9 +51,9 @@
             </select>
           </div>
           <div>
-            <label for="filter_decks" class="block text-sm font-medium text-gray-700 mb-1">Format</label>
+            <label for="filter_decks" class="block text-sm font-medium text-violet-900 mb-1">Format</label>
             <select id="filter_decks"
-              class="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50">
+              class="w-full rounded-md border border-violet-300 bg-white px-3 py-2 text-sm text-violet-900 shadow-sm focus:border-violet-500 focus:ring focus:ring-violet-200 focus:ring-opacity-50">
               <option value="0" selected>All</option>
               <option value="1">Standard</option>
               <option value="2">Pioneer</option>
@@ -62,12 +65,12 @@
             </select>
           </div>
           <div class="relative">
-            <label for="tag-filter-button" class="block text-sm font-medium text-gray-700 mb-1">Tags</label>
+            <label for="tag-filter-button" class="block text-sm font-medium text-violet-900 mb-1">Tags</label>
             <button type="button" id="tag-filter-button" aria-haspopup="listbox" aria-expanded="false"
-              class="relative w-full cursor-default rounded-md border border-gray-300 bg-white py-2 pl-3 pr-10 text-left text-sm text-gray-700 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 hover:bg-gray-50">
+              class="relative w-full cursor-default rounded-md border border-violet-300 bg-white py-2 pl-3 pr-10 text-left text-sm text-violet-900 shadow-sm focus:border-violet-500 focus:outline-none focus:ring-1 focus:ring-violet-500 hover:bg-gray-50">
               <span id="tag-filter-button-text" class="block truncate">All Tags</span>
               <span class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
-                <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                <svg class="h-5 w-5 text-violet-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                   <path fill-rule="evenodd" d="M10 3a.75.75 0 01.53.22l3.5 3.5a.75.75 0 01-1.06 1.06L10 4.81 7.03 7.78a.75.75 0 01-1.06-1.06l3.5-3.5A.75.75 0 0110 3z" clip-rule="evenodd" />
                   <path fill-rule="evenodd" d="M10 17a.75.75 0 01-.53-.22l-3.5-3.5a.75.75 0 011.06-1.06L10 15.19l2.97-2.97a.75.75 0 011.06 1.06l-3.5 3.5A.75.75 0 0110 17z" clip-rule="evenodd" />
                 </svg>
@@ -75,12 +78,12 @@
             </button>
 
             <div id="tag-filter-dropdown"
-                 class="absolute z-10 mt-1 w-full rounded-md bg-white shadow-lg border border-gray-200 hidden max-h-60 overflow-y-auto focus:outline-none ring-1 ring-black ring-opacity-5">
+                 class="absolute z-10 mt-1 w-full rounded-md bg-white shadow-lg border border-violet-200 hidden max-h-60 overflow-y-auto focus:outline-none ring-1 ring-black ring-opacity-5">
                <div id="tag-filter-options" class="px-2 py-1 space-y-1" role="listbox">
-                  <div class="text-center text-xs text-gray-500 py-2">Loading tags...</div>
+                  <div class="text-center text-xs text-violet-500 py-2">Loading tags...</div>
                </div>
-               <div class="border-t border-gray-200 px-3 py-2">
-                  <button type="button" id="clear-tag-filter-button" class="w-full text-center text-xs font-medium text-blue-600 hover:text-blue-800 focus:outline-none">
+               <div class="border-t border-violet-200 px-3 py-2">
+                  <button type="button" id="clear-tag-filter-button" class="w-full text-center text-xs font-medium text-violet-600 hover:text-violet-900 focus:outline-none">
                     Clear selection
                   </button>
                </div>
@@ -94,17 +97,17 @@
   <div id="newDeckModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center px-4 hidden">
     <div class="bg-white rounded-xl shadow-xl w-full max-w-lg p-6 space-y-5 transform transition-all scale-95 opacity-0">
       <div class="flex items-center justify-between border-b pb-3">
-        <h2 class="text-lg font-bold text-gray-800">New Deck</h2>
+        <h2 class="text-lg font-bold text-violet-900">New Deck</h2>
         <button id="newDeckModalCloseButton" type="button" aria-label="Close modal"
-          class="text-gray-400 hover:text-gray-600 text-xl font-bold">
+          class="text-violet-400 hover:text-violet-600 text-xl font-bold">
           &times;
         </button>
       </div>
       <form id="register-deck-form" class="space-y-4">
         <div>
-          <label for="deck_type" class="block text-sm font-medium text-gray-700 mb-1">Deck Type</label>
+          <label for="deck_type" class="block text-sm font-medium text-violet-900 mb-1">Deck Type</label>
           <select id="deck_type" required
-            class="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50">
+            class="w-full rounded-md border border-violet-300 bg-white px-3 py-2 text-sm text-violet-900 shadow-sm focus:border-violet-500 focus:ring focus:ring-violet-200 focus:ring-opacity-50">
             <option value="" disabled selected>Loading deck types...</option>
           </select>
         </div>
@@ -119,29 +122,29 @@
         ] %}
         <div id="{{ field[0] }}Field" class="hidden relative">
           <input autocomplete="off" id="{{ field[0] }}_name" placeholder="{{ field[1] }}" type="text"
-            class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50" />
+            class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-violet-500 focus:ring focus:ring-violet-200 focus:ring-opacity-50" />
           <ul id="{{ field[0] }}-suggestions"
             class="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg"></ul>
         </div>
         {% endfor %}
         <div>
-          <label for="deck_name" class="block text-sm font-medium text-gray-700 mb-1">Deck Name</label>
+          <label for="deck_name" class="block text-sm font-medium text-violet-900 mb-1">Deck Name</label>
           <input id="deck_name" type="text" autocomplete="off" placeholder="Enter a deck name"
-            class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-800 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50" />
+            class="w-full rounded-md border border-violet-300 px-3 py-2 text-sm text-violet-900 shadow-sm focus:border-violet-500 focus:ring focus:ring-violet-200 focus:ring-opacity-50" />
         </div>
          <div>
-          <label for="deck-tags-input" class="block text-sm font-medium text-gray-700">Tags</label>
+          <label for="deck-tags-input" class="block text-sm font-medium text-violet-900">Tags</label>
           <div id="deck-tags-container" class="mb-2 flex flex-wrap gap-1 min-h-[28px]">
           </div>
           <div class="relative">
              <input type="text" id="deck-tags-input" autocomplete="off" placeholder="Add tags..."
-               class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-800 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50" />
-             <div id="deck-tags-suggestions" class="absolute z-20 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-40 overflow-y-auto hidden">
+               class="w-full rounded-md border border-violet-300 px-3 py-2 text-sm text-violet-900 shadow-sm focus:border-violet-500 focus:ring focus:ring-violet-200 focus:ring-opacity-50" />
+             <div id="deck-tags-suggestions" class="absolute z-20 mt-1 w-full bg-white border border-violet-200 rounded-md shadow-lg max-h-40 overflow-y-auto hidden">
              </div>
            </div>
         </div>
         <button type="submit"
-          class="w-full md:w-auto bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg shadow-sm transition">
+          class="w-full md:w-auto bg-violet-700 hover:bg-violet-600 text-white font-medium py-2 px-4 rounded-lg shadow-sm transition">
           Register Deck
         </button>
       </form>
@@ -151,7 +154,7 @@
   <section aria-labelledby="deck-list-heading">
       <h2 id="deck-list-heading" class="sr-only">Deck List</h2>
       <div id="decks-container" class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-         <div class="text-center text-gray-500 mt-8 p-4 text-base border border-dashed border-gray-300 rounded-lg md:col-span-2 xl:col-span-3">
+         <div class="text-center text-violet-500 mt-8 p-4 text-base border border-dashed border-violet-300 rounded-lg md:col-span-2 xl:col-span-3">
              Loading decks...
          </div>
       </div>

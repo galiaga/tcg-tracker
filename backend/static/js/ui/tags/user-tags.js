@@ -23,6 +23,12 @@ async function fetchAndDisplayAssociatedItems() {
 
     const selectedTagIds = Array.from(optionsContainer.querySelectorAll('input[type="checkbox"]:checked')).map(cb => cb.value);
 
+    if (selectedTagIds.length === 0) {
+        decksContainer.innerHTML = '<p class="text-center text-violet-800 mt-4 p-4 text-base border border-dashed border-violet-300 rounded-lg md:col-span-2 xl:col-span-3">Select one or more tags above to view associated decks.</p>';
+        matchesContainer.innerHTML = '<p class="text-center text-violet-800 mt-4 p-4 text-base border border-dashed border-violet-300 rounded-lg md:col-span-2 xl:col-span-3">Select one or more tags above to view associated matches.</p>';
+        return;
+    }
+
     decksContainer.innerHTML = '<p class="text-gray-500 italic text-sm">Loading decks...</p>';
     matchesContainer.innerHTML = '<p class="text-gray-500 italic text-sm">Loading matches...</p>';
 
