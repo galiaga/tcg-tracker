@@ -25,7 +25,6 @@ def test_register_user_success(client, app, new_user_data):
 
 def test_register_user_already_exists(client, app, new_user_data):
     with app.app_context():
-        # Primer intento debe funcionar
         response_1 = client.post(
             "/api/auth/register",
             json=new_user_data,
@@ -33,7 +32,6 @@ def test_register_user_already_exists(client, app, new_user_data):
         )
         assert response_1.status_code == 201
 
-        # Segundo intento con mismo username debe fallar
         response_2 = client.post(
             "/api/auth/register",
             json=new_user_data,
@@ -55,7 +53,7 @@ def test_register_passwords_do_not_match(client, app):
             json={
                 "username": "mismatchuser",
                 "password": "abc12345",
-                "confirmation": "xyz98765"  # <– no coinciden
+                "confirmation": "xyz98765" 
             },
             headers={"Content-Type": "application/json"}
         )

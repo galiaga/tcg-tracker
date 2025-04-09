@@ -11,36 +11,33 @@
 
     <body class="bg-gray-100">
 
-        <nav id="main-navbar" class="bg-blue-600 shadow-md hidden md:block sticky top-0 z-50">
+        <nav id="main-navbar" class="bg-violet-800 shadow-md hidden md:block sticky top-0 z-50">
             <div class="container mx-auto px-4">
                 <ul class="flex justify-between items-center h-16 space-x-6 text-white">
                     <li id="nav-username" class="hidden text-lg font-semibold"></li>
                     <li id="nav-login" class="hidden">
-                        <a href="/login" class="hover:text-blue-200 transition-colors duration-200">Login</a>
+                        <a href="/login" class="hover:text-violet-200 transition-colors duration-200">Login</a>
                     </li>
                     <li id="nav-register" class="hidden">
-                        <a href="/register" class="hover:text-blue-200 transition-colors duration-200">Register</a>
-                    </li>
-                    <li id="nav-home">
-                        <a href="/" data-path="/" class="desktop-nav-link hover:text-blue-200 p-2 transition-colors duration-200">Home</a>
+                        <a href="/register" class="hover:text-violet-200 transition-colors duration-200">Register</a>
                     </li>
                     <li id="nav-my-decks">
-                        <a href="/my-decks" data-path="/my-decks" class="desktop-nav-link hover:text-blue-200 p-2 transition-colors duration-200">Decks</a>
+                        <a href="/" data-path="/my-decks" class="desktop-nav-link hover:text-violet-200 p-2 transition-colors duration-200">Decks</a>
                     </li>
                     <li id="nav-matches">
-                        <a href="/matches_history" data-path="/matches_history" class="desktop-nav-link hover:text-blue-200 p-2 transition-colors duration-200">Matches</a>
+                        <a href="/matches_history" data-path="/matches_history" class="desktop-nav-link hover:text-violet-200 p-2 transition-colors duration-200">Matches</a>
                     </li>
                     <li id="nav-tags">
-                        <a href="/my-tags" data-path="/my-tags" class="desktop-nav-link hover:text-blue-200 p-2 transition-colors duration-200">My Tags</a>
+                        <a href="/my-tags" data-path="/my-tags" class="desktop-nav-link hover:text-violet-200 p-2 transition-colors duration-200">Tags</a>
                     </li>
                     <li id="nav-logout">
-                        <a href="#" onclick="logout(event)" class="desktop-nav-link hover:text-blue-200 p-2 transition-colors duration-200">Logout</a>
+                        <a href="#" onclick="logout(event)" class="desktop-nav-link hover:text-violet-200 p-2 transition-colors duration-200">Logout</a>
                     </li>
                 </ul>
             </div>
         </nav>
 
-        <main class="container max-w-6xl mx-auto px-4 py-6 pb-24 md:pb-10">
+        <main class="container max-w-6xl mx-auto px-4 pt-3 pb-6 pb-24 md:pb-10">
              {% block main %}{% endblock %}
         </main>
 
@@ -51,52 +48,49 @@
             </div>
         </div>
 
-        <button type="button" id="scrollToTopBtn" aria-label="Scroll to top" title="Scroll to top" class="fixed bottom-20 md:bottom-5 right-5 z-40 hidden h-10 w-10 rounded-full bg-blue-600 text-white shadow-md transition-opacity duration-300 ease-in-out hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+        <button type="button" id="scrollToTopBtn" aria-label="Scroll to top" title="Scroll to top" class="fixed bottom-20 md:bottom-5 right-5 z-40 hidden h-10 w-10 rounded-full bg-violet-700 text-white shadow-md transition-opacity duration-300 ease-in-out hover:bg-violet-600 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:ring-offset-2">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M5 15l7-7 7 7" />
             </svg>
         </button>
 
         <nav id="mobile-navbar" class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg md:hidden z-50">
-            <ul class="flex justify-around items-center h-16 text-blue-600">
-                <li>
-                    <a href="/" data-path="/" class="mobile-nav-link relative flex flex-col items-center justify-center p-2 rounded-md transition-colors duration-200 hover:bg-blue-100" aria-label="Home">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
-                        <span class="text-xs font-medium">Home</span>
-                    </a>
-                </li>
-                <li>
-                    <a href="/my-decks" data-path="/my-decks" class="mobile-nav-link relative flex flex-col items-center justify-center p-2 rounded-md transition-colors duration-200 hover:bg-blue-100" aria-label="Decks">
-                         <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" /></svg>
-                        <span class="text-xs font-medium">Decks</span>
-                    </a>
-                </li>
-                <li>
-                    <a href="/matches_history" data-path="/matches_history" class="mobile-nav-link relative flex flex-col items-center justify-center p-2 rounded-md transition-colors duration-200 hover:bg-blue-100" aria-label="Matches">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-                        <span class="text-xs font-medium">Matches</span>
-                    </a>
-                </li>
-                <li>
-                    <a href="/my-tags" data-path="/my-tags" class="mobile-nav-link relative flex flex-col items-center justify-center p-2 rounded-md transition-colors duration-200 hover:bg-blue-100" aria-label="Matches">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-                        <span class="text-xs font-medium">Tags</span>
-                    </a>
-                </li>
-                <li>
-                    <button type="button" onclick="logout(event)" class="flex flex-col items-center justify-center p-2 text-red-600 rounded-md transition-colors duration-200 hover:bg-red-100" aria-label="Logout">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
-                        <span class="text-xs font-medium">Logout</span>
-                    </button>
-                </li>
+            <ul class="flex justify-around items-center h-16 text-violet-700">
+                        <li>
+                            <a href="/" data-path="/my-decks" class="mobile-nav-link relative flex flex-col items-center justify-center p-2 rounded-md transition-colors duration-200 hover:bg-violet-100" aria-label="Decks">
+                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" /></svg>
+                                <span class="text-xs font-medium">Decks</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="/matches_history" data-path="/matches_history" class="mobile-nav-link relative flex flex-col items-center justify-center p-2 rounded-md transition-colors duration-200 hover:bg-violet-100" aria-label="Matches">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                                <span class="text-xs font-medium">Matches</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="/my-tags" data-path="/my-tags" class="mobile-nav-link relative flex flex-col items-center justify-center p-2 rounded-md transition-colors duration-200 hover:bg-violet-100" aria-label="Tags">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6 mb-1">
+                                  <path stroke-linecap="round" stroke-linejoin="round" d="M9.568 3H5.25A2.25 2.25 0 0 0 3 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 0 0 5.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 0 0 9.568 3Z" />
+                                  <path stroke-linecap="round" stroke-linejoin="round" d="M6 6h.008v.008H6V6Z" />
+                                </svg>
+                                <span class="text-xs font-medium">Tags</span>
+                            </a>
+                        </li>
+                        <li>
+                            <button type="button" onclick="logout(event)" class="flex flex-col items-center justify-center p-2 text-red-600 rounded-md transition-colors duration-200 hover:bg-red-100" aria-label="Logout">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+                                <span class="text-xs font-medium">Logout</span>
+                            </button>
+                        </li>
             </ul>
         </nav>
 
         <div id="quickAddTagModal" class="fixed inset-0 bg-black bg-opacity-50 z-[70] flex items-center justify-center px-4 hidden" aria-labelledby="quickAddTagModalTitle" role="dialog" aria-modal="true">
             <div class="bg-white rounded-xl shadow-xl w-full max-w-sm p-5 space-y-4 transform transition-all scale-95 opacity-0">
                 <div class="flex items-center justify-between">
-                <h2 id="quickAddTagModalTitle" class="text-lg font-semibold text-gray-800">Add Tag to Item</h2>
-                <button id="quickAddTagModalCloseButton" type="button" aria-label="Close modal" class="text-gray-400 hover:text-gray-600 text-xl font-bold leading-none">&times;</button>
+                    <h2 id="quickAddTagModalTitle" class="text-lg font-semibold text-gray-800">Add Tag to Item</h2>
+                    <button id="quickAddTagModalCloseButton" type="button" aria-label="Close modal" class="text-gray-400 hover:text-gray-600 text-xl font-bold leading-none">&times;</button>
                 </div>
                 <div class="mt-2">
                     <label for="quick-add-tag-input" class="block text-sm font-medium text-gray-700">Tags</label>
@@ -104,7 +98,7 @@
                     </div>
                     <div class="relative">
                         <input type="text" id="quick-add-tag-input" autocomplete="off" placeholder="Search or create tag..."
-                        class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-800 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50" />
+                           class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-800 shadow-sm focus:border-violet-500 focus:ring focus:ring-violet-200 focus:ring-opacity-50" />
                         <div id="quick-add-tags-suggestions" class="absolute z-20 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-40 overflow-y-auto hidden">
                         </div>
                     </div>
@@ -124,22 +118,22 @@
               <form id="log-match-form" class="space-y-4">
                   <div>
                       <label for="deck-select" class="sr-only">Select Deck</label>
-                      <select id="deck-select" name="deck_id" required class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md shadow-sm">
+                      <select id="deck-select" name="deck_id" required class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-violet-500 focus:border-violet-500 sm:text-sm rounded-md shadow-sm">
                           <option disabled selected value="">Select Deck</option>
                       </select>
                   </div>
                   <fieldset>
                       <legend class="sr-only">Match Result</legend>
                       <div class="flex flex-wrap justify-center gap-3 pt-2">
-                          <label class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500 cursor-pointer has-[:checked]:ring-2 has-[:checked]:ring-offset-1 has-[:checked]:ring-green-500 has-[:checked]:border-green-400 has-[:checked]:bg-green-50 has-[:checked]:text-green-900">
+                          <label class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-violet-500 cursor-pointer has-[:checked]:ring-2 has-[:checked]:ring-offset-1 has-[:checked]:ring-green-500 has-[:checked]:border-green-400 has-[:checked]:bg-green-50 has-[:checked]:text-green-900">
                               <input type="radio" name="match_result" value="0" class="sr-only" checked>
                               <span>Won</span>
                           </label>
-                          <label class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500 cursor-pointer has-[:checked]:ring-2 has-[:checked]:ring-offset-1 has-[:checked]:ring-red-500 has-[:checked]:border-red-400 has-[:checked]:bg-red-50 has-[:checked]:text-red-900">
+                          <label class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-violet-500 cursor-pointer has-[:checked]:ring-2 has-[:checked]:ring-offset-1 has-[:checked]:ring-red-500 has-[:checked]:border-red-400 has-[:checked]:bg-red-50 has-[:checked]:text-red-900">
                               <input type="radio" name="match_result" value="1" class="sr-only">
                               <span>Loss</span>
                           </label>
-                          <label class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500 cursor-pointer has-[:checked]:ring-2 has-[:checked]:ring-offset-1 has-[:checked]:ring-yellow-500 has-[:checked]:border-yellow-400 has-[:checked]:bg-yellow-50 has-[:checked]:text-yellow-900">
+                          <label class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-violet-500 cursor-pointer has-[:checked]:ring-2 has-[:checked]:ring-offset-1 has-[:checked]:ring-yellow-500 has-[:checked]:border-yellow-400 has-[:checked]:bg-yellow-50 has-[:checked]:text-yellow-900">
                               <input type="radio" name="match_result" value="2" class="sr-only">
                               <span>Draw</span>
                           </label>
@@ -150,16 +144,16 @@
                     <div id="match-tags-container" class="mb-2 flex flex-wrap gap-1 min-h-[28px]">
                     </div>
                      <div class="relative">
-                       <input type="text" id="match-tags-input" autocomplete="off" placeholder="Add tags..."
-                         class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-800 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50" />
-                       <div id="match-tags-suggestions" class="absolute z-20 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-40 overflow-y-auto hidden">
+                        <input type="text" id="match-tags-input" autocomplete="off" placeholder="Add tags..."
+                          class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-800 shadow-sm focus:border-violet-500 focus:ring focus:ring-violet-200 focus:ring-opacity-50" />
+                        <div id="match-tags-suggestions" class="absolute z-20 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-40 overflow-y-auto hidden">
+                        </div>
                        </div>
-                     </div>
                   </div>
                   <div>
-                       <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium py-2 px-4 rounded-lg shadow-sm transition border border-transparent">
+                       <button type="submit" class="w-full bg-violet-700 hover:bg-violet-600 text-white text-sm font-medium py-2 px-4 rounded-lg shadow-sm transition border border-transparent">
                           Log Match
-                      </button>
+                       </button>
                   </div>
               </form>
             </div>

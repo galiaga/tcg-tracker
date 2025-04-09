@@ -54,7 +54,7 @@ export async function populateTagFilter(config) {
             const checkboxId = `${checkboxIdPrefix}-${tag.id}`;
 
             div.innerHTML = `
-                <input id="${checkboxId}" name="${checkboxName}" type="checkbox" value="${tag.id}" class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer">
+                <input id="${checkboxId}" name="${checkboxName}" type="checkbox" value="${tag.id}" class="h-4 w-4 rounded border-gray-300 text-violet-600 focus:ring-violet-500 cursor-pointer">
                 <label for="${checkboxId}" class="ml-2 block text-sm text-gray-700 hover:text-gray-900 cursor-pointer flex-grow">${tag.name}</label>
             `;
             const checkbox = div.querySelector('input');
@@ -99,10 +99,10 @@ export function updateButtonText(config) {
     if (checkedBoxes.length === 0) {
         buttonTextElement.textContent = buttonDefaultText;
         clearButton.classList.add('text-gray-400', 'pointer-events-none');
-        clearButton.classList.remove('text-blue-600', 'hover:text-blue-800');
+        clearButton.classList.remove('text-violet-600', 'hover:text-violet-800');
     } else {
         clearButton.classList.remove('text-gray-400', 'pointer-events-none');
-        clearButton.classList.add('text-blue-600', 'hover:text-blue-800');
+        clearButton.classList.add('text-violet-600', 'hover:text-violet-800');
 
         if (checkedBoxes.length === 1) {
             const label = optionsContainer.querySelector(`label[for="${checkedBoxes[0].id}"]`);

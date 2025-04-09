@@ -1,4 +1,3 @@
-# backend/scripts/seed_data/deck_types.py
 from backend.models import DeckType
 
 def seed_deck_types(db):

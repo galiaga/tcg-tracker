@@ -1,4 +1,3 @@
-# backend/scripts/seed_data/commanders.py
 from backend.models import Commander
 import json
 import os

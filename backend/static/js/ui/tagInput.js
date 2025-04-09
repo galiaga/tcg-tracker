@@ -44,13 +44,13 @@ const TagInputManager = (() => {
         selectedTags.push(tagData);
 
         const pill = document.createElement('span');
-        pill.className = 'inline-flex items-center gap-1 bg-blue-100 text-blue-800 text-xs font-medium px-2 py-0.5 rounded-md mr-1 mb-1'; // Clases actualizadas
+        pill.className = 'inline-flex items-center gap-1 bg-violet-100 text-violet-800 text-xs font-medium px-2 py-0.5 rounded-md mr-1 mb-1';
         pill.dataset.tagId = tagData.id;
         pill.textContent = tagData.name;
 
         const removeBtn = document.createElement('button');
         removeBtn.type = 'button';
-        removeBtn.className = 'ml-0.5 text-blue-600 hover:text-blue-800 font-bold focus:outline-none'; // Clases actualizadas
+        removeBtn.className = 'ml-0.5 text-violet-600 hover:text-violet-800 font-bold focus:outline-none';
         removeBtn.innerHTML = '&times;';
         removeBtn.ariaLabel = `Remove ${tagData.name}`;
 
@@ -151,7 +151,7 @@ const TagInputManager = (() => {
         suggestionsToShow.forEach(tag => {
             const btn = document.createElement('button');
             btn.type = 'button';
-            btn.className = 'w-full text-left block px-3 py-1.5 bg-blue-100 text-blue-800 text-xs font-medium rounded-md hover:bg-blue-200 transition-colors duration-150 mb-1 focus:outline-none focus:ring-2 focus:ring-blue-300';
+            btn.className = 'w-full text-left block px-3 py-1.5 bg-violet-100 text-violet-800 text-xs font-medium rounded-md hover:bg-violet-200 transition-colors duration-150 mb-1 focus:outline-none focus:ring-2 focus:ring-violet-300';
             btn.textContent = tag.name;
             btn.dataset.id = tag.id;
             btn.dataset.name = tag.name;

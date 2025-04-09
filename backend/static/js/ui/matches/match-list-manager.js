@@ -70,7 +70,7 @@ function displayMatches(matches, containerElement, noMatchesElement) {
             noMatchesElement.classList.remove('hidden');
         } else {
             containerElement.innerHTML = `
-                <div class="text-center text-gray-500 mt-8 p-4 text-base border border-dashed border-gray-300 rounded-lg md:col-span-2 xl:col-span-3">
+                <div class="text-center text-violet-800 mt-4 p-4 text-base border border-dashed border-violet-300 rounded-lg md:col-span-2 xl:col-span-3">
                     No matches found.
                 </div>
             `;
@@ -84,7 +84,7 @@ function displayMatches(matches, containerElement, noMatchesElement) {
 
     matches.forEach(match => {
         const card = document.createElement("div");
-        card.className = `relative bg-white shadow-md rounded-xl border border-gray-200 p-4 hover:shadow-lg transition-shadow duration-200`;
+        card.className = `relative bg-white shadow-md rounded-xl border border-gray-200 p-4 hover:shadow-lg transition-shadow duration-200 overflow-hidden`;
         card.dataset.matchId = match.id;
 
         const resultText = formatMatchResult(match.result);
@@ -103,16 +103,16 @@ function displayMatches(matches, containerElement, noMatchesElement) {
          let tagPillsHtml = '';
          if (match.tags && match.tags.length > 0) {
              tagPillsHtml = match.tags.map(tag =>
-                 `<span class="tag-pill inline-flex items-center gap-1 bg-blue-100 text-blue-800 text-xs font-medium px-2 py-0.5 rounded-md mr-1 mb-1" data-tag-id="${tag.id}">
+                 `<span class="tag-pill inline-flex items-center gap-1 bg-violet-100 text-violet-800 text-xs font-medium px-2 py-0.5 rounded-md mr-1 mb-1" data-tag-id="${tag.id}">
                      ${tag.name}
-                     <button type="button" class="remove-match-tag-button ml-0.5 text-blue-500 hover:text-blue-700 font-bold focus:outline-none" aria-label="Remove tag ${tag.name}">&times;</button>
+                     <button type="button" class="remove-match-tag-button ml-0.5 text-violet-500 hover:text-violet-700 font-bold focus:outline-none" aria-label="Remove tag ${tag.name}">&times;</button>
                  </span>`
              ).join('');
          }
          const addTagButtonHtml = `<button type="button" class="add-match-tag-button inline-flex items-center text-xs font-medium px-2 py-0.5 rounded border border-dashed border-gray-400 text-gray-500 hover:bg-gray-100 hover:text-gray-700 hover:border-solid mb-1" aria-label="Add tag to match ${match.id}" data-match-id="${match.id}">+ Tag</button>`;
          const tagsContainerHtml = `<div class="mt-2 flex flex-wrap items-center gap-x-1">${tagPillsHtml}${addTagButtonHtml}</div>`;
 
-         card.innerHTML = `<div class="flex items-start justify-between gap-3"><div class="flex-grow min-w-0"><h3 class="text-lg font-bold text-gray-800 break-words leading-tight truncate">${deckName}</h3><p class="text-xs text-gray-500 mt-1">${formattedDate}</p></div><div class="flex flex-col items-end flex-shrink-0 space-y-1"><span class="text-xs ${badgeTextColorClass} ${badgeBgColorClass} px-2 py-0.5 rounded-full font-medium whitespace-nowrap">${resultText}</span><span class="text-xs bg-blue-500 text-white px-2 py-0.5 rounded-full font-medium whitespace-nowrap">${deckTypeName}</span></div></div>${tagsContainerHtml}`;
+         card.innerHTML = `<div class="flex items-start justify-between gap-3"><div class="flex-grow min-w-0"><h3 class="text-lg font-bold text-gray-800 break-words leading-tight truncate overflow-hidden">${deckName}</h3><p class="text-xs text-gray-500 mt-1">${formattedDate}</p></div><div class="flex flex-col items-end flex-shrink-0 space-y-1"><span class="text-xs ${badgeTextColorClass} ${badgeBgColorClass} px-2 py-0.5 rounded-full font-medium">${resultText}</span><span class="text-xs bg-violet-500 text-white px-2 py-0.5 rounded-full font-medium">${deckTypeName}</span></div></div>${tagsContainerHtml}`;
          fragment.appendChild(card);
      });
      containerElement.appendChild(fragment);

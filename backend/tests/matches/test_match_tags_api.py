@@ -99,10 +99,9 @@ def sample_deck_data_for_match(app, db, test_user):
 def sample_match_data(app, db, test_user, sample_deck_data_for_match):
     with app.app_context():
         user_deck_id = sample_deck_data_for_match["user_deck_id"]
-        # Buscar si ya existe una partida para evitar duplicados innecesarios
-        match = Match.query.filter_by(user_deck_id=user_deck_id, result=0).first() # Busca una victoria como ejemplo
+        match = Match.query.filter_by(user_deck_id=user_deck_id, result=0).first() 
         if not match:
-            match = Match(user_deck_id=user_deck_id, result=0) # 0 = Win
+            match = Match(user_deck_id=user_deck_id, result=0) 
             _db.session.add(match)
             _db.session.commit()
         yield {"id": match.id, "user_id": test_user.id}

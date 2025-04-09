@@ -59,7 +59,7 @@ export function openLogMatchModal(preselectedDeck = null) {
          console.warn("initializeMatchTagInput not available when opening modal.");
      }
 
-    applyPreselection(); // Attempt selection immediately
+    applyPreselection();
 
     modal.classList.remove("hidden");
     setTimeout(() => {

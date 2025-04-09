@@ -1,7 +1,5 @@
-# Normaliza todos los archivos de texto a LF en el repo
 * text=auto eol=lf
 
-# Archivos de configuración
 *.sh text eol=lf
 *.py text eol=lf
 *.html text eol=lf
@@ -11,7 +9,6 @@
 *.yml text eol=lf
 *.yaml text eol=lf
 
-# Evita cambios de permisos innecesarios
 *.png binary
 *.jpg binary
 *.jpeg binary
