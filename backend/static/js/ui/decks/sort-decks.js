@@ -28,7 +28,6 @@ export function sortAndRenderDecks(decksToSort, sortOption, containerElement) {
     }
 
     if (!decksToSort || !Array.isArray(decksToSort) || decksToSort.length === 0) {
-        console.warn("sortAndRenderDecks called with invalid or empty decks data. Rendering empty message.");
         renderDecks([], containerElement);
         return;
     }
