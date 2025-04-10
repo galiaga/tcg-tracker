@@ -6,6 +6,11 @@
         <meta name="viewport" content="initial-scale=1, width=device-width">
         <title>TCG Tracker: {% block title %}{% endblock %}</title>
         <link href="{{ url_for('static', filename='css/output.css') }}" rel="stylesheet">
+
+        <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='img/favicon.ico') }}">
+        <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='img/apple-touch-icon.png') }}">
+        <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+
         {% block head_extra %}{% endblock %}
     </head>
 
