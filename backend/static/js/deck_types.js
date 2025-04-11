@@ -12,14 +12,8 @@ async function loadDeckTypes() {
             return;
         }
 
-        let response = await authFetch("/api/deck_types", {
-            method: "GET",
-            headers: {
-                "Authorization": `Bearer ${token}`,
-                "Content-Type": "application/json"
-            }
-        });
-
+        const apiUrl = `/api/deck_types`
+        const response = await authFetch(apiUrl);
         if (!response) return;
 
         if (!response.ok) throw new Error("Error loading deck types");

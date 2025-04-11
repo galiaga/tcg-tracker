@@ -1,12 +1,14 @@
 import { authFetch } from '../../auth/auth.js';
 import { sortAndRenderDecks } from './sort-decks.js';
+import { renderEmptyDecksMessage } from './deckCardComponent.js';
 import { openQuickAddTagModal, closeQuickAddTagModal } from '../tag-utils.js';
+import { populateTagFilter } from './filter-decks-by-tag.js'; 
 
 function getSelectedTagIds() {
     const optionsContainer = document.getElementById("tag-filter-options");
     const selectedIds = [];
     if (!optionsContainer) return selectedIds;
-    const checkedBoxes = optionsContainer.querySelectorAll('input[type="checkbox"]:checked');
+    const checkedBoxes = optionsContainer.querySelectorAll(':scope > div > input[type="checkbox"]:checked, :scope > input[type="checkbox"]:checked'); 
     checkedBoxes.forEach(checkbox => {
         if (checkbox.value && checkbox.value !== "") {
             selectedIds.push(checkbox.value);
@@ -37,6 +39,8 @@ export async function handleRemoveTagClick(event) {
         if (!response) throw new Error("Authentication or network error.");
         if (response.ok) {
              tagPill.remove();
+             await populateTagFilter();
+             await updateDeckListView();
         } else {
              const errorData = await response.json().catch(() => ({}));
              throw new Error(errorData.error || `Failed to remove tag (${response.status})`);
@@ -49,17 +53,48 @@ export async function handleRemoveTagClick(event) {
     }
 }
 
+function handleAddTagClick(event) {
+    const addButton = event.target.closest('.add-deck-tag-button');
+    if (addButton) {
+        event.preventDefault();
+        event.stopPropagation();
+        const deckId = addButton.dataset.deckId;
+        if (deckId) {
+            const refreshAfterTagAdd = async () => {
+                console.log("Refreshing tag filter dropdown and deck list after tag add...");
+                try {
+                    await populateTagFilter();
+                    await updateDeckListView();
+                    console.log("[deck-list-manager] refreshAfterTagAdd completed.");
+                } catch (error) {
+                    console.error("Error during refresh after tag add:", error);
+                    if (typeof showFlashMessage === 'function') {
+                        showFlashMessage("Error refreshing lists after adding tag.", "danger");
+                    }
+                }
+            };
+            openQuickAddTagModal(deckId, 'deck', refreshAfterTagAdd);
+        }
+    }
+}
+
 async function updateDeckListView() {
     const sortSelect = document.getElementById("sort_decks");
     const formatSelect = document.getElementById("filter_decks");
     const decksContainer = document.getElementById('decks-container');
+
     if (!sortSelect || !formatSelect || !decksContainer) {
-        console.error("Missing required elements for updating deck list view.");
+        console.error("Missing required elements (sort, format, or container) for updating deck list view.");
+        if (decksContainer) {
+            decksContainer.innerHTML = '<p class="text-red-500 col-span-full p-4">Error: UI elements missing. Cannot load decks.</p>';
+        }
         return;
     }
+
     const sortValue = sortSelect.value;
     const formatValue = formatSelect.value;
-    const selectedTagIds = getSelectedTagIds();
+    const selectedTagIds = getSelectedTagIds(); 
+
     const params = new URLSearchParams();
     if (formatValue && formatValue !== '0' && formatValue.toLowerCase() !== 'all') {
         params.append('deck_type_id', formatValue);
@@ -67,22 +102,27 @@ async function updateDeckListView() {
     if (selectedTagIds.length > 0) {
         params.append('tags', selectedTagIds.join(','));
     }
+
     const apiUrl = `/api/user_decks?${params.toString()}`;
-    decksContainer.innerHTML = '<p class="text-center text-gray-500 col-span-full">Loading decks...</p>';
+    decksContainer.innerHTML = '<p class="text-center text-violet-500 col-span-full p-4">Loading decks...</p>';
+
     try {
         const response = await authFetch(apiUrl);
-        if (!response) throw new Error("Authentication or network error.");
-        if (!response.ok) throw new Error(`API Error: ${response.status}`);
+        if (!response) throw new Error("Authentication or network error occurred.");
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({ error: `HTTP error ${response.status}` }));
+            throw new Error(errorData.error || `API Error: ${response.status}`);
+        }
         const filteredDecks = await response.json();
         sortAndRenderDecks(filteredDecks || [], sortValue, decksContainer);
     } catch (error) {
         console.error("Error fetching or rendering decks:", error);
-        if (typeof showFlashMessage === 'function') showFlashMessage("Error loading decks. " + error.message, "danger");
-        if (decksContainer) decksContainer.innerHTML = '<p class="text-red-500 col-span-full">Error loading decks.</p>';
+        if (typeof showFlashMessage === 'function') {
+            showFlashMessage("Error loading decks: " + error.message, "danger");
+        }
+        renderEmptyDecksMessage(decksContainer, "Error loading decks. Please try again later.");
     }
 }
-
-export { updateDeckListView };
 
 document.addEventListener('DOMContentLoaded', () => {
     const decksContainer = document.getElementById('decks-container');
@@ -93,34 +133,41 @@ document.addEventListener('DOMContentLoaded', () => {
     const quickAddModal = document.getElementById("quickAddTagModal");
     const quickAddModalCloseBtn = document.getElementById("quickAddTagModalCloseButton");
 
-    if (!decksContainer || !sortSelect || !formatSelect) {
-        return;
+    if (!decksContainer || !sortSelect || !formatSelect || !tagFilterButton || !tagFilterDropdown || !quickAddModal || !quickAddModalCloseBtn) {
+         console.warn("Deck list manager could not initialize fully - one or more required elements are missing.");
+         if (decksContainer && (!sortSelect || !formatSelect)) {
+            decksContainer.innerHTML = '<p class="text-red-500 col-span-full p-4">Error: Cannot initialize deck sorting/filtering.</p>';
+         }
+         return;
     }
 
-    if (sortSelect && formatSelect && tagFilterButton && tagFilterDropdown && decksContainer && quickAddModal && quickAddModalCloseBtn)
-    {
-        updateDeckListView();
-        decksContainer.addEventListener('click', handleRemoveTagClick);
-        decksContainer.addEventListener('click', (event) => {
-             const addButton = event.target.closest('.add-deck-tag-button');
-             if (addButton) {
-                 event.preventDefault();
-                 event.stopPropagation();
-                 const deckId = addButton.dataset.deckId;
-                 if (deckId) {
-                      openQuickAddTagModal(deckId, 'deck', updateDeckListView);
-                 }
+    sortSelect.addEventListener('change', updateDeckListView);
+    formatSelect.addEventListener('change', updateDeckListView);
+    decksContainer.addEventListener('click', handleRemoveTagClick);
+    decksContainer.addEventListener('click', handleAddTagClick); 
+    quickAddModalCloseBtn.addEventListener('click', closeQuickAddTagModal);
+    quickAddModal.addEventListener('click', (event) => {
+        if (event.target === quickAddModal) {
+             closeQuickAddTagModal();
+        }
+    });
+
+    const initializeView = async () => {
+        console.log("Initializing deck view: Populating tag filter...");
+        try {
+            await populateTagFilter(); 
+            console.log("Tag filter populated. Updating deck list view...");
+            await updateDeckListView(); 
+            console.log("Deck list view updated.");
+        } catch (error) {
+            console.error("Error during initial view initialization:", error);
+             if (decksContainer) {
+                 renderEmptyDecksMessage(decksContainer, "Error initializing view. Please refresh.");
              }
-        });
+        }
+    };
+    initializeView();
 
-        quickAddModalCloseBtn.addEventListener('click', closeQuickAddTagModal);
-        quickAddModal.addEventListener('click', (event) => {
-            if (event.target === quickAddModal) {
-                 closeQuickAddTagModal();
-            }
-        });
-
-    } else {
-         console.warn("Deck list manager could not initialize fully - required elements missing (sort, format, tag button/dropdown, container, or quick add modal).");
-    }
 });
+
+export { updateDeckListView };

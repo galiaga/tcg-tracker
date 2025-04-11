@@ -1,8 +1,8 @@
-"""Initial database schema
+"""Creacion inicial del esquema completo
 
-Revision ID: 57b275c7e23e
+Revision ID: 5d980a71e9c0
 Revises: 
-Create Date: 2025-04-07 11:37:43.632887
+Create Date: 2025-04-10 15:52:13.220742
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '57b275c7e23e'
+revision = '5d980a71e9c0'
 down_revision = None
 branch_labels = None
 depends_on = None
