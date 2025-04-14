@@ -1,22 +1,15 @@
 import os
 import time
 import requests
-from backend import create_app, db 
-from flask_migrate import Migrate 
-from sqlalchemy import text
-
+import click
+from backend import db
+from sqlalchemy import func, update
 
 try:
     from backend.models import DeckType, Commander
 except ImportError:
-    print("Error: No se pudieron importar los modelos. Asegúrate de que existan y la ruta sea correcta.")
-    print("Ejemplo esperado: backend/models/deck_type.py con clase DeckType")
-    print("Ejemplo esperado: backend/models/commander.py con clase Commanders")
-    exit() 
-
-app = create_app(os.environ.get('FLASK_ENV'))
-
-migrate = Migrate(app, db)
+    print("Error: models not imported")
+    exit()
 
 DECK_TYPE_NAMES = [
     "Standard",
@@ -28,8 +21,9 @@ DECK_TYPE_NAMES = [
     "Commander / EDH"
 ]
 
-@app.cli.command("seed-deck-types")
+@click.command("seed-deck-types")
 def seed_deck_types():
+    """Seeds the database with standard TCG deck types."""
     print("Seeding deck types...")
     count = 0
     try:
@@ -56,133 +50,173 @@ def seed_deck_types():
         db.session.rollback()
         print(f"ERROR seeding deck types: {e}")
 
-@app.cli.command("update-commanders")
+
+@click.command("update-commanders")
 def update_commanders_data():
+    """Fetches and updates commander data from Scryfall."""
     print("Connecting using Flask-SQLAlchemy context...")
     base_url = 'https://api.scryfall.com/cards/search?q=is:commander+not:digital'
     next_page = base_url
     count_processed = 0
     count_added = 0
     count_updated = 0
+    page_count = 0
 
     print("Starting Scryfall commander update...")
     while next_page:
-        data = {} 
+        page_count += 1
+        data = {}
         try:
-            print(f"Fetching: {next_page[:70]}...")
-            response = requests.get(next_page, timeout=20)
+            print(f"Fetching Page {page_count}: {next_page[:70]}...")
+            response = requests.get(next_page, timeout=30)
             response.raise_for_status()
             data = response.json()
             cards_in_page = data.get("data", [])
-            if not cards_in_page: break
+            if not cards_in_page:
+                print("No cards found in page data. Ending.")
+                break
 
-            print(f"Processing {len(cards_in_page)} cards...")
-            with app.app_context():
-                for card_data in cards_in_page:
-                    scryfall_id = card_data.get("id")
-                    if not scryfall_id: continue
+            print(f"Processing {len(cards_in_page)} cards from page {page_count}...")
+            page_added = 0
+            page_updated = 0
 
-                    existing_commander = db.session.execute(
-                        db.select(Commander).filter_by(scryfall_id=scryfall_id)
-                    ).scalar_one_or_none()
+            for card_data in cards_in_page:
+                scryfall_id = card_data.get("id")
+                if not scryfall_id: continue
 
-                    name = card_data.get("name", "")
-                    flavor_name = card_data.get("flavor_name", None)
-                    mana_cost = card_data.get("mana_cost", "")
-                    type_line = card_data.get("type_line", "")
-                    oracle_text = card_data.get("oracle_text", "")
-                    power = card_data.get("power", None)
-                    toughness = card_data.get("toughness", None)
-                    loyalty = card_data.get("loyalty", None)
-                    colors = ",".join(card_data.get("colors", []))
-                    color_identity = ",".join(card_data.get("color_identity", []))
-                    set_code = card_data.get("set", "")
-                    image_url = card_data.get("image_uris", {}).get("normal")
-                    art_crop = card_data.get("image_uris", {}).get("art_crop")
+                existing_commander = db.session.execute(
+                    db.select(Commander).filter_by(scryfall_id=scryfall_id)
+                ).scalar_one_or_none()
 
-                    if existing_commander:
-                        existing_commander.name = name
-                        existing_commander.flavor_name = flavor_name
-                        existing_commander.mana_cost = mana_cost
-                        existing_commander.type_line = type_line
-                        existing_commander.oracle_text = oracle_text
-                        existing_commander.power = power
-                        existing_commander.toughness = toughness
-                        existing_commander.loyalty = loyalty
-                        existing_commander.colors = colors
-                        existing_commander.color_identity = color_identity
-                        existing_commander.set_code = set_code
-                        existing_commander.image_url = image_url
-                        existing_commander.art_crop = art_crop
-                        count_updated += 1
-                    else:
-                        # Insertar
-                        new_commander = Commander(
-                            scryfall_id=scryfall_id, name=name, flavor_name=flavor_name,
-                            mana_cost=mana_cost, type_line=type_line, oracle_text=oracle_text,
-                            power=power, toughness=toughness, loyalty=loyalty, colors=colors,
-                            color_identity=color_identity, set_code=set_code,
-                            image_url=image_url, art_crop=art_crop
-                        )
-                        db.session.add(new_commander)
-                        count_added += 1
-                    count_processed += 1
+                name = card_data.get("name", "")
+                flavor_name = card_data.get("flavor_name", None)
+                mana_cost = card_data.get("mana_cost", "")
+                type_line = card_data.get("type_line", "")
+                oracle_text = card_data.get("oracle_text", "")
+                power = card_data.get("power", None)
+                toughness = card_data.get("toughness", None)
+                loyalty = card_data.get("loyalty", None)
+                colors = ",".join(card_data.get("colors", [])) 
+                color_identity = ",".join(card_data.get("color_identity", [])) 
+                set_code = card_data.get("set", "")
+                image_uris = card_data.get("image_uris", {}) 
+                image_url = image_uris.get("normal") if image_uris else None
+                art_crop = image_uris.get("art_crop") if image_uris else None
 
-                db.session.commit()
-                print(f"Page committed. Added: {count_added}, Updated: {count_updated}")
+                if existing_commander:
+                    existing_commander.name = name
+                    existing_commander.flavor_name = flavor_name
+                    existing_commander.mana_cost = mana_cost
+                    existing_commander.type_line = type_line
+                    existing_commander.oracle_text = oracle_text
+                    existing_commander.power = power
+                    existing_commander.toughness = toughness
+                    existing_commander.loyalty = loyalty
+                    existing_commander.colors = colors
+                    existing_commander.color_identity = color_identity
+                    existing_commander.set_code = set_code
+                    existing_commander.image_url = image_url
+                    existing_commander.art_crop = art_crop
+                    page_updated += 1
+                else:
+                    new_commander = Commander(
+                        scryfall_id=scryfall_id,
+                        name=name,
+                        flavor_name=flavor_name,
+                        mana_cost=mana_cost,
+                        type_line=type_line,
+                        oracle_text=oracle_text,
+                        power=power,
+                        toughness=toughness,
+                        loyalty=loyalty,
+                        colors=colors,
+                        color_identity=color_identity,
+                        set_code=set_code,
+                        image_url=image_url,
+                        art_crop=art_crop
+                    )
+                    db.session.add(new_commander)
+                    page_added += 1
+                count_processed += 1
+
+            db.session.commit()
+            count_added += page_added
+            count_updated += page_updated
+            print(f"Page {page_count} committed. Added this page: {page_added}, Updated this page: {page_updated}")
 
         except requests.exceptions.RequestException as e:
-            print(f"Scryfall request error: {e}")
+            print(f"Scryfall request error on page {page_count}: {e}")
+            print("Stopping update.")
             break
         except Exception as e:
-            print(f"Error processing/saving data: {e}")
+            print(f"Error processing/saving data on page {page_count}: {e}")
             db.session.rollback()
+            print("Stopping update due to processing error.")
+            break
         finally:
              next_page = data.get("next_page", None)
              if next_page:
-                  print("Waiting 100ms...")
+                  print("Waiting 100ms before next page...")
                   time.sleep(0.1)
+             else:
+                 print("No next_page URL found. Update should be complete.")
 
-    print(f"Finished commander update. Total Processed: {count_processed}. Added: {count_added}, Updated: {count_updated}")
+
+    print(f"Finished commander update. Total Processed: {count_processed}. Total Added: {count_added}, Total Updated: {count_updated}")
 
 
-@app.cli.command("update-flags")
+@click.command("update-flags")
 def update_flags():
+    """Updates boolean flags on Commander records based on oracle text or type line."""
     print("Updating commander flags...")
     try:
-        with app.app_context():
-            print("Updating 'partner'...")
-            stmt_partner = db.update(Commander).where(Commander.oracle_text.like('%Partner%')).values(partner=True)
-            result_partner = db.session.execute(stmt_partner)
-            print(f"Rows affected by partner: {result_partner.rowcount}")
+        print("Updating 'partner' flag...")
+        stmt_partner = update(Commander).where(
+            Commander.oracle_text.like('%Partner%')
+        ).values(partner=True)
+        result_partner = db.session.execute(stmt_partner)
+        print(f"Rows potentially affected by partner update: {result_partner.rowcount}")
 
-            print("Updating 'background'...")
-            stmt_bg = db.update(Commander).where(Commander.type_line == 'Legendary Enchantment — Background').values(background=True)
-            result_bg = db.session.execute(stmt_bg)
-            print(f"Rows affected by background: {result_bg.rowcount}")
+        print("Updating 'background' flag...")
+        stmt_bg = update(Commander).where(
+            Commander.type_line == 'Legendary Enchantment — Background'
+        ).values(background=True)
+        result_bg = db.session.execute(stmt_bg)
+        print(f"Rows potentially affected by background update: {result_bg.rowcount}")
 
-            print("Updating 'friends_forever'...")
-            stmt_ff = db.update(Commander).where(Commander.oracle_text.like('%Friends Forever%')).values(friends_forever=True)
-            result_ff = db.session.execute(stmt_ff)
-            print(f"Rows affected by friends_forever: {result_ff.rowcount}")
+        print("Updating 'friends_forever' flag...")
+        stmt_ff = update(Commander).where(
+            func.lower(Commander.oracle_text).like('%friends forever%')
+        ).values(friends_forever=True)
+        result_ff = db.session.execute(stmt_ff)
+        print(f"Rows potentially affected by friends_forever update: {result_ff.rowcount}")
 
-            print("Updating 'doctor_companion'...")
-            stmt_dc = db.update(Commander).where(db.func.replace(Commander.oracle_text, '’', "'").like('%Doctor''s companion%')).values(doctor_companion=True)
-            result_dc = db.session.execute(stmt_dc)
-            print(f"Rows affected by doctor_companion: {result_dc.rowcount}")
+        print("Updating 'doctor_companion' flag...")
+        normalized_text_dc = func.replace(Commander.oracle_text, '’', "'")
+        pattern_dc = '%Doctor\'s companion%'
+        stmt_dc = update(Commander).where(
+            normalized_text_dc.ilike(pattern_dc)
+        ).values(doctor_companion=True)
+        result_dc = db.session.execute(stmt_dc)
+        print(f"Rows potentially affected by doctor_companion update: {result_dc.rowcount}")
 
-            print("Updating 'time_lord_doctor'...")
-            stmt_tld = db.update(Commander).where(Commander.type_line.like('%Time Lord Doctor%')).values(time_lord_doctor=True)
-            result_tld = db.session.execute(stmt_tld)
-            print(f"Rows affected by time_lord_doctor: {result_tld.rowcount}")
+        print("Updating 'time_lord_doctor' flag...")
+        stmt_tld = update(Commander).where(
+            Commander.type_line.ilike('%Time Lord Doctor%')
+        ).values(time_lord_doctor=True)
+        result_tld = db.session.execute(stmt_tld)
+        print(f"Rows potentially affected by time_lord_doctor update: {result_tld.rowcount}")
 
-            print("Updating 'choose_a_background'...")
-            stmt_cab = db.update(Commander).where(Commander.oracle_text.like('%Choose a Background%')).values(choose_a_background=True)
-            result_cab = db.session.execute(stmt_cab)
-            print(f"Rows affected by choose_a_background: {result_cab.rowcount}")
+        print("Updating 'choose_a_background' flag...")
+        stmt_cab = update(Commander).where(
+            func.lower(Commander.oracle_text).like('%choose a background%')
+        ).values(choose_a_background=True)
+        result_cab = db.session.execute(stmt_cab)
+        print(f"Rows potentially affected by choose_a_background update: {result_cab.rowcount}")
 
-            db.session.commit()
-            print("✅ Commander flags updated successfully.")
+        print("Committing flag updates...")
+        db.session.commit()
+        print("✅ Commander flags updated successfully.")
 
     except Exception as e:
         db.session.rollback()

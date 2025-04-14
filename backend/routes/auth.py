@@ -1,5 +1,3 @@
-# backend/routes/auth.py
-
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import (
     create_access_token, jwt_required, get_jwt_identity, create_refresh_token,
@@ -71,6 +69,7 @@ def login():
     if user and bcrypt.check_password_hash(user.hash, password):
         access_token = create_access_token(identity=str(user.id))
         refresh_token = create_refresh_token(identity=str(user.id))
+
         response_data = {
             "username": user.username,
             "message": "Login successful"
@@ -78,6 +77,9 @@ def login():
         response = jsonify(response_data)
         set_access_cookies(response, access_token)
         set_refresh_cookies(response, refresh_token)
+
+        print(f"DEBUG: Attempting to set cookies for user {user.id}")
+
         return response, 200
     else:
         return jsonify({"error": "Invalid username or password"}), 401

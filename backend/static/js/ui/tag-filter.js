@@ -1,7 +1,6 @@
 import { fetchUserTags } from './tag-utils.js';
 
 export async function populateTagFilter(config) {
-
     const {
         optionsContainerId,
         filterButtonId,
@@ -27,12 +26,8 @@ export async function populateTagFilter(config) {
         console.error(`Container with ID "${optionsContainerId}" not found.`);
         return;
     }
-     if (!filterButton) {
-         console.warn(`Filter button with ID "${filterButtonId}" not found (needed for context).`);
-     }
-     if (!clearButton) {
-         console.warn(`Clear button with ID "${clearButtonId}" not found.`);
-     }
+    if (!filterButton) console.warn(`Filter button with ID "${filterButtonId}" not found.`);
+    if (!clearButton) console.warn(`Clear button with ID "${clearButtonId}" not found.`);
 
     optionsContainer.innerHTML = `<div class="text-center text-xs text-gray-500 py-2">${loadingMessage}</div>`;
 
@@ -58,7 +53,6 @@ export async function populateTagFilter(config) {
                 <label for="${checkboxId}" class="ml-2 block text-sm text-gray-700 hover:text-gray-900 cursor-pointer flex-grow">${tag.name}</label>
             `;
             const checkbox = div.querySelector('input');
-            const label = div.querySelector('label');
 
             checkbox.addEventListener('change', () => {
                 if (typeof onFilterChange === 'function') {
@@ -66,13 +60,8 @@ export async function populateTagFilter(config) {
                 }
             });
 
-            label.addEventListener('click', (e) => {
-                 if (e.target === label) checkbox.click();
-            });
-
             optionsContainer.appendChild(div);
         });
-
 
     } catch (error) {
         console.error(`Could not populate tag filter for ${optionsContainerId}:`, error);
@@ -82,17 +71,12 @@ export async function populateTagFilter(config) {
 }
 
 export function updateButtonText(config) {
-
     const { optionsContainerId, buttonTextElementId, clearButtonId, buttonDefaultText = "All Tags" } = config;
-
     const optionsContainer = document.getElementById(optionsContainerId);
     const buttonTextElement = document.getElementById(buttonTextElementId);
     const clearButton = document.getElementById(clearButtonId);
 
-    if (!optionsContainer || !buttonTextElement || !clearButton) {
-        console.warn("Missing elements for updateButtonText", { optionsContainerId, buttonTextElementId, clearButtonId });
-        return;
-    }
+    if (!optionsContainer || !buttonTextElement || !clearButton) return;
 
     const checkedBoxes = optionsContainer.querySelectorAll('input[type="checkbox"]:checked');
 
@@ -115,29 +99,20 @@ export function updateButtonText(config) {
 
 export function toggleDropdown(config, show) {
     const { filterButtonId, dropdownId } = config;
-
     const filterButton = document.getElementById(filterButtonId);
     const tagFilterDropdown = document.getElementById(dropdownId);
 
-    if (!filterButton || !tagFilterDropdown) {
-         console.warn("Missing elements for toggleDropdown", { filterButtonId, dropdownId });
-        return;
-    }
+    if (!filterButton || !tagFilterDropdown) return;
 
     const shouldBeOpen = typeof show === 'boolean' ? show : tagFilterDropdown.classList.contains('hidden');
-
     tagFilterDropdown.classList.toggle('hidden', !shouldBeOpen);
     filterButton.setAttribute('aria-expanded', String(shouldBeOpen));
 }
 
 export function clearTagSelection(config) {
     const { optionsContainerId, onClear } = config;
-
     const optionsContainer = document.getElementById(optionsContainerId);
-    if (!optionsContainer) {
-        console.error(`Container with ID "${optionsContainerId}" not found for clearing.`);
-        return;
-    }
+    if (!optionsContainer) return;
 
     const checkedBoxes = optionsContainer.querySelectorAll('input[type="checkbox"]:checked');
 
@@ -145,13 +120,9 @@ export function clearTagSelection(config) {
         checkedBoxes.forEach(checkbox => {
             checkbox.checked = false;
         });
-
         if (typeof onClear === 'function') {
             onClear();
-        } else {
-            console.warn("No onClear callback provided to clearTagSelection for config:", config);
         }
     }
-
     toggleDropdown(config, false);
 }

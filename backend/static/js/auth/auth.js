@@ -55,7 +55,6 @@ export async function authFetch(url, options = {}) {
                 const refreshResponse = await fetch("/api/auth/refresh", refreshOptions);
 
                 if (refreshResponse.ok) {
-                    console.log("authFetch: Token refreshed via cookie successfully. Retrying original request...");
                     if (!['GET', 'HEAD', 'OPTIONS', 'TRACE'].includes(method)) {
                          const newCsrfToken = getCookie('csrf_access_token');
                          if (newCsrfToken) {
@@ -86,7 +85,6 @@ export async function authFetch(url, options = {}) {
 }
 
 export async function handleLogout(forceRedirect = false) {
-    console.log("Attempting logout...");
     try {
         const response = await authFetch('/api/auth/logout', {
             method: 'POST'
@@ -99,7 +97,6 @@ export async function handleLogout(forceRedirect = false) {
     } catch (error) {
         console.error('Error during logout fetch:', error);
     } finally {
-         console.log("Clearing local data and redirecting to login.");
          localStorage.removeItem('username');
          localStorage.removeItem('accessToken');
          localStorage.removeItem('refreshToken');
@@ -110,8 +107,6 @@ export async function handleLogout(forceRedirect = false) {
 window.logout = handleLogout;
 
 window.onload = function() {
-    console.log("Page loaded. Auth check on load is handled by server-side redirects.");
-    console.log("Auto-refresh timer disabled, refresh occurs on 401 during API calls.");
 
     const logoutLink = document.querySelector('#nav-logout');
     if (logoutLink) {
