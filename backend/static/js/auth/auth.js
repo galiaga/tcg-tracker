@@ -1,167 +1,133 @@
-window.onload = function() {
-    setInterval(autoRefreshAccessToken, 60 * 1000);
-    const token = localStorage.getItem("access_token");
-    const isAuthPage = window.location.pathname.endsWith('/login') || window.location.pathname.endsWith('/register');
-
-    if (!token) {
-        if (!isAuthPage) {
-            console.warn("No token found. Redirecting to login...");
-            window.location.href = "/login";
-        }
-        return;
-    }
-
-    try {
-        const payload = JSON.parse(atob(token.split(".")[1]));
-        const expTime = payload.exp * 1000;
-        const currentTime = Date.now();
-
-        if (expTime < currentTime) {
-            console.warn("Token expired.");
-            if (!isAuthPage) {
-                 console.log("Logging out due to expired token on non-auth page.");
-                 logout();
-            } else {
-                 console.log("Expired token found on auth page, clearing tokens but staying.");
-                 localStorage.removeItem("access_token");
-                 localStorage.removeItem("refresh_token");
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
             }
         }
-    } catch (error) {
-        console.error("Error decoding token:", error);
-        if (!isAuthPage) {
-            console.log("Logging out due to invalid token on non-auth page.");
-            logout();
-        } else {
-             console.log("Invalid token found on auth page, clearing tokens but staying.");
-             localStorage.removeItem("access_token");
-             localStorage.removeItem("refresh_token");
-        }
     }
-};
-
-export function logout() {
-    localStorage.removeItem("access_token");
-    localStorage.removeItem("refresh_token");
-    if (!window.location.pathname.endsWith('/login')) {
-        window.location.href = "/login";
-    } else {
-
-    }
-}
-
-function autoRefreshAccessToken() {
-    const refreshToken = localStorage.getItem("refresh_token");
-    const accessToken = localStorage.getItem("access_token");
-
-    if (!refreshToken || !accessToken) {
-        return;
-    }
-
-    try {
-        const payload = JSON.parse(atob(accessToken.split(".")[1]));
-        const expTime = payload.exp * 1000;
-        const currentTime = Date.now();
-        const timeUntilExpiration = expTime - currentTime;
-        const refreshThreshold = 2 * 60 * 1000;
-
-        if (timeUntilExpiration < refreshThreshold) {
-
-            fetch("/api/auth/refresh", {
-                method: "POST",
-                headers: {
-                    "Authorization": `Bearer ${refreshToken}`,
-                    "Content-Type": "application/json"
-                }
-            })
-            .then(response => {
-                if (!response.ok) {
-                     return response.json().then(errData => {
-                         throw new Error(errData.message || `Refresh failed with status ${response.status}`);
-                     }).catch(() => {
-                          throw new Error(`Refresh failed with status ${response.status}`);
-                     });
-                }
-                return response.json();
-            })
-            .then(data => {
-                if (data.access_token) {
-                    localStorage.setItem("access_token", data.access_token);
-                } else {
-                     console.warn("Refresh response missing access token.");
-                     logout();
-                }
-            })
-            .catch(err => {
-                console.error("Error during token auto-refresh:", err.message);
-                logout();
-            });
-        }
-    } catch (err) {
-        console.error("Failed to decode access token during auto-refresh check:", err);
-        logout();
-    }
+    return cookieValue;
 }
 
 export async function authFetch(url, options = {}) {
-    let token = localStorage.getItem("access_token");
-    const refreshToken = localStorage.getItem("refresh_token");
-    const isAuthPage = window.location.pathname.endsWith('/login') || window.location.pathname.endsWith('/register');
-
-    if (!token) {
-        if (!isAuthPage) {
-            console.warn("authFetch: No access token. Logging out.");
-            logout();
-            return Promise.reject(new Error("No access token"));
-        } else {
-            options.headers = { ...options.headers };
-            delete options.headers["Authorization"];
-            options.headers["Content-Type"] = options.headers["Content-Type"] || "application/json";
-        }
-    } else {
-        options.headers = {
-            ...options.headers,
-            "Authorization": `Bearer ${token}`,
-            "Content-Type": options.headers?.["Content-Type"] || "application/json"
-        };
+    options.headers = options.headers || {};
+    if (options.body && !options.headers['Content-Type']) {
+         options.headers['Content-Type'] = 'application/json';
     }
+
+    const method = options.method ? options.method.toUpperCase() : 'GET';
+    const csrfCookieName = url.endsWith('/api/auth/refresh') ? 'csrf_refresh_token' : 'csrf_access_token';
+    if (!['GET', 'HEAD', 'OPTIONS', 'TRACE'].includes(method)) {
+        const csrfToken = getCookie(csrfCookieName);
+        if (csrfToken) {
+            options.headers['X-CSRF-TOKEN'] = csrfToken;
+        } else {
+            console.warn(`CSRF token cookie ('${csrfCookieName}') not found for state-changing request to ${url}.`);
+        }
+    }
+
+    options.credentials = 'include';
 
     try {
         let response = await fetch(url, options);
 
-        if (response.status === 401 && refreshToken && token) {
-            console.warn("authFetch: 401 Unauthorized. Attempting token refresh...");
+        if (response.status === 401 && !url.endsWith('/api/auth/refresh')) {
+            console.warn("authFetch: 401 Unauthorized. Attempting token refresh via cookie...");
             try {
-                const refreshResponse = await fetch("/api/auth/refresh", {
+                const csrfRefreshToken = getCookie('csrf_refresh_token');
+                const refreshOptions = {
                     method: "POST",
+                    credentials: 'include',
                     headers: {
-                        "Authorization": `Bearer ${refreshToken}`,
-                        "Content-Type": "application/json"
+                        'Content-Type': 'application/json'
                     }
-                });
-                 const refreshData = await refreshResponse.json();
+                };
+                 if (csrfRefreshToken) {
+                   refreshOptions.headers['X-CSRF-TOKEN'] = csrfRefreshToken;
+                 } else {
+                   console.warn('CSRF refresh token cookie not found for refresh request.');
+                 }
 
-                if (refreshResponse.ok && refreshData.access_token) {
-                    console.log("authFetch: Token refreshed successfully.");
-                    localStorage.setItem("access_token", refreshData.access_token);
-                    options.headers["Authorization"] = `Bearer ${refreshData.access_token}`;
+                const refreshResponse = await fetch("/api/auth/refresh", refreshOptions);
+
+                if (refreshResponse.ok) {
+                    console.log("authFetch: Token refreshed via cookie successfully. Retrying original request...");
+                    if (!['GET', 'HEAD', 'OPTIONS', 'TRACE'].includes(method)) {
+                         const newCsrfToken = getCookie('csrf_access_token');
+                         if (newCsrfToken) {
+                              options.headers['X-CSRF-TOKEN'] = newCsrfToken;
+                         } else {
+                              console.warn('New CSRF access token cookie not found after refresh.');
+                         }
+                    }
                     response = await fetch(url, options);
                 } else {
-                    console.error("authFetch: Refresh token failed or returned invalid data.");
-                    logout();
-                    return Promise.reject(new Error(refreshData.message || "Token refresh failed"));
+                    console.error("authFetch: Refresh token failed.");
+                    handleLogout(true);
+                    return Promise.reject(new Error("Token refresh failed"));
                 }
             } catch (refreshError) {
-                 console.error("authFetch: Exception during token refresh:", refreshError);
-                 logout();
-                 return Promise.reject(refreshError);
+                console.error("authFetch: Exception during token refresh:", refreshError);
+                handleLogout(true);
+                return Promise.reject(refreshError);
             }
         }
+
         return response;
+
     } catch (error) {
         console.error(`authFetch: Fetch error for ${url}:`, error);
         throw error;
     }
 }
 
-window.logout = logout;
+export async function handleLogout(forceRedirect = false) {
+    console.log("Attempting logout...");
+    try {
+        const response = await authFetch('/api/auth/logout', {
+            method: 'POST'
+        });
+
+        if (!response.ok && !forceRedirect) {
+            console.error('Logout API call failed:', response.status, response.statusText);
+        }
+
+    } catch (error) {
+        console.error('Error during logout fetch:', error);
+    } finally {
+         console.log("Clearing local data and redirecting to login.");
+         localStorage.removeItem('username');
+         localStorage.removeItem('accessToken');
+         localStorage.removeItem('refreshToken');
+         window.location.href = '/login';
+    }
+}
+
+window.logout = handleLogout;
+
+window.onload = function() {
+    console.log("Page loaded. Auth check on load is handled by server-side redirects.");
+    console.log("Auto-refresh timer disabled, refresh occurs on 401 during API calls.");
+
+    const logoutLink = document.querySelector('#nav-logout');
+    if (logoutLink) {
+         if (logoutLink.getAttribute('onclick')) { logoutLink.removeAttribute('onclick'); }
+         logoutLink.addEventListener('click', (event) => {
+              event.preventDefault(); 
+              handleLogout();  
+         });
+    }
+
+    const mobileLogoutButton = document.querySelector('#mobile-navbar button[aria-label="Logout"]');
+     if (mobileLogoutButton) {
+          if (mobileLogoutButton.getAttribute('onclick')) { mobileLogoutButton.removeAttribute('onclick'); }
+          mobileLogoutButton.addEventListener('click', (event) => {
+               event.preventDefault();
+               handleLogout(); 
+          });
+     }
+};

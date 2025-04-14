@@ -14,88 +14,100 @@
         {% block head_extra %}{% endblock %}
     </head>
 
-    <body class="bg-gray-100">
+    <body class="bg-gray-100 {% if is_logged_in %}pb-16 md:pb-0{% else %}pb-0{% endif %}">
 
-        <nav id="main-navbar" class="bg-violet-800 shadow-md hidden md:block sticky top-0 z-50">
-            <div class="container mx-auto px-4">
-                <ul class="flex justify-between items-center h-16 space-x-6 text-white">
-                    <li id="nav-username" class="hidden text-lg font-semibold"></li>
-                    <li id="nav-login" class="hidden">
-                        <a href="/login" class="hover:text-violet-200 transition-colors duration-200">Login</a>
-                    </li>
-                    <li id="nav-register" class="hidden">
-                        <a href="/register" class="hover:text-violet-200 transition-colors duration-200">Register</a>
-                    </li>
-                    <li id="nav-my-decks">
-                        <a href="/" data-path="/my-decks" class="desktop-nav-link hover:text-violet-200 p-2 transition-colors duration-200">Decks</a>
-                    </li>
-                    <li id="nav-matches">
-                        <a href="/matches_history" data-path="/matches_history" class="desktop-nav-link hover:text-violet-200 p-2 transition-colors duration-200">Matches</a>
-                    </li>
-                    <li id="nav-tags">
-                        <a href="/my-tags" data-path="/my-tags" class="desktop-nav-link hover:text-violet-200 p-2 transition-colors duration-200">Tags</a>
-                    </li>
-                    <li id="nav-logout">
-                        <a href="#" onclick="logout(event)" class="desktop-nav-link hover:text-violet-200 p-2 transition-colors duration-200">Logout</a>
-                    </li>
+        {# --- BEGIN Conditional Navbar Rendering --- #}
+        {% if is_logged_in %}
+
+            {# --- Desktop Navbar (Only shown when logged in) --- #}
+            <nav id="main-navbar" class="bg-violet-800 shadow-md hidden md:block sticky top-0 z-50">
+                <div class="container mx-auto px-4">
+                    <ul class="flex justify-between items-center h-16 space-x-6 text-white">
+
+                        {# Username display #}
+                        <li id="nav-username" class="text-lg font-semibold">Hey, {{ current_username }}!</li>
+
+                        {# --- Logged-in links --- #}
+                        <li>
+                            <a href="{{ url_for('frontend.my_decks_page') }}" data-path="/my-decks" class="desktop-nav-link hover:text-violet-200 p-2 transition-colors duration-200">Decks</a>
+                        </li>
+                        <li>
+                            <a href="{{ url_for('frontend.matches_history') }}" data-path="/matches_history" class="desktop-nav-link hover:text-violet-200 p-2 transition-colors duration-200">Matches</a>
+                        </li>
+                        <li>
+                            <a href="{{ url_for('frontend.my_tags_page') }}" data-path="/my_tags" class="desktop-nav-link hover:text-violet-200 p-2 transition-colors duration-200">Tags</a>
+                        </li>
+                        <li>
+                            <a href="#" id="nav-logout" class="desktop-nav-link hover:text-violet-200 p-2 transition-colors duration-200">Logout</a>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+
+            {# --- Mobile Navbar (Only shown when logged in) --- #}
+            <nav id="mobile-navbar" class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg md:hidden z-50">
+                <ul class="flex justify-around items-center h-16 text-violet-700">
+                            <li>
+                                <a href="{{ url_for('frontend.my_decks_page') }}" data-path="/my-decks" class="mobile-nav-link relative flex flex-col items-center justify-center p-2 rounded-md transition-colors duration-200 hover:bg-violet-100" aria-label="Decks">
+                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" /></svg>
+                                    <span class="text-xs font-medium">Decks</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="{{ url_for('frontend.matches_history') }}" data-path="/matches_history" class="mobile-nav-link relative flex flex-col items-center justify-center p-2 rounded-md transition-colors duration-200 hover:bg-violet-100" aria-label="Matches">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                                    <span class="text-xs font-medium">Matches</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="{{ url_for('frontend.my_tags_page') }}" data-path="/my_tags" class="mobile-nav-link relative flex flex-col items-center justify-center p-2 rounded-md transition-colors duration-200 hover:bg-violet-100" aria-label="Tags">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6 mb-1">
+                                      <path stroke-linecap="round" stroke-linejoin="round" d="M9.568 3H5.25A2.25 2.25 0 0 0 3 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 0 0 5.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 0 0 9.568 3Z" />
+                                      <path stroke-linecap="round" stroke-linejoin="round" d="M6 6h.008v.008H6V6Z" />
+                                    </svg>
+                                    <span class="text-xs font-medium">Tags</span>
+                                </a>
+                            </li>
+                            {# --- Mobile Logout Button --- #}
+                            <li>
+                                <button type="button" id="mobile-nav-logout" class="flex flex-col items-center justify-center p-2 text-red-600 rounded-md transition-colors duration-200 hover:bg-red-100" aria-label="Logout">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+                                    <span class="text-xs font-medium">Logout</span>
+                                </button>
+                            </li>
                 </ul>
-            </div>
-        </nav>
+            </nav>
 
-        <main class="container max-w-6xl mx-auto px-4 pt-3 pb-6 pb-24 md:pb-10">
+        {% endif %}
+
+        <main class="container max-w-6xl mx-auto px-4 {% if is_logged_in %}pt-3 md:pt-20{% else %}pt-3{% endif %}">
              {% block main %}{% endblock %}
         </main>
 
+        {# --- Flash Messages --- #}
         <div id="flash-message-container" class="fixed inset-x-0 z-[60] flex justify-center pointer-events-none top-5 md:top-auto md:bottom-5">
-            <div id="flash-message" class="hidden transform transition-all duration-300 ease-out opacity-0 translate-y-[-20px] md:translate-y-[20px] inline-flex items-center gap-2 px-4 py-3 text-sm text-white rounded-full shadow-lg pointer-events-auto max-w-[90%] md:max-w-md bg-red-500">
+            {# ... flash message content ... #}
+             <div id="flash-message" class="hidden transform transition-all duration-300 ease-out opacity-0 translate-y-[-20px] md:translate-y-[20px] inline-flex items-center gap-2 px-4 py-3 text-sm text-white rounded-full shadow-lg pointer-events-auto max-w-[90%] md:max-w-md bg-red-500">
                 <span id="flash-message-text" class="break-words"></span>
-                <button type="button" id="flash-message-close" aria-label="Close message" class="ml-2 text-white opacity-80 hover:opacity-100 text-xl font-bold leading-none focus:outline-none">&times;</button>
+                <button type="button" id="flash-message-close" aria-label="Close message" class="ml-2 text-white opacity-80 hover:opacity-100 text-xl font-bold leading-none focus:outline-none">×</button>
             </div>
         </div>
 
+        {# --- Scroll To Top Button --- #}
         <button type="button" id="scrollToTopBtn" aria-label="Scroll to top" title="Scroll to top" class="fixed bottom-20 md:bottom-5 right-5 z-40 hidden h-10 w-10 rounded-full bg-violet-700 text-white shadow-md transition-opacity duration-300 ease-in-out hover:bg-violet-600 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:ring-offset-2">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            {# ... svg icon ... #}
+             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M5 15l7-7 7 7" />
             </svg>
         </button>
 
-        <nav id="mobile-navbar" class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg md:hidden z-50">
-            <ul class="flex justify-around items-center h-16 text-violet-700">
-                        <li>
-                            <a href="/" data-path="/my-decks" class="mobile-nav-link relative flex flex-col items-center justify-center p-2 rounded-md transition-colors duration-200 hover:bg-violet-100" aria-label="Decks">
-                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" /></svg>
-                                <span class="text-xs font-medium">Decks</span>
-                            </a>
-                        </li>
-                        <li>
-                            <a href="/matches_history" data-path="/matches_history" class="mobile-nav-link relative flex flex-col items-center justify-center p-2 rounded-md transition-colors duration-200 hover:bg-violet-100" aria-label="Matches">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-                                <span class="text-xs font-medium">Matches</span>
-                            </a>
-                        </li>
-                        <li>
-                            <a href="/my-tags" data-path="/my-tags" class="mobile-nav-link relative flex flex-col items-center justify-center p-2 rounded-md transition-colors duration-200 hover:bg-violet-100" aria-label="Tags">
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6 mb-1">
-                                  <path stroke-linecap="round" stroke-linejoin="round" d="M9.568 3H5.25A2.25 2.25 0 0 0 3 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 0 0 5.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 0 0 9.568 3Z" />
-                                  <path stroke-linecap="round" stroke-linejoin="round" d="M6 6h.008v.008H6V6Z" />
-                                </svg>
-                                <span class="text-xs font-medium">Tags</span>
-                            </a>
-                        </li>
-                        <li>
-                            <button type="button" onclick="logout(event)" class="flex flex-col items-center justify-center p-2 text-red-600 rounded-md transition-colors duration-200 hover:bg-red-100" aria-label="Logout">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
-                                <span class="text-xs font-medium">Logout</span>
-                            </button>
-                        </li>
-            </ul>
-        </nav>
-
+        {# --- Modals (Quick Add Tag, Log Match) --- #}
         <div id="quickAddTagModal" class="fixed inset-0 bg-black bg-opacity-50 z-[70] flex items-center justify-center px-4 hidden" aria-labelledby="quickAddTagModalTitle" role="dialog" aria-modal="true">
-            <div class="bg-white rounded-xl shadow-xl w-full max-w-sm p-5 space-y-4 transform transition-all scale-95 opacity-0">
+            {# ... modal content ... #}
+             <div class="bg-white rounded-xl shadow-xl w-full max-w-sm p-5 space-y-4 transform transition-all scale-95 opacity-0">
                 <div class="flex items-center justify-between">
                     <h2 id="quickAddTagModalTitle" class="text-lg font-semibold text-gray-800">Add Tag to Item</h2>
-                    <button id="quickAddTagModalCloseButton" type="button" aria-label="Close modal" class="text-gray-400 hover:text-gray-600 text-xl font-bold leading-none">&times;</button>
+                    <button id="quickAddTagModalCloseButton" type="button" aria-label="Close modal" class="text-gray-400 hover:text-gray-600 text-xl font-bold leading-none">×</button>
                 </div>
                 <div class="mt-2">
                     <label for="quick-add-tag-input" class="block text-sm font-medium text-gray-700">Tags</label>
@@ -112,12 +124,13 @@
         </div>
 
         <div id="logMatchModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center px-4 hidden">
-            <div class="bg-white rounded-xl shadow-xl w-full max-w-md p-6 space-y-5 transform transition-all scale-95 opacity-0">
+            {# ... modal content ... #}
+             <div class="bg-white rounded-xl shadow-xl w-full max-w-md p-6 space-y-5 transform transition-all scale-95 opacity-0">
               <div class="flex items-center justify-between border-b pb-3">
                 <h2 class="text-lg font-bold text-gray-800">Log New Match</h2>
                 <button id="logMatchModalCloseButton" type="button" aria-label="Close modal"
                   class="text-gray-400 hover:text-gray-600 text-xl font-bold">
-                  &times;
+                  ×
                 </button>
               </div>
               <form id="log-match-form" class="space-y-4">
@@ -164,10 +177,15 @@
             </div>
           </div>
 
+        {# --- Scripts --- #}
+        {# Ensure auth.js is loaded for logout functionality #}
         <script type="module" src="{{ url_for('static', filename='js/auth/auth.js') }}"></script>
+        {# Load the simplified menu.js (for active link highlighting only) #}
         <script src="{{ url_for('static', filename='js/ui/menu.js') }}"></script>
+        {# Load flash message handler #}
         <script src="{{ url_for('static', filename='js/ui/flashMessages.js') }}"></script>
 
+        {# --- Scroll-to-top script --- #}
         <script>
             const scrollToTopBtn = document.getElementById('scrollToTopBtn');
             const scrollThreshold = 200;
@@ -190,6 +208,7 @@
             }
         </script>
 
+        {# Block for page-specific scripts #}
         {% block scripts %}{% endblock %}
 
     </body>
