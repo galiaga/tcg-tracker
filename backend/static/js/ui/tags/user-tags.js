@@ -8,8 +8,7 @@ import { authFetch } from '../../auth/auth.js';
 import { sortAndRenderDecks } from '../decks/sort-decks.js';
 
 import { displayMatches, handleRemoveMatchTagClick } from '../matches/match-list-manager.js';
-import { handleRemoveTagClick as handleRemoveDeckTagClick } from '../decks/deck-list-manager.js'; 
-import { openQuickAddTagModal, closeQuickAddTagModal } from '../tag-utils.js'; 
+import { openQuickAddTagModal, closeQuickAddTagModal, handleRemoveTagClick as handleRemoveDeckTagClick  } from '../tag-utils.js'; 
 
 async function fetchAndDisplayAssociatedItems() {
     const decksContainer = document.getElementById('associated-decks-list');

@@ -58,14 +58,6 @@ document.addEventListener("DOMContentLoaded", function() {
     registerForm.addEventListener("submit", async function(event) {
         event.preventDefault();
 
-        const token = localStorage.getItem("access_token");
-        if (!token) {
-            if (typeof showFlashMessage === 'function') {
-                showFlashMessage("Authentication error. Please log in again.", "error");
-            }
-            return;
-        }
-
         const deckTypeElement = document.getElementById("deck_type");
         const deckNameElement = document.getElementById("deck_name");
         const commanderInputElement = document.getElementById("commander_name");
@@ -132,15 +124,12 @@ document.addEventListener("DOMContentLoaded", function() {
         const selectedTagIds = deckTagInputInstance ? deckTagInputInstance.getSelectedTagIds() : [];
 
         try {
-            const response = await authFetch("/api/register_deck", {
-                method: "POST",
+            const apiUrl = `/api/register_deck`;
+            const response = await authFetch(apiUrl, {
+                method: 'POST',
                 body: JSON.stringify(payload)
             });
-
-            if (!response) {
-                if (typeof showFlashMessage === 'function') showFlashMessage("Network error or authFetch failed.", "error");
-                return;
-            }
+            if (!response) throw new Error("Authentication or network error occurred.");
 
             const data = await response.json();
 

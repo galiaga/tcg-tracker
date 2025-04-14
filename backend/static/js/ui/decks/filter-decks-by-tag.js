@@ -32,7 +32,6 @@ function updateButtonText() {
 }
 
 export async function populateTagFilter() {
-    console.log("[filter-decks-by-tag] Attempting to populate tag filter...");
     const tagFilterOptionsContainer = document.getElementById("tag-filter-options");
     const clearButton = document.getElementById("clear-tag-filter-button");
 
@@ -51,7 +50,6 @@ export async function populateTagFilter() {
 
     try {
         const tags = await fetchUserTags(); 
-        console.log("[filter-decks-by-tag] Fetched tags for filter:", tags);
         tagFilterOptionsContainer.innerHTML = '';
 
         if (!tags || tags.length === 0) {
@@ -80,7 +78,6 @@ export async function populateTagFilter() {
         tagFilterOptionsContainer.appendChild(fragment);
 
         updateButtonText();
-        console.log("[filter-decks-by-tag] Finished populating tag filter.");
 
     } catch (error) {
         console.error("Could not populate deck tag filter:", error);

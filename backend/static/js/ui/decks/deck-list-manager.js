@@ -1,7 +1,7 @@
 import { authFetch } from '../../auth/auth.js';
 import { sortAndRenderDecks } from './sort-decks.js';
 import { renderEmptyDecksMessage } from './deckCardComponent.js';
-import { openQuickAddTagModal, closeQuickAddTagModal } from '../tag-utils.js';
+import { openQuickAddTagModal, closeQuickAddTagModal, handleRemoveTagClick } from '../tag-utils.js';
 import { populateTagFilter } from './filter-decks-by-tag.js'; 
 
 function getSelectedTagIds() {
@@ -17,42 +17,6 @@ function getSelectedTagIds() {
     return selectedIds;
 }
 
-export async function handleRemoveTagClick(event) {
-    const removeButton = event.target.closest('.remove-tag-button');
-    if (!removeButton) return;
-    event.preventDefault();
-    event.stopPropagation();
-    const tagPill = removeButton.closest('.tag-pill');
-    const cardElement = removeButton.closest('[data-deck-id]');
-    if (!tagPill || !cardElement) return;
-    const tagId = tagPill.dataset.tagId;
-    const deckId = cardElement.dataset.deckId;
-    if (!tagId || !deckId) {
-        console.error("Could not find tagId or deckId for removal");
-        if (typeof showFlashMessage === 'function') showFlashMessage("Could not remove tag: IDs missing.", "danger");
-        return;
-    }
-    removeButton.disabled = true;
-    tagPill.style.opacity = '0.5';
-    try {
-        const response = await authFetch(`/api/decks/${deckId}/tags/${tagId}`, { method: 'DELETE' });
-        if (!response) throw new Error("Authentication or network error.");
-        if (response.ok) {
-             tagPill.remove();
-             await populateTagFilter();
-             await updateDeckListView();
-        } else {
-             const errorData = await response.json().catch(() => ({}));
-             throw new Error(errorData.error || `Failed to remove tag (${response.status})`);
-        }
-    } catch (error) {
-         console.error("Error removing tag:", error);
-         if (typeof showFlashMessage === 'function') showFlashMessage(error.message || "Could not remove tag.", "danger");
-         removeButton.disabled = false;
-         tagPill.style.opacity = '1';
-    }
-}
-
 function handleAddTagClick(event) {
     const addButton = event.target.closest('.add-deck-tag-button');
     if (addButton) {
@@ -61,11 +25,9 @@ function handleAddTagClick(event) {
         const deckId = addButton.dataset.deckId;
         if (deckId) {
             const refreshAfterTagAdd = async () => {
-                console.log("Refreshing tag filter dropdown and deck list after tag add...");
                 try {
                     await populateTagFilter();
                     await updateDeckListView();
-                    console.log("[deck-list-manager] refreshAfterTagAdd completed.");
                 } catch (error) {
                     console.error("Error during refresh after tag add:", error);
                     if (typeof showFlashMessage === 'function') {
@@ -153,12 +115,9 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     const initializeView = async () => {
-        console.log("Initializing deck view: Populating tag filter...");
         try {
             await populateTagFilter(); 
-            console.log("Tag filter populated. Updating deck list view...");
             await updateDeckListView(); 
-            console.log("Deck list view updated.");
         } catch (error) {
             console.error("Error during initial view initialization:", error);
              if (decksContainer) {

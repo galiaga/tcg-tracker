@@ -48,7 +48,7 @@ export function renderDeckCard(deck) {
             </span>
         </div>
         <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-sm text-gray-600 mt-3">
-            <div><span class="font-medium text-gray-700">Winrate:</span> ${winrate}%</div>
+            <div><span class="font-medium text-gray-700">Win Rate:</span> ${winrate}%</div>
             <div><span class="font-medium text-gray-700">Matches:</span> ${deck.total_matches ?? 0}</div>
             <div><span class="font-medium text-gray-700">Wins:</span> ${deck.total_wins ?? 0}</div>
             <div><span class="font-medium text-gray-700">Last Match:</span> ${formattedDate}</div>

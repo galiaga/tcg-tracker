@@ -37,13 +37,10 @@ export async function loadDeckMatches() {
             return;
         }
 
-        const response = await authFetch(`/api/matches_history?deck_id=${deckId}&limit=5&offset=0`, {
-            method: "GET",
-            headers: {
-                "Authorization": `Bearer ${token}`
-            }
-        });
-
+        const apiUrl = `/api/matches_history?deck_id=${deckId}&limit=5&offset=0`
+        const response = await authFetch(apiUrl);
+        if (!response) return;
+        
         if (!response.ok) {
              let errorMsg = `Error loading matches (${response.status})`;
              try {

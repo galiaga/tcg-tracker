@@ -9,17 +9,13 @@ let currentItemIdForTagging = null;
 let currentRefreshCallback = null;
 
 async function fetchUserTags(forceRefresh = false) {
-    console.log(`[tag-utils] fetchUserTags called. forceRefresh=${forceRefresh}, cachedUserTags is ${cachedUserTags === null ? 'null' : 'not null'}`);
     if (!forceRefresh && cachedUserTags !== null) {
-        console.log("[tag-utils] Returning cached tags.");
         return cachedUserTags;
     }
     if (isFetchingTags) {
-        console.log("[tag-utils] Fetch already in progress, returning potentially stale cache or null.");
         return cachedUserTags;
     }
     isFetchingTags = true;
-    console.log("[tag-utils] Fetching fresh tags from API...");
     try {
         const response = await authFetch("/api/tags", {
              headers: {
@@ -35,7 +31,6 @@ async function fetchUserTags(forceRefresh = false) {
         }
         const tags = await response.json();
         tags.sort((a, b) => a.name.localeCompare(b.name));
-        console.log("[tag-utils] Successfully fetched and sorted fresh tags:", tags);
         cachedUserTags = tags;
         return tags;
     } catch (error) {
@@ -48,7 +43,6 @@ async function fetchUserTags(forceRefresh = false) {
 }
 
 function invalidateTagCache() {
-    console.log("[tag-utils] Invalidating tag cache.");
     cachedUserTags = null;
 }
 
@@ -65,7 +59,6 @@ async function associateTag(tagData) {
                       ? `/api/decks/${itemId}/tags`
                       : `/api/matches/${itemId}/tags`;
 
-      console.log(`[tag-utils] Associating tag ID ${tagId} ("${tagName}") with ${itemType} ${itemId}...`);
       try {
           const response = await authFetch(apiUrl, {
               method: 'POST',
@@ -73,7 +66,6 @@ async function associateTag(tagData) {
           });
            if (!response) throw new Error("Auth/Network Error during tag association");
           if (response.ok || response.status === 201) {
-                console.log(`[tag-utils] Tag association API call successful (Status: ${response.status}).`);
                 const responseData = await response.json().catch(()=>({}));
                 invalidateTagCache(); 
                 if (typeof showFlashMessage === 'function') {
@@ -81,9 +73,7 @@ async function associateTag(tagData) {
                     showFlashMessage(flashMsg, 'success');
                 }
                 if (typeof currentRefreshCallback === 'function') {
-                    console.log("[tag-utils] Calling refresh callback...");
                     await currentRefreshCallback();
-                    console.log("[tag-utils] Refresh callback finished.");
                 } else {
                     console.warn("[tag-utils] No refresh callback provided or it's not a function.");
                 }
@@ -99,6 +89,52 @@ async function associateTag(tagData) {
                 showFlashMessage(error.message || `Could not add tag.`, 'danger');
            }
       }
+}
+
+async function handleRemoveTagClick(event) {
+    const removeButton = event.target.closest('.remove-tag-button');
+    if (!removeButton) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+
+    const tagPill = removeButton.closest('.tag-pill');
+    const cardElement = removeButton.closest('[data-deck-id]');
+
+    if (!tagPill || !cardElement) return;
+
+    const tagId = tagPill.dataset.tagId;
+    const deckId = cardElement.dataset.deckId;
+
+    if (!tagId || !deckId) {
+        console.error("Could not find tagId or deckId for removal");
+        if (typeof showFlashMessage === 'function') showFlashMessage("Could not remove tag: IDs missing.", "danger");
+        return;
+    }
+
+    removeButton.disabled = true;
+    tagPill.style.opacity = '0.5';
+
+    try {
+        const response = await authFetch(`/api/decks/${deckId}/tags/${tagId}`, { method: 'DELETE' });
+
+        if (!response) throw new Error("Authentication or network error.");
+
+        if (response.ok) {
+             tagPill.remove();
+             return true;
+        } else {
+             const errorData = await response.json().catch(() => ({}));
+             console.error(`[tag-utils] API error removing tag ${tagId} from deck ${deckId}. Status: ${response.status}`, errorData);
+             throw new Error(errorData.error || `Failed to remove tag (${response.status})`);
+        }
+    } catch (error) {
+        console.error(`[tag-utils] Error in handleRemoveDeckTagClick for tag ${tagId}, deck ${deckId}:`, error);
+        if (typeof showFlashMessage === 'function') showFlashMessage(error.message || "Could not remove tag.", "danger");
+        removeButton.disabled = false;
+        tagPill.style.opacity = '1';
+        return false;
+    }
 }
 
 function openQuickAddTagModal(itemId, itemType, refreshCallback) {
@@ -119,8 +155,6 @@ function openQuickAddTagModal(itemId, itemType, refreshCallback) {
 
     title.textContent = `Add Tag to ${itemType === 'deck' ? 'Deck' : 'Match'}`; 
 
-    console.log(`[tag-utils] Opening Quick Add Tag modal for ${itemType} ${itemId}.`);
-
     if (typeof TagInputManager !== 'undefined' && typeof TagInputManager.init === 'function') {
         if (quickAddTagInputInstance && typeof quickAddTagInputInstance.destroy === 'function') {
              quickAddTagInputInstance.destroy();
@@ -130,7 +164,6 @@ function openQuickAddTagModal(itemId, itemType, refreshCallback) {
             suggestionsId: 'quick-add-tags-suggestions',
             containerId: 'quick-add-tags-container',
             onTagAdded: (tagData) => {
-                console.log("[tag-utils] TagInputManager 'onTagAdded' triggered with:", tagData);
                 associateTag(tagData); 
             },
             fetchSuggestions: async (query) => {
@@ -163,7 +196,6 @@ function closeQuickAddTagModal() {
     const modal = document.getElementById("quickAddTagModal");
     const modalContent = modal?.querySelector(".bg-white");
     if (!modal || !modalContent) return;
-    console.log("[tag-utils] Closing Quick Add Tag modal.");
     if (quickAddTagInputInstance && typeof quickAddTagInputInstance.destroy === 'function') {
         quickAddTagInputInstance.destroy();
     }
@@ -178,4 +210,4 @@ function closeQuickAddTagModal() {
     }, 150);
 }
 
-export { fetchUserTags, invalidateTagCache, openQuickAddTagModal, closeQuickAddTagModal };
+export { fetchUserTags, invalidateTagCache, openQuickAddTagModal, closeQuickAddTagModal, handleRemoveTagClick };

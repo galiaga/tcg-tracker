@@ -4,9 +4,11 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_jwt_extended import JWTManager
 from datetime import timedelta
+import click
 
 db = SQLAlchemy(session_options={"autocommit": False, "autoflush": False})
 jwt = JWTManager()
+migrate = Migrate()
 
 def create_app(config_name=None):
     """Flask application factory."""
@@ -33,7 +35,6 @@ def create_app(config_name=None):
          database_url = database_url.replace('postgres://', 'postgresql://', 1)
 
     app.config['SQLALCHEMY_DATABASE_URI'] = database_url
-    print(f"--- DEBUG: Connecting to DB: {app.config['SQLALCHEMY_DATABASE_URI']} ---") 
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False 
 
     flask_secret_key = os.environ.get('FLASK_SECRET_KEY')
@@ -63,10 +64,11 @@ def create_app(config_name=None):
     app.config["JWT_COOKIE_SAMESITE"] = "Lax"
     app.config["JWT_COOKIE_CSRF_PROTECT"] = True
     app.config["JWT_ACCESS_COOKIE_PATH"] = "/"
-    app.config["JWT_REFRESH_COOKIE_PATH"] = "/api/auth/refresh"
+    app.config["JWT_REFRESH_COOKIE_PATH"] = "/"
 
     db.init_app(app)
     jwt.init_app(app)
+    migrate.init_app(app, db)
 
     try:
         from backend.routes import register_routes
@@ -74,5 +76,17 @@ def create_app(config_name=None):
         print("INFO: Routes registered successfully.")
     except ImportError as e:
         print(f"ERROR: Could not import or register routes: {e}")
+
+    try:
+        from manage import seed_deck_types, update_commanders_data, update_flags
+
+        app.cli.add_command(seed_deck_types, name='seed-deck-types')
+        app.cli.add_command(update_commanders_data, name='update-commanders')
+        app.cli.add_command(update_flags, name='update-flags')
+        print("INFO: Custom CLI commands registered successfully.")
+
+    except ImportError as e:
+        print(f"ERROR: Could not import or register custom CLI commands from manage.py: {e}")
+        print("INFO: Ensure manage.py is in the project root or adjust import path.")
 
     return app

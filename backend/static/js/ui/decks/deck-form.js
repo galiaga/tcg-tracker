@@ -1,4 +1,5 @@
-import { searchCommander } from "./api/index.js";
+import { searchCommander } from "../../api/index.js";
+import { authFetch } from "../../auth/auth.js";
 
 const COMMANDER_DECK_TYPE_ID = "7";
 
@@ -105,10 +106,9 @@ document.addEventListener("DOMContentLoaded", function () {
         hideAllAssociatedFields();
 
         try {
-            const response = await fetch(`/api/get_commander_attributes?q=${commanderId}`, {
-                headers: { "Authorization": `Bearer ${token}` }
-            });
-
+            const apiUrl = `/api/get_commander_attributes?q=${commanderId}`;
+            const response = await authFetch(apiUrl);
+            if (!response) throw new Error("Authentication or network error occurred.");
             if (!response.ok) {
                 console.error("Error fetching commander attributes:", response.status, response.statusText);
                 return;
