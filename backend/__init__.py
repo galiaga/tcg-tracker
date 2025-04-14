@@ -56,7 +56,8 @@ def create_app(config_name=None):
     app.config['JWT_SECRET_KEY'] = jwt_secret_key
 
     app.config["JWT_TOKEN_LOCATION"] = ["headers", "cookies"]
-    app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(minutes=int(os.environ.get('JWT_ACCESS_MINUTES', 15)))
+    app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(minutes=int(os.environ.get('JWT_ACCESS_MINUTES', 1)))
+    print(f"WARNING: JWT_ACCESS_TOKEN_EXPIRES set to 1 minute for testing!")
     app.config["JWT_REFRESH_TOKEN_EXPIRES"] = timedelta(days=int(os.environ.get('JWT_REFRESH_DAYS', 7)))
 
     app.config["JWT_COOKIE_SECURE"] = not app.config['DEBUG']
