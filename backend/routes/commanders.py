@@ -1,8 +1,8 @@
 from flask import Blueprint, jsonify, request
-from flask_jwt_extended import jwt_required, get_jwt_identity
 from pprint import pprint
 
 from backend.database import db
+from backend.utils.decorators import login_required
 from backend.models.commanders import Commander
 
 commanders_bp = Blueprint("commanders", __name__, url_prefix="/api")
@@ -44,7 +44,7 @@ def search_commanders():
     } for c in commanders])
 
 @commanders_bp.route("/get_commander_attributes", methods=["GET"])
-@jwt_required()
+@login_required
 def get_commander_attributes():
     print("HEY")
     q = request.args.get("q")

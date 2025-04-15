@@ -1,14 +1,12 @@
-from flask import Blueprint, request, jsonify
-from flask_jwt_extended import (
-    create_access_token, jwt_required, get_jwt_identity, create_refresh_token,
-    set_access_cookies, set_refresh_cookies, unset_jwt_cookies
-)
+from flask import Blueprint, request, jsonify, current_app, session
 from flask_bcrypt import Bcrypt
 from sqlalchemy.exc import IntegrityError
-
 from backend import db
 from backend.models.user import User
 from backend.services.user_service import get_user_by_username
+from backend.utils.decorators import login_required
+
+import secrets
 
 auth_bp = Blueprint("auth", __name__, url_prefix="/api/auth")
 bcrypt = Bcrypt()
@@ -46,15 +44,18 @@ def register():
         return jsonify(error_response), status_code
 
     user_id = user_id_or_error
-    access_token = create_access_token(identity=str(user_id))
+    session.clear() 
+    session['user_id'] = user_id
+    session['username'] = username
+    if 'csrf_token' not in session:
+         session['csrf_token'] = secrets.token_hex(16)
+    session.permanent = True 
 
     response_data = {
         "username": username,
-        "message": f"User {username} successfully registered."
+        "message": f"User {username} successfully registered and logged in."
     }
-    response = jsonify(response_data)
-    set_access_cookies(response, access_token)
-    return response, 201
+    return jsonify(response_data), 201
 
 @auth_bp.route("/login", methods=["POST"])
 def login():
@@ -67,43 +68,52 @@ def login():
 
     user = get_user_by_username(username)
     if user and bcrypt.check_password_hash(user.hash, password):
-        access_token = create_access_token(identity=str(user.id))
-        refresh_token = create_refresh_token(identity=str(user.id))
+        session.clear() 
+        session['user_id'] = user.id
+        session['username'] = user.username
+        if 'csrf_token' not in session:
+            session['csrf_token'] = secrets.token_hex(16)
+        session.permanent = True 
+
+        print(f"DEBUG LOGIN: Session established for user {user.id}, username {user.username}")
+        print(f"DEBUG LOGIN: Session CSRF Token: {session['csrf_token']}")
+        print(f"DEBUG LOGIN: Session ID (in cookie): {request.cookies.get('session')}") 
 
         response_data = {
             "username": user.username,
             "message": "Login successful"
         }
-        response = jsonify(response_data)
-        set_access_cookies(response, access_token)
-        set_refresh_cookies(response, refresh_token)
-
-        print(f"DEBUG: Attempting to set cookies for user {user.id}")
-
-        return response, 200
+        return jsonify(response_data), 200
     else:
         return jsonify({"error": "Invalid username or password"}), 401
 
 @auth_bp.route("/logout", methods=["POST"])
 def logout():
+    user_id = session.get('user_id')
+    session.clear()
+    print(f"DEBUG LOGOUT: Session cleared for potential user {user_id}")
     response = jsonify({"message": "Logout successful"})
-    unset_jwt_cookies(response)
     return response, 200
+
+@auth_bp.route("/csrf_token", methods=["GET"])
+def get_csrf_token():
+    token = session.get("csrf_token")
+    if not token:
+        token = secrets.token_hex(16)
+        session['csrf_token'] = token
+        print("WARN: CSRF token requested but none found in session; generated new one.")
+
+    if not session.get("user_id"):
+         return jsonify({"error": "Not authenticated"}), 401
+
+    return jsonify({"csrf_token": token}), 200
 
 @auth_bp.route("/profile", methods=["GET"])
-@jwt_required()
+@login_required 
 def profile():
-    user_id = get_jwt_identity()
+    user_id = session.get('user_id')
     user = db.session.get(User, user_id)
     if not user:
-        return jsonify({"error": "User not found"}), 404
-    return jsonify({"id": user.id, "username": user.username}), 200
-
-@auth_bp.route("/refresh", methods=["POST"])
-@jwt_required(refresh=True)
-def refresh():
-    current_user = get_jwt_identity()
-    new_access_token = create_access_token(identity=current_user)
-    response = jsonify({"message": "Access token refreshed successfully"})
-    set_access_cookies(response, new_access_token)
-    return response, 200
+        session.clear()
+        return jsonify({"error": "User data not found, session cleared"}), 404
+    return jsonify({"id": user.id, "username": session.get('username', user.username)}), 200

@@ -2,12 +2,17 @@ from backend import db
 from sqlalchemy.sql import func
 from sqlalchemy import CheckConstraint
 from backend.models.tag import match_tags
+from datetime import datetime, timezone
 
 class Match(db.Model):
     __tablename__ = "matches"
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    timestamp = db.Column(db.DateTime, server_default=func.current_timestamp(), nullable=False)
+    timestamp = db.Column(
+        db.DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc), 
+        nullable=False
+    )
     result = db.Column(db.Integer, nullable=False)  # 0 = Lose, 1 = Win, 2 = Draw
     user_deck_id = db.Column(db.Integer, db.ForeignKey("user_decks.id"), nullable=False)
 

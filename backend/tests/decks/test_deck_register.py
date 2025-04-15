@@ -1,419 +1,566 @@
 import pytest
 from backend.models import User, Commander, Deck, DeckType, UserDeck, CommanderDeck
-from flask_jwt_extended import create_access_token
 from flask_bcrypt import Bcrypt
+from backend import db as _db
+from sqlalchemy import select
 
 @pytest.fixture(scope='function')
-def test_user(app, db):
+def test_user(app):
     bcrypt = Bcrypt(app)
+    username = "decktestuser_session"
+    password = "password123"
     with app.app_context():
-        hashed_password = bcrypt.generate_password_hash("password123").decode("utf-8")
-        user = User(username="decktestuser_conftest", hash=hashed_password)
-        db.session.add(user)
-        db.session.commit()
-        yield user
+        user = _db.session.scalar(select(User).where(User.username == username))
+        if not user:
+            hashed_password = bcrypt.generate_password_hash(password).decode("utf-8")
+            user = User(username=username, hash=hashed_password)
+            _db.session.add(user)
+            _db.session.commit()
+            _db.session.refresh(user)
+        yield {"user_obj": user, "password": password}
+
+@pytest.fixture(scope='function')
+def logged_in_client(client, test_user):
+
+    login_resp = client.post('/api/auth/login', json={
+        'username': test_user["user_obj"].username,
+        'password': test_user["password"]
+    })
+    assert login_resp.status_code == 200
+
+    csrf_resp = client.get('/api/auth/csrf_token')
+    assert csrf_resp.status_code == 200
+    csrf_token = csrf_resp.get_json()['csrf_token']
+    assert csrf_token is not None
+
+    yield client, csrf_token 
 
 
 @pytest.fixture(scope='function')
-def auth_headers(test_user):
-     access_token = create_access_token(identity=str(test_user.id))
-     headers = {
-         "Authorization": f"Bearer {access_token}",
-         "Content-Type": "application/json"
-     }
-     return headers
-
-@pytest.fixture(scope='function')
-def commanders(app, db):
+def commanders(app):
     with app.app_context():
-        deck_types = [
+        deck_types_data = [
             {'id': 1, 'name': 'Standard'}, {'id': 2, 'name': 'Pioneer'},
             {'id': 3, 'name': 'Modern'}, {'id': 4, 'name': 'Legacy'},
             {'id': 5, 'name': 'Vintage'}, {'id': 6, 'name': 'Pauper'},
             {'id': 7, 'name': 'Commander / EDH'}
         ]
-        for dt_data in deck_types:
+        for dt_data in deck_types_data:
+            dt = _db.session.scalar(select(DeckType).where(DeckType.id == dt_data['id']))
+            if not dt:
                 dt = DeckType(**dt_data)
-                db.session.merge(dt)
-        db.session.commit()
+                _db.session.add(dt)
+        _db.session.commit()
 
         cmdrs_data = {
-            "no_partner": {"name": "Solo Commander", "scryfall_id": "solo1", "partner": False},
-            "can_partner_1": {"name": "Partner Commander 1", "scryfall_id": "p1", "partner": True},
-            "can_partner_2": {"name": "Partner Commander 2", "scryfall_id": "p2", "partner": True},
-            "ff_1": {"name": "FF Commander 1", "scryfall_id": "ff1", "friends_forever": True},
-            "ff_2": {"name": "FF Commander 2", "scryfall_id": "ff2", "friends_forever": True},
-            "doctor": {"name": "The Doctor", "scryfall_id": "doc1", "time_lord_doctor": True},
-            "companion": {"name": "The Companion", "scryfall_id": "comp1", "doctor_companion": True},
-            "needs_bg": {"name": "Needs Background", "scryfall_id": "nbg1", "choose_a_background": True},
-            "is_bg": {"name": "Is Background", "scryfall_id": "bg1", "background": True},
-            "invalid_partner": {"name": "Not A Real Partner", "scryfall_id": "invp1", "partner": False},
-            "invalid_ff": {"name": "Not A Real FF", "scryfall_id": "invff1", "friends_forever": False},
-            "invalid_bg": {"name": "Not A Real BG", "scryfall_id": "invbg1", "background": False},
-            "invalid_doctor": {"name": "Not A Real Doctor", "scryfall_id": "invdoc1", "time_lord_doctor": False},
-            "invalid_companion": {"name": "Not A Real Companion", "scryfall_id": "invcomp1", "doctor_companion": False}
+            "no_partner": {"name": "Solo Cmdr Sesh", "scryfall_id": "solo1_s", "partner": False, "friends_forever": False, "choose_a_background": False, "time_lord_doctor": False, "doctor_companion": False, "background": False},
+            "can_partner_1": {"name": "Partner Cmdr 1 Sesh", "scryfall_id": "p1_s", "partner": True, "friends_forever": False, "choose_a_background": False, "time_lord_doctor": False, "doctor_companion": False, "background": False},
+            "can_partner_2": {"name": "Partner Cmdr 2 Sesh", "scryfall_id": "p2_s", "partner": True, "friends_forever": False, "choose_a_background": False, "time_lord_doctor": False, "doctor_companion": False, "background": False},
+            "ff_1": {"name": "FF Cmdr 1 Sesh", "scryfall_id": "ff1_s", "partner": False, "friends_forever": True, "choose_a_background": False, "time_lord_doctor": False, "doctor_companion": False, "background": False},
+            "ff_2": {"name": "FF Cmdr 2 Sesh", "scryfall_id": "ff2_s", "partner": False, "friends_forever": True, "choose_a_background": False, "time_lord_doctor": False, "doctor_companion": False, "background": False},
+            "doctor": {"name": "The Doctor Sesh", "scryfall_id": "doc1_s", "partner": False, "friends_forever": False, "choose_a_background": False, "time_lord_doctor": True, "doctor_companion": False, "background": False},
+            "companion": {"name": "The Companion Sesh", "scryfall_id": "comp1_s", "partner": False, "friends_forever": False, "choose_a_background": False, "time_lord_doctor": False, "doctor_companion": True, "background": False},
+            "needs_bg": {"name": "Needs Background Sesh", "scryfall_id": "nbg1_s", "partner": False, "friends_forever": False, "choose_a_background": True, "time_lord_doctor": False, "doctor_companion": False, "background": False},
+            "is_bg": {"name": "Is Background Sesh", "scryfall_id": "bg1_s", "partner": False, "friends_forever": False, "choose_a_background": False, "time_lord_doctor": False, "doctor_companion": False, "background": True},
+            "invalid_partner": {"name": "Not Partner Sesh", "scryfall_id": "invp1_s", "partner": False, "friends_forever": False, "choose_a_background": False, "time_lord_doctor": False, "doctor_companion": False, "background": False},
+            "invalid_ff": {"name": "Not FF Sesh", "scryfall_id": "invff1_s", "partner": False, "friends_forever": False, "choose_a_background": False, "time_lord_doctor": False, "doctor_companion": False, "background": False},
+            "invalid_bg": {"name": "Not BG Sesh", "scryfall_id": "invbg1_s", "partner": False, "friends_forever": False, "choose_a_background": False, "time_lord_doctor": False, "doctor_companion": False, "background": False},
+            "invalid_doctor": {"name": "Not Doctor Sesh", "scryfall_id": "invdoc1_s", "partner": False, "friends_forever": False, "choose_a_background": False, "time_lord_doctor": False, "doctor_companion": False, "background": False},
+            "invalid_companion": {"name": "Not Companion Sesh", "scryfall_id": "invcomp1_s", "partner": False, "friends_forever": False, "choose_a_background": False, "time_lord_doctor": False, "doctor_companion": False, "background": False}
         }
         cmdrs = {}
         for key, data in cmdrs_data.items():
-            cmdr = Commander(**data)
-            db.session.add(cmdr)
+            cmdr = _db.session.scalar(select(Commander).where(Commander.scryfall_id == data['scryfall_id']))
+            if not cmdr:
+                cmdr = Commander(**data)
+                _db.session.add(cmdr)
             cmdrs[key] = cmdr
-        db.session.commit()
-        for k in cmdrs:
-             db.session.refresh(cmdrs[k])
-        yield cmdrs
+        _db.session.commit()
+
+        # Return IDs for use in tests
+        commander_ids = {k: c.id for k, c in cmdrs.items()}
+        yield commander_ids # Yielding IDs instead of objects
 
 
-def test_register_simple_commander_success(client, app, db, auth_headers, commanders):
+def test_register_simple_commander_success(app, db, logged_in_client, commanders):
+    client, csrf_token = logged_in_client
     with app.app_context():
         payload = {
-            "deck_name": "Simple Commander Deck",
+            "deck_name": "Simple Commander Deck Session",
             "deck_type": 7,
-            "commander_id": commanders["no_partner"].id
+            "commander_id": commanders["no_partner"]
         }
-        response = client.post("/api/register_deck", json=payload, headers=auth_headers)
+        response = client.post(
+            "/api/register_deck",
+            json=payload,
+            headers={"X-CSRF-TOKEN": csrf_token}
+        )
         json_response = response.get_json()
 
         assert response.status_code == 201
         assert json_response["message"] == "Deck registered successfully"
-        assert json_response["deck"]["name"] == "Simple Commander Deck"
-        assert json_response["deck"]["commander_id"] == commanders["no_partner"].id
+        assert json_response["deck"]["name"] == "Simple Commander Deck Session"
+        assert json_response["deck"]["commander_id"] == commanders["no_partner"]
         assert json_response["deck"]["partner_id"] is None
 
-        deck = db.session.query(Deck).filter_by(name="Simple Commander Deck").first()
+        deck = deck = _db.session.scalar(select(Deck).where(Deck.name == "Simple Commander Deck Session"))
         assert deck is not None
         assert deck.deck_type_id == 7
-        cmd_deck = db.session.query(CommanderDeck).filter_by(deck_id=deck.id).first()
+        cmd_deck = _db.session.scalar(select(CommanderDeck).where(CommanderDeck.deck_id == deck.id))
         assert cmd_deck is not None
-        assert cmd_deck.commander_id == commanders["no_partner"].id
+        assert cmd_deck.commander_id == commanders["no_partner"]
         assert cmd_deck.associated_commander_id is None
 
 
-def test_register_valid_partner_success(client, app, db, auth_headers, commanders):
-     with app.app_context():
+def test_register_valid_partner_success(app, db, logged_in_client, commanders):
+    client, csrf_token = logged_in_client
+    with app.app_context():
         payload = {
-            "deck_name": "Partner Power",
+            "deck_name": "Partner Power Session",
             "deck_type": 7,
-            "commander_id": commanders["can_partner_1"].id,
-            "partner_id": commanders["can_partner_2"].id
+            "commander_id": commanders["can_partner_1"],
+            "partner_id": commanders["can_partner_2"]
         }
-        response = client.post("/api/register_deck", json=payload, headers=auth_headers)
+        response = client.post(
+            "/api/register_deck",
+            json=payload,
+            headers={"X-CSRF-TOKEN": csrf_token}
+        )
         json_response = response.get_json()
 
         assert response.status_code == 201
         assert json_response["message"] == "Deck registered successfully"
-        assert json_response["deck"]["commander_id"] == commanders["can_partner_1"].id
-        assert json_response["deck"]["partner_id"] == commanders["can_partner_2"].id
+        assert json_response["deck"]["commander_id"] == commanders["can_partner_1"]
+        assert json_response["deck"]["partner_id"] == commanders["can_partner_2"]
         assert json_response["deck"]["friends_forever_id"] is None
 
-        deck = db.session.query(Deck).filter_by(name="Partner Power").first()
+        deck = deck = _db.session.scalar(select(Deck).where(Deck.name == "Partner Power Session"))
         assert deck is not None
-        cmd_deck = db.session.query(CommanderDeck).filter_by(deck_id=deck.id).first()
+        cmd_deck = _db.session.scalar(select(CommanderDeck).where(CommanderDeck.deck_id == deck.id))
         assert cmd_deck is not None
-        assert cmd_deck.commander_id == commanders["can_partner_1"].id
-        assert cmd_deck.associated_commander_id == commanders["can_partner_2"].id
+        assert cmd_deck.commander_id == commanders["can_partner_1"]
+        assert cmd_deck.associated_commander_id == commanders["can_partner_2"]
 
 
-def test_register_valid_ff_success(client, app, db, auth_headers, commanders):
+def test_register_valid_ff_success(app, db, logged_in_client, commanders):
+    client, csrf_token = logged_in_client
     with app.app_context():
         payload = {
-            "deck_name": "BFF Deck",
+            "deck_name": "BFF Deck Session",
             "deck_type": 7,
-            "commander_id": commanders["ff_1"].id,
-            "friends_forever_id": commanders["ff_2"].id
+            "commander_id": commanders["ff_1"],
+            "friends_forever_id": commanders["ff_2"]
         }
-        response = client.post("/api/register_deck", json=payload, headers=auth_headers)
+        response = client.post(
+            "/api/register_deck",
+            json=payload,
+            headers={"X-CSRF-TOKEN": csrf_token}
+        )
         json_response = response.get_json()
 
         assert response.status_code == 201
-        assert json_response["deck"]["commander_id"] == commanders["ff_1"].id
-        assert json_response["deck"]["friends_forever_id"] == commanders["ff_2"].id
+        assert json_response["deck"]["commander_id"] == commanders["ff_1"]
+        assert json_response["deck"]["friends_forever_id"] == commanders["ff_2"]
         assert json_response["deck"]["partner_id"] is None
 
-        deck = db.session.query(Deck).filter_by(name="BFF Deck").first()
+        deck = _db.session.scalar(select(Deck).where(Deck.name == "BFF Deck Session"))
         assert deck is not None
-        cmd_deck = db.session.query(CommanderDeck).filter_by(deck_id=deck.id).first()
+        cmd_deck = _db.session.scalar(select(CommanderDeck).where(CommanderDeck.deck_id == deck.id))
         assert cmd_deck is not None
-        assert cmd_deck.commander_id == commanders["ff_1"].id
-        assert cmd_deck.associated_commander_id == commanders["ff_2"].id
+        assert cmd_deck.commander_id == commanders["ff_1"]
+        assert cmd_deck.associated_commander_id == commanders["ff_2"]
 
 
-def test_register_valid_doctor_companion_success(client, app, db, auth_headers, commanders):
+def test_register_valid_doctor_companion_success(app, db, logged_in_client, commanders):
+    client, csrf_token = logged_in_client
     with app.app_context():
         payload = {
-            "deck_name": "TARDIS Crew",
+            "deck_name": "TARDIS Crew Session",
             "deck_type": 7,
-            "commander_id": commanders["doctor"].id,
-            "doctor_companion_id": commanders["companion"].id
+            "commander_id": commanders["doctor"],
+            "doctor_companion_id": commanders["companion"]
         }
-        response = client.post("/api/register_deck", json=payload, headers=auth_headers)
+        response = client.post(
+            "/api/register_deck",
+            json=payload,
+            headers={"X-CSRF-TOKEN": csrf_token}
+        )
         json_response = response.get_json()
 
         assert response.status_code == 201
-        assert json_response["deck"]["commander_id"] == commanders["doctor"].id
-        assert json_response["deck"]["doctor_companion_id"] == commanders["companion"].id
+        assert json_response["deck"]["commander_id"] == commanders["doctor"]
+        assert json_response["deck"]["doctor_companion_id"] == commanders["companion"]
         assert json_response["deck"]["time_lord_doctor_id"] is None
 
-        deck = db.session.query(Deck).filter_by(name="TARDIS Crew").first()
+        deck = _db.session.scalar(select(Deck).where(Deck.name == "TARDIS Crew Session"))
         assert deck is not None
-        cmd_deck = db.session.query(CommanderDeck).filter_by(deck_id=deck.id).first()
+        cmd_deck = _db.session.scalar(select(CommanderDeck).where(CommanderDeck.deck_id == deck.id))
         assert cmd_deck is not None
-        assert cmd_deck.commander_id == commanders["doctor"].id
-        assert cmd_deck.associated_commander_id == commanders["companion"].id
+        assert cmd_deck.commander_id == commanders["doctor"]
+        assert cmd_deck.associated_commander_id == commanders["companion"]
 
-def test_register_valid_choose_background_success(client, app, db, auth_headers, commanders):
+
+def test_register_valid_choose_background_success(app, db, logged_in_client, commanders):
+    client, csrf_token = logged_in_client
     with app.app_context():
         payload = {
-            "deck_name": "Background Story",
+            "deck_name": "Background Story Session",
             "deck_type": 7,
-            "commander_id": commanders["needs_bg"].id,
-            "background_id": commanders["is_bg"].id
+            "commander_id": commanders["needs_bg"],
+            "background_id": commanders["is_bg"]
         }
-        response = client.post("/api/register_deck", json=payload, headers=auth_headers)
+        response = client.post(
+            "/api/register_deck",
+            json=payload,
+            headers={"X-CSRF-TOKEN": csrf_token}
+        )
         json_response = response.get_json()
 
         assert response.status_code == 201
-        assert json_response["deck"]["commander_id"] == commanders["needs_bg"].id
-        assert json_response["deck"]["background_id"] == commanders["is_bg"].id
-
-        deck = db.session.query(Deck).filter_by(name="Background Story").first()
+        assert json_response["deck"]["commander_id"] == commanders["needs_bg"]
+        assert json_response["deck"]["background_id"] == commanders["is_bg"]
+        
+        deck = _db.session.scalar(select(Deck).where(Deck.name == "Background Story Session"))
         assert deck is not None
-        cmd_deck = db.session.query(CommanderDeck).filter_by(deck_id=deck.id).first()
+        cmd_deck = _db.session.scalar(select(CommanderDeck).where(CommanderDeck.deck_id == deck.id))
         assert cmd_deck is not None
-        assert cmd_deck.commander_id == commanders["needs_bg"].id
-        assert cmd_deck.associated_commander_id == commanders["is_bg"].id
+        assert cmd_deck.commander_id == commanders["needs_bg"]
+        assert cmd_deck.associated_commander_id == commanders["is_bg"]
 
-def test_fail_missing_commander_id(client, app, auth_headers):
-     with app.app_context():
+
+# --- Failure Cases ---
+
+def test_fail_missing_commander_id(app, logged_in_client):
+    client, csrf_token = logged_in_client
+    with app.app_context():
         payload = {
-            "deck_name": "No Commander Deck",
+            "deck_name": "No Commander Deck Session",
             "deck_type": 7
         }
-        response = client.post("/api/register_deck", json=payload, headers=auth_headers)
+        response = client.post(
+            "/api/register_deck",
+            json=payload,
+            headers={"X-CSRF-TOKEN": csrf_token}
+        )
         json_response = response.get_json()
 
         assert response.status_code == 400
-        assert "Add your Commander" in json_response.get("error", "")
+        assert json_response is not None and "error" in json_response
+        assert "Add your Commander" in json_response["error"]
 
-def test_fail_missing_required_partner(client, app, auth_headers, commanders):
-     with app.app_context():
+
+def test_fail_missing_required_partner(app, logged_in_client, commanders):
+    client, csrf_token = logged_in_client
+    with app.app_context():
+        main_cmdr = _db.session.get(Commander, commanders["can_partner_1"])
         payload = {
-            "deck_name": "Needs Partner Deck",
+            "deck_name": "Needs Partner Deck Session",
             "deck_type": 7,
-            "commander_id": commanders["can_partner_1"].id
+            "commander_id": commanders["can_partner_1"]
         }
-        response = client.post("/api/register_deck", json=payload, headers=auth_headers)
+        response = client.post(
+            "/api/register_deck",
+            json=payload,
+            headers={"X-CSRF-TOKEN": csrf_token}
+        )
         json_response = response.get_json()
 
         assert response.status_code == 400
-        assert f"'{commanders['can_partner_1'].name}' requires a Partner commander" in json_response.get("error", "")
+        assert json_response is not None and "error" in json_response
+        assert f"'{main_cmdr.name}' requires a Partner commander" in json_response["error"]
 
-def test_fail_missing_required_ff(client, app, auth_headers, commanders):
-     with app.app_context():
+
+def test_fail_missing_required_ff(app, logged_in_client, commanders):
+    client, csrf_token = logged_in_client
+    with app.app_context():
+        main_cmdr = _db.session.get(Commander, commanders["ff_1"])
         payload = {
-            "deck_name": "Needs FF Deck",
+            "deck_name": "Needs FF Deck Session",
             "deck_type": 7,
-            "commander_id": commanders["ff_1"].id
+            "commander_id": commanders["ff_1"]
         }
-        response = client.post("/api/register_deck", json=payload, headers=auth_headers)
+        response = client.post(
+            "/api/register_deck",
+            json=payload,
+            headers={"X-CSRF-TOKEN": csrf_token}
+        )
         json_response = response.get_json()
 
         assert response.status_code == 400
-        assert f"'{commanders['ff_1'].name}' requires a Friends Forever commander" in json_response.get("error", "")
+        assert json_response is not None and "error" in json_response
+        assert f"'{main_cmdr.name}' requires a Friends Forever commander" in json_response["error"]
 
 
-def test_fail_missing_required_companion(client, app, auth_headers, commanders):
-     with app.app_context():
+def test_fail_missing_required_companion(app, logged_in_client, commanders):
+    client, csrf_token = logged_in_client
+    with app.app_context():
+        main_cmdr = _db.session.get(Commander, commanders["doctor"])
         payload = {
-            "deck_name": "Needs Companion Deck",
+            "deck_name": "Needs Companion Deck Session",
             "deck_type": 7,
-            "commander_id": commanders["doctor"].id
+            "commander_id": commanders["doctor"]
         }
-        response = client.post("/api/register_deck", json=payload, headers=auth_headers)
+        response = client.post(
+            "/api/register_deck",
+            json=payload,
+            headers={"X-CSRF-TOKEN": csrf_token}
+        )
         json_response = response.get_json()
 
         assert response.status_code == 400
-        assert f"'{commanders['doctor'].name}' requires a Doctor's Companion commander" in json_response.get("error", "")
+        assert json_response is not None and "error" in json_response
+        assert f"'{main_cmdr.name}' requires a Doctor's Companion commander" in json_response["error"]
 
-def test_fail_missing_required_doctor(client, app, auth_headers, commanders):
-     with app.app_context():
+
+def test_fail_missing_required_doctor(app, logged_in_client, commanders):
+    client, csrf_token = logged_in_client
+    with app.app_context():
+        main_cmdr = _db.session.get(Commander, commanders["companion"])
         payload = {
-            "deck_name": "Needs Doctor Deck",
+            "deck_name": "Needs Doctor Deck Session",
             "deck_type": 7,
-            "commander_id": commanders["companion"].id
+            "commander_id": commanders["companion"]
         }
-        response = client.post("/api/register_deck", json=payload, headers=auth_headers)
+        response = client.post(
+            "/api/register_deck",
+            json=payload,
+            headers={"X-CSRF-TOKEN": csrf_token}
+        )
         json_response = response.get_json()
 
         assert response.status_code == 400
-        assert f"'{commanders['companion'].name}' requires a Time Lord Doctor commander" in json_response.get("error", "")
+        assert json_response is not None and "error" in json_response
+        assert f"'{main_cmdr.name}' requires a Time Lord Doctor commander" in json_response["error"]
 
-def test_fail_missing_required_background(client, app, auth_headers, commanders):
-     with app.app_context():
+
+def test_fail_missing_required_background(app, logged_in_client, commanders):
+    client, csrf_token = logged_in_client
+    with app.app_context():
+        main_cmdr = _db.session.get(Commander, commanders["needs_bg"])
         payload = {
-            "deck_name": "Needs Background Deck",
+            "deck_name": "Needs Background Deck Session",
             "deck_type": 7,
-            "commander_id": commanders["needs_bg"].id
+            "commander_id": commanders["needs_bg"]
         }
-        response = client.post("/api/register_deck", json=payload, headers=auth_headers)
+        response = client.post(
+            "/api/register_deck",
+            json=payload,
+            headers={"X-CSRF-TOKEN": csrf_token}
+        )
         json_response = response.get_json()
 
         assert response.status_code == 400
-        assert f"'{commanders['needs_bg'].name}' requires a Background commander" in json_response.get("error", "")
+        assert json_response is not None and "error" in json_response
+        assert f"'{main_cmdr.name}' requires a Background commander" in json_response["error"]
 
 
-def test_fail_invalid_main_commander_for_partner(client, app, auth_headers, commanders):
+def test_fail_invalid_main_commander_for_partner(app, logged_in_client, commanders):
+    client, csrf_token = logged_in_client
+    with app.app_context():
+        main_cmdr = _db.session.get(Commander, commanders["no_partner"])
+        payload = {
+            "deck_name": "Invalid Main For Partner Session",
+            "deck_type": 7,
+            "commander_id": commanders["no_partner"],
+            "partner_id": commanders["can_partner_1"]
+        }
+        response = client.post(
+            "/api/register_deck",
+            json=payload,
+            headers={"X-CSRF-TOKEN": csrf_token}
+        )
+        json_response = response.get_json()
+
+        assert response.status_code == 400
+        assert json_response is not None and "error" in json_response
+        assert f"'{main_cmdr.name}' cannot be paired with the selected Partner" in json_response["error"]
+
+
+def test_fail_invalid_associated_commander_for_partner(app, logged_in_client, commanders):
+    client, csrf_token = logged_in_client
+    with app.app_context():
+        assoc_cmdr = _db.session.get(Commander, commanders["invalid_partner"])
+        payload = {
+            "deck_name": "Invalid Associated Partner Session",
+            "deck_type": 7,
+            "commander_id": commanders["can_partner_1"],
+            "partner_id": commanders["invalid_partner"]
+        }
+        response = client.post(
+            "/api/register_deck",
+            json=payload,
+            headers={"X-CSRF-TOKEN": csrf_token}
+        )
+        json_response = response.get_json()
+
+        assert response.status_code == 400
+        assert json_response is not None and "error" in json_response
+        assert f"'{assoc_cmdr.name}' is not a valid Partner" in json_response["error"]
+
+
+def test_fail_invalid_associated_commander_for_ff(app, logged_in_client, commanders):
+    client, csrf_token = logged_in_client
+    with app.app_context():
+        assoc_cmdr = _db.session.get(Commander, commanders["invalid_ff"])
+        payload = {
+            "deck_name": "Invalid Associated FF Session",
+            "deck_type": 7,
+            "commander_id": commanders["ff_1"],
+            "friends_forever_id": commanders["invalid_ff"]
+        }
+        response = client.post(
+            "/api/register_deck",
+            json=payload,
+            headers={"X-CSRF-TOKEN": csrf_token}
+        )
+        json_response = response.get_json()
+
+        assert response.status_code == 400
+        assert json_response is not None and "error" in json_response
+        assert f"'{assoc_cmdr.name}' is not a valid Friends Forever" in json_response["error"]
+
+
+def test_fail_invalid_associated_commander_for_background(app, logged_in_client, commanders):
+    client, csrf_token = logged_in_client
+    with app.app_context():
+        assoc_cmdr = _db.session.get(Commander, commanders["invalid_bg"])
+        payload = {
+            "deck_name": "Invalid Associated Background Session",
+            "deck_type": 7,
+            "commander_id": commanders["needs_bg"],
+            "background_id": commanders["invalid_bg"]
+        }
+        response = client.post(
+            "/api/register_deck",
+            json=payload,
+            headers={"X-CSRF-TOKEN": csrf_token}
+        )
+        json_response = response.get_json()
+
+        assert response.status_code == 400
+        assert json_response is not None and "error" in json_response
+        assert f"'{assoc_cmdr.name}' is not a valid Background" in json_response["error"]
+
+
+def test_fail_invalid_associated_commander_for_doctor(app, logged_in_client, commanders):
+    client, csrf_token = logged_in_client
+    with app.app_context():
+        assoc_cmdr = _db.session.get(Commander, commanders["invalid_doctor"])
+        payload = {
+            "deck_name": "Invalid Associated Doctor Session",
+            "deck_type": 7,
+            "commander_id": commanders["companion"],
+            "time_lord_doctor_id": commanders["invalid_doctor"]
+        }
+        response = client.post(
+            "/api/register_deck",
+            json=payload,
+            headers={"X-CSRF-TOKEN": csrf_token}
+        )
+        json_response = response.get_json()
+
+        assert response.status_code == 400
+        assert json_response is not None and "error" in json_response
+        assert f"'{assoc_cmdr.name}' is not a valid Time Lord Doctor" in json_response["error"]
+
+
+def test_fail_invalid_associated_commander_for_companion(app, logged_in_client, commanders):
+    client, csrf_token = logged_in_client
+    with app.app_context():
+        assoc_cmdr = _db.session.get(Commander, commanders["invalid_companion"])
+        payload = {
+            "deck_name": "Invalid Associated Companion Session",
+            "deck_type": 7,
+            "commander_id": commanders["doctor"],
+            "doctor_companion_id": commanders["invalid_companion"]
+        }
+        response = client.post(
+            "/api/register_deck",
+            json=payload,
+            headers={"X-CSRF-TOKEN": csrf_token}
+        )
+        json_response = response.get_json()
+
+        assert response.status_code == 400
+        assert json_response is not None and "error" in json_response
+        assert f"'{assoc_cmdr.name}' is not a valid Doctor Companion" in json_response["error"]
+
+
+def test_fail_commander_equals_partner(app, logged_in_client, commanders):
+    client, csrf_token = logged_in_client
     with app.app_context():
         payload = {
-            "deck_name": "Invalid Main For Partner",
+            "deck_name": "Same Commander Partner Session",
             "deck_type": 7,
-            "commander_id": commanders["no_partner"].id,
-            "partner_id": commanders["can_partner_1"].id
+            "commander_id": commanders["can_partner_1"],
+            "partner_id": commanders["can_partner_1"]
         }
-        response = client.post("/api/register_deck", json=payload, headers=auth_headers)
+        response = client.post(
+            "/api/register_deck",
+            json=payload,
+            headers={"X-CSRF-TOKEN": csrf_token}
+        )
         json_response = response.get_json()
 
         assert response.status_code == 400
-        assert f"'{commanders['no_partner'].name}' cannot be paired with the selected Partner" in json_response.get("error", "")
+        assert json_response is not None and "error" in json_response
+        assert "Commander and associated Commander cannot be the same" in json_response["error"]
 
 
-def test_fail_invalid_associated_commander_for_partner(client, app, auth_headers, commanders):
-     with app.app_context():
-        payload = {
-            "deck_name": "Invalid Associated Partner",
-            "deck_type": 7,
-            "commander_id": commanders["can_partner_1"].id,
-            "partner_id": commanders["invalid_partner"].id
-        }
-        response = client.post("/api/register_deck", json=payload, headers=auth_headers)
-        json_response = response.get_json()
-
-        assert response.status_code == 400
-        assert f"'{commanders['invalid_partner'].name}' is not a valid Partner" in json_response.get("error", "")
-
-def test_fail_invalid_associated_commander_for_ff(client, app, auth_headers, commanders):
-     with app.app_context():
-        payload = {
-            "deck_name": "Invalid Associated FF",
-            "deck_type": 7,
-            "commander_id": commanders["ff_1"].id,
-            "friends_forever_id": commanders["invalid_ff"].id
-        }
-        response = client.post("/api/register_deck", json=payload, headers=auth_headers)
-        json_response = response.get_json()
-
-        assert response.status_code == 400
-        assert f"'{commanders['invalid_ff'].name}' is not a valid Friends Forever" in json_response.get("error", "")
-
-
-def test_fail_invalid_associated_commander_for_background(client, app, auth_headers, commanders):
-     with app.app_context():
-        payload = {
-            "deck_name": "Invalid Associated Background",
-            "deck_type": 7,
-            "commander_id": commanders["needs_bg"].id,
-            "background_id": commanders["invalid_bg"].id
-        }
-        response = client.post("/api/register_deck", json=payload, headers=auth_headers)
-        json_response = response.get_json()
-
-        assert response.status_code == 400
-        assert f"'{commanders['invalid_bg'].name}' is not a valid Background" in json_response.get("error", "")
-
-def test_fail_invalid_associated_commander_for_doctor(client, app, auth_headers, commanders):
-     with app.app_context():
-        payload = {
-            "deck_name": "Invalid Associated Doctor",
-            "deck_type": 7,
-            "commander_id": commanders["companion"].id,
-            "time_lord_doctor_id": commanders["invalid_doctor"].id
-        }
-        response = client.post("/api/register_deck", json=payload, headers=auth_headers)
-        json_response = response.get_json()
-
-        assert response.status_code == 400
-        assert f"'{commanders['invalid_doctor'].name}' is not a valid Time Lord Doctor" in json_response.get("error", "")
-
-def test_fail_invalid_associated_commander_for_companion(client, app, auth_headers, commanders):
-     with app.app_context():
-        payload = {
-            "deck_name": "Invalid Associated Companion",
-            "deck_type": 7,
-            "commander_id": commanders["doctor"].id,
-            "doctor_companion_id": commanders["invalid_companion"].id
-        }
-        response = client.post("/api/register_deck", json=payload, headers=auth_headers)
-        json_response = response.get_json()
-
-        assert response.status_code == 400
-        assert f"'{commanders['invalid_companion'].name}' is not a valid Doctor Companion" in json_response.get("error", "")
-
-
-def test_fail_commander_equals_partner(client, app, auth_headers, commanders):
-     with app.app_context():
-        payload = {
-            "deck_name": "Same Commander Partner",
-            "deck_type": 7,
-            "commander_id": commanders["can_partner_1"].id,
-            "partner_id": commanders["can_partner_1"].id
-        }
-        response = client.post("/api/register_deck", json=payload, headers=auth_headers)
-        json_response = response.get_json()
-
-        assert response.status_code == 400
-        assert "Commander and associated Commander cannot be the same" in json_response.get("error", "")
-
-def test_fail_multiple_associated_ids(client, app, auth_headers, commanders):
-     with app.app_context():
-        payload = {
-            "deck_name": "Too Many Partners",
-            "deck_type": 7,
-            "commander_id": commanders["can_partner_1"].id,
-            "partner_id": commanders["can_partner_2"].id,
-            "friends_forever_id": commanders["ff_1"].id
-        }
-        response = client.post("/api/register_deck", json=payload, headers=auth_headers)
-        json_response = response.get_json()
-
-        assert response.status_code == 400
-        assert "Only one associated commander type" in json_response.get("error", "")
-
-def test_fail_deck_name_missing(client, app, auth_headers, commanders):
-     with app.app_context():
-        payload = {
-            "deck_type": 7,
-            "commander_id": commanders["no_partner"].id
-        }
-        response = client.post("/api/register_deck", json=payload, headers=auth_headers)
-        json_response = response.get_json()
-
-        assert response.status_code == 400
-        assert "Add a Deck Name" in json_response.get("error", "")
-
-def test_fail_not_authenticated(client, app, commanders):
+def test_fail_multiple_associated_ids(app, logged_in_client, commanders):
+    client, csrf_token = logged_in_client
     with app.app_context():
-        cmdr_id = commanders["no_partner"].id
         payload = {
-            "deck_name": "Auth Test Deck",
+            "deck_name": "Too Many Partners Session",
             "deck_type": 7,
-            "commander_id": cmdr_id
+            "commander_id": commanders["can_partner_1"],
+            "partner_id": commanders["can_partner_2"],
+            "friends_forever_id": commanders["ff_1"]
+        }
+        response = client.post(
+            "/api/register_deck",
+            json=payload,
+            headers={"X-CSRF-TOKEN": csrf_token}
+        )
+        json_response = response.get_json()
+
+        assert response.status_code == 400
+        assert json_response is not None and "error" in json_response
+        assert "Only one associated commander type" in json_response["error"]
+
+
+def test_fail_deck_name_missing(app, logged_in_client, commanders):
+    client, csrf_token = logged_in_client
+    with app.app_context():
+        payload = {
+            "deck_type": 7,
+            "commander_id": commanders["no_partner"]
+        }
+        response = client.post(
+            "/api/register_deck",
+            json=payload,
+            headers={"X-CSRF-TOKEN": csrf_token}
+        )
+        json_response = response.get_json()
+
+        assert response.status_code == 400
+        assert json_response is not None and "error" in json_response
+        assert "Add a Deck Name" in json_response["error"]
+
+
+def test_fail_not_authenticated(client, app, commanders): 
+    with app.app_context():
+        with client.session_transaction() as sess:
+            sess.clear()
+
+        payload = {
+            "deck_name": "Auth Test Deck Session",
+            "deck_type": 7,
+            "commander_id": commanders["no_partner"]
         }
         response = client.post("/api/register_deck", json=payload)
+
         assert response.status_code == 401
-
-def test_invalid_partner_combination(client, app, auth_headers, commanders):
-    with app.app_context():
-        payload = {
-            "deck_name": "Test Deck Invalid Main Confirmed",
-            "deck_type": 7,
-            "commander_id": commanders["no_partner"].id, 
-            "partner_id": commanders["can_partner_1"].id 
-        }
-        response = client.post("/api/register_deck", json=payload, headers=auth_headers)
         json_response = response.get_json()
-
-        print("🧪 RESPONSE (Original Test):", response.status_code, json_response)
-
-        assert response.status_code == 400
-        assert json_response is not None
-        assert "cannot be paired" in json_response.get("error", "")
+        assert json_response is not None and "msg" in json_response
+        assert "Authentication required" in json_response["msg"]

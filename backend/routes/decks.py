@@ -1,14 +1,11 @@
-from flask import Blueprint, jsonify, request, Response
-from flask_jwt_extended import jwt_required, get_jwt_identity
+from flask import Blueprint, jsonify, request, Response, session
 from backend import db
-from backend.models import CommanderDeck, Commander, UserDeck, Deck, Tag, DeckType
+from backend.models import CommanderDeck, Commander, UserDeck, Deck, Tag
 from backend.services.matches.match_service import get_deck_stats, get_all_decks_stats
 from backend.services.decks.get_user_decks_service import get_user_decks
 from backend.services.decks.get_commander_attributes_service import get_commander_attributes_by_id
-from sqlalchemy.orm import selectinload
-from sqlalchemy.exc import IntegrityError
-import json
-import logging
+from backend.utils.decorators import login_required
+import json, logging
 
 decks_bp = Blueprint("decks_api", __name__, url_prefix="/api")
 
@@ -18,21 +15,16 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 @decks_bp.route("/decks", methods=["GET"])
-@jwt_required()
+@login_required
 def get_all_decks():
     decks = Deck.query.all()
     decks_list = [{"id": deck.id, "deck_name": deck.name} for deck in decks]
     return jsonify(decks_list)
 
 @decks_bp.route("/decks/<int:deck_id>", methods=["GET"])
-@jwt_required()
+@login_required
 def deck_details(deck_id):
-    user_id_str = get_jwt_identity()
-    try:
-        user_id = int(user_id_str)
-    except (ValueError, TypeError):
-        return jsonify({"error": "Invalid user identity format"}), 400
-
+    user_id = session.get('user_id')
     deck = Deck.query.filter_by(id=deck_id, user_id=user_id).first()
     if not deck:
          return jsonify({"error": f"Deck with id {deck_id} not found for this user."}), 404
@@ -67,14 +59,9 @@ def deck_details(deck_id):
 
 
 @decks_bp.route("/register_deck", methods=["POST"])
-@jwt_required()
+@login_required
 def register_deck():
-    user_id_str = get_jwt_identity()
-    try:
-        user_id = int(user_id_str)
-    except (ValueError, TypeError):
-        return jsonify({"error": "Invalid user identity format"}), 400
-
+    user_id = session.get('user_id')
     data = request.get_json()
     if not data:
         return jsonify({"error": "Invalid request body"}), 400
@@ -252,14 +239,9 @@ def register_deck():
         return jsonify({"error": "An internal error occurred", "details": str(e)}), 500
 
 @decks_bp.route("/user_decks", methods=["GET"])
-@jwt_required()
+@login_required
 def user_decks():
-    user_id_str = get_jwt_identity()
-    try:
-        user_id = int(user_id_str)
-    except (ValueError, TypeError):
-        return jsonify({"error": "Invalid user identity format"}), 400
-
+    user_id = session.get('user_id')
     deck_type_filter = request.args.get('deck_type_id', default=None)
     tags_param = request.args.get('tags', default=None)
 
@@ -309,14 +291,9 @@ def user_decks():
          return jsonify({"error": "Failed to fetch user decks"}), 500
 
 @decks_bp.route("/decks/<int:deck_id>", methods=["PATCH"])
-@jwt_required()
+@login_required
 def update_deck(deck_id):
-    user_id_str = get_jwt_identity()
-    try:
-        user_id = int(user_id_str)
-    except (ValueError, TypeError):
-        return jsonify({"error": "Invalid user identity format"}), 400
-
+    user_id = session.get('user_id')
     deck = Deck.query.filter_by(id=deck_id, user_id=user_id).first()
     if not deck:
         return jsonify({"error": f"Deck with id {deck_id} not found for this user."}), 404
@@ -352,14 +329,9 @@ def update_deck(deck_id):
 
 
 @decks_bp.route("/decks/<int:deck_id>", methods=["DELETE"])
-@jwt_required()
+@login_required
 def delete_deck(deck_id):
-    user_id_str = get_jwt_identity()
-    try:
-        user_id = int(user_id_str)
-    except (ValueError, TypeError):
-        return jsonify({"error": "Invalid user identity format"}), 400
-
+    user_id = session.get('user_id')
     deck = Deck.query.filter_by(id=deck_id, user_id=user_id).first()
     if not deck:
         return jsonify({"error": f"Deck with id {deck_id} not found for this user."}), 404
@@ -379,14 +351,9 @@ def delete_deck(deck_id):
         return jsonify({"error": "Database error", "details": str(e)}), 500
 
 @decks_bp.route('/decks/<int:deck_id>/tags', methods=['POST'])
-@jwt_required()
+@login_required
 def add_tag_to_deck(deck_id):
-    current_user_id_str = get_jwt_identity()
-    try:
-        current_user_id = int(current_user_id_str)
-    except (ValueError, TypeError):
-        return jsonify({"error": "Invalid user identity format"}), 400
-
+    current_user_id = session.get('user_id')
     data = request.get_json()
 
     if not data or 'tag_id' not in data:
@@ -424,14 +391,9 @@ def add_tag_to_deck(deck_id):
 
 
 @decks_bp.route('/decks/<int:deck_id>/tags/<int:tag_id>', methods=['DELETE'])
-@jwt_required()
+@login_required
 def remove_tag_from_deck(deck_id, tag_id):
-    current_user_id_str = get_jwt_identity()
-    try:
-        current_user_id = int(current_user_id_str)
-    except (ValueError, TypeError):
-        return jsonify({"error": "Invalid user identity format"}), 400
-
+    current_user_id = session.get('user_id')
     user_deck = UserDeck.query.filter_by(user_id=current_user_id, deck_id=deck_id).first()
     if not user_deck:
         return jsonify({"error": "Deck not found or not owned by user"}), 404

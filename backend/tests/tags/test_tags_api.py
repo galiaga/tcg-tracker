@@ -1,245 +1,353 @@
 import pytest
-from flask_jwt_extended import create_access_token
 from flask_bcrypt import Bcrypt
+from sqlalchemy import select, delete
+from sqlalchemy.orm import selectinload
 
-from backend.models import User, Tag, Deck, UserDeck, DeckType
 from backend import db as _db
-from sqlalchemy.orm import selectinload, joinedload
+from backend.models import User, Tag, Deck, UserDeck, DeckType
 
 @pytest.fixture(scope='function')
 def test_user(app, db):
     bcrypt = Bcrypt(app)
+    username = "tags_testuser_session"
+    password = "password123"
     with app.app_context():
-        user = User.query.filter_by(username="tags_testuser").first()
+        stmt = select(User).where(User.username == username)
+        user = _db.session.scalar(stmt)
         if not user:
-            hashed_password = bcrypt.generate_password_hash("password123").decode("utf-8")
-            user = User(username="tags_testuser", hash=hashed_password)
+            hashed_password = bcrypt.generate_password_hash(password).decode("utf-8")
+            user = User(username=username, hash=hashed_password)
             _db.session.add(user)
             _db.session.commit()
-        yield user
+            _db.session.refresh(user)
+        yield {"user_obj": user, "password": password}
+
 
 @pytest.fixture(scope='function')
 def test_user_2(app, db):
     bcrypt = Bcrypt(app)
+    username = "tags_testuser_2_session"
+    password = "password456"
     with app.app_context():
-        user = User.query.filter_by(username="tags_testuser_2").first()
+        stmt = select(User).where(User.username == username)
+        user = _db.session.scalar(stmt)
         if not user:
-            hashed_password = bcrypt.generate_password_hash("password456").decode("utf-8")
-            user = User(username="tags_testuser_2", hash=hashed_password)
+            hashed_password = bcrypt.generate_password_hash(password).decode("utf-8")
+            user = User(username=username, hash=hashed_password)
             _db.session.add(user)
             _db.session.commit()
-        yield user
+            _db.session.refresh(user)
+        yield {"user_obj": user, "password": password}
+
 
 @pytest.fixture(scope='function')
-def auth_headers(test_user):
-   access_token = create_access_token(identity=str(test_user.id))
-   headers = {
-       "Authorization": f"Bearer {access_token}",
-       "Content-Type": "application/json"
-   }
-   return headers
+def logged_in_client(client, test_user):
+    login_resp = client.post('/api/auth/login', json={
+        'username': test_user["user_obj"].username,
+        'password': test_user["password"]
+    })
+    assert login_resp.status_code == 200
+    csrf_resp = client.get('/api/auth/csrf_token')
+    assert csrf_resp.status_code == 200
+    csrf_token = csrf_resp.get_json()['csrf_token']
+    assert csrf_token is not None
+    yield client, csrf_token
+
 
 @pytest.fixture(scope='function')
-def auth_headers_user_2(test_user_2):
-    access_token = create_access_token(identity=str(test_user_2.id))
-    headers = {
-        "Authorization": f"Bearer {access_token}",
-        "Content-Type": "application/json"
-    }
-    return headers
+def logged_in_client_user_2(client, test_user_2):
+    login_resp = client.post('/api/auth/login', json={
+        'username': test_user_2["user_obj"].username,
+        'password': test_user_2["password"]
+    })
+    assert login_resp.status_code == 200
+    csrf_resp = client.get('/api/auth/csrf_token')
+    assert csrf_resp.status_code == 200
+    csrf_token = csrf_resp.get_json()['csrf_token']
+    assert csrf_token is not None
+    yield client, csrf_token
+
 
 @pytest.fixture(scope='function')
-def sample_tags_data(app, db, test_user):
+def sample_tags_data(app, test_user):
+    user_id = test_user["user_obj"].id
     with app.app_context():
         tags = {}
-        tag_names = ["competitive", "budget", "testing"]
+        tag_names = ["competitive_tags_s", "budget_tags_s", "testing_tags_s"]
         for name in tag_names:
-             tag = Tag.query.filter_by(user_id=test_user.id, name=name).first()
+             stmt = select(Tag).where(Tag.user_id == user_id, Tag.name == name)
+             tag = _db.session.scalars(stmt).first()
              if not tag:
-                  tag = Tag(user_id=test_user.id, name=name)
+                  tag = Tag(user_id=user_id, name=name)
                   _db.session.add(tag)
-                  _db.session.commit()
-             else:
-                  _db.session.refresh(tag)
-             tags[name] = tag.id
-        yield tags
+             tags[name] = tag
+        _db.session.commit()
+        yield {key: tag.id for key, tag in tags.items()}
 
 
 @pytest.fixture(scope='function')
-def sample_deck_data(app, db, test_user):
-     with app.app_context():
-        deck = Deck.query.filter_by(name="Tag Test Deck", user_id=test_user.id).first()
+def sample_deck_data(app, test_user):
+    user_id = test_user["user_obj"].id
+    deck_name = "Tag Test Deck Tags Sesh"
+    with app.app_context():
+        stmt_deck = select(Deck).where(Deck.name == deck_name, Deck.user_id == user_id)
+        deck = _db.session.scalars(stmt_deck).first()
         if not deck:
-            deck_type = DeckType.query.filter_by(id=1).first()
+            deck_type = _db.session.get(DeckType, 1)
             if not deck_type:
-                deck_type = DeckType(id=1, name='Standard')
+                deck_type = DeckType(id=1, name='Standard Tags Sesh')
                 _db.session.add(deck_type)
-                _db.session.commit()
 
-            deck = Deck(
-                name="Tag Test Deck",
-                deck_type_id=deck_type.id,
-                user_id=test_user.id
-            )
+            deck = Deck(name=deck_name, deck_type_id=deck_type.id, user_id=user_id)
             _db.session.add(deck)
             _db.session.flush()
 
-            user_deck = UserDeck(user_id=test_user.id, deck_id=deck.id)
+            user_deck = UserDeck(user_id=user_id, deck_id=deck.id)
             _db.session.add(user_deck)
             _db.session.commit()
-        yield {"id": deck.id, "user_id": test_user.id, "name": deck.name }
+        else:
+            deck = _db.session.get(Deck, deck.id, options=[selectinload(Deck.tags)])
+            if deck:
+                deck.tags.clear()
+                _db.session.commit()
+
+        yield {"id": deck.id, "user_id": user_id, "name": deck.name }
+
 
 @pytest.fixture(scope='function')
 def deck_with_tag_data(app, db, sample_deck_data, sample_tags_data):
     with app.app_context():
         deck_id = sample_deck_data["id"]
-        tag_id = sample_tags_data["competitive"]
-        deck = _db.session.get(Deck, deck_id)
+        tag_id = sample_tags_data["competitive_tags_s"]
+        deck = _db.session.get(Deck, deck_id, options=[selectinload(Deck.tags)])
         tag = _db.session.get(Tag, tag_id)
 
         if deck and tag:
-            _db.session.refresh(deck)
             if tag not in deck.tags:
-                 deck.tags.append(tag)
-                 _db.session.commit()
+                deck.tags.append(tag)
+                _db.session.commit()
+        elif not deck:
+             pytest.fail(f"Deck with ID {deck_id} not found in deck_with_tag_data fixture")
+        elif not tag:
+             pytest.fail(f"Tag with ID {tag_id} not found in deck_with_tag_data fixture")
+
         yield {"deck_id": deck_id, "tag_id": tag_id}
 
-def test_get_tags_success_no_tags(client, app, auth_headers, db, test_user): 
+
+def test_get_tags_success_no_tags(app, db, logged_in_client, test_user):
+    client, _ = logged_in_client
+    user_id = test_user["user_obj"].id
     with app.app_context():
-        Tag.query.filter_by(user_id=test_user.id).delete()
+        stmt = delete(Tag).where(Tag.user_id == user_id)
+        _db.session.execute(stmt)
         _db.session.commit()
-    response = client.get("/api/tags", headers=auth_headers)
+
+    response = client.get("/api/tags")
     assert response.status_code == 200
     assert response.get_json() == []
 
-def test_get_tags_success_with_tags(client, auth_headers, sample_tags_data):
-    response = client.get("/api/tags", headers=auth_headers)
+
+def test_get_tags_success_with_tags(logged_in_client, sample_tags_data):
+    client, _ = logged_in_client
+    response = client.get("/api/tags")
     json_response = response.get_json()
     assert response.status_code == 200
     assert isinstance(json_response, list)
-    names = sorted([t['name'] for t in json_response])
-    expected_names = sorted(["budget", "competitive", "testing"])
-    assert all(name in names for name in expected_names)
+    names_in_response = {t['name'] for t in json_response}
+    expected_names = {"competitive_tags_s", "budget_tags_s", "testing_tags_s"}
+    assert expected_names.issubset(names_in_response)
+
 
 def test_get_tags_unauthenticated(client):
+    with client.session_transaction() as sess:
+        sess.clear()
+
     response = client.get("/api/tags")
     assert response.status_code == 401
+    json_response = response.get_json()
+    assert json_response is not None and "msg" in json_response
+    assert "Authentication required" in json_response["msg"]
 
-def test_create_tag_success(client, app, db, auth_headers, test_user):
-    payload = {"name": " New Fun Tag "}
-    response = client.post("/api/tags", json=payload, headers=auth_headers)
+
+def test_create_tag_success(app, db, logged_in_client, test_user):
+    client, csrf_token = logged_in_client
+    user_id = test_user["user_obj"].id
+    payload = {"name": " New Fun Tag Session "}
+    response = client.post(
+        "/api/tags",
+        json=payload,
+        headers={"X-CSRF-TOKEN": csrf_token}
+    )
     json_response = response.get_json()
 
     assert response.status_code == 201
-    assert json_response["name"] == "new fun tag"
+    assert json_response["name"] == "new fun tag session"
     assert "id" in json_response
 
     with app.app_context():
-        tag = _db.session.query(Tag).filter_by(id=json_response["id"]).first()
+        tag = _db.session.get(Tag, json_response["id"])
         assert tag is not None
-        assert tag.name == "new fun tag"
-        assert tag.user_id == test_user.id
+        assert tag.name == "new fun tag session"
+        assert tag.user_id == user_id
 
-def test_create_tag_duplicate(client, auth_headers, sample_tags_data):
-    payload = {"name": "BuDgEt"}
-    response = client.post("/api/tags", json=payload, headers=auth_headers)
+
+def test_create_tag_duplicate(logged_in_client, sample_tags_data):
+    client, csrf_token = logged_in_client
+    payload = {"name": " BuDgEt_TaGs_S "}
+    response = client.post(
+        "/api/tags",
+        json=payload,
+        headers={"X-CSRF-TOKEN": csrf_token}
+    )
     assert response.status_code == 409
     assert "Tag already exists" in response.get_json().get("error", "")
 
-def test_create_tag_missing_name(client, auth_headers):
+
+def test_create_tag_missing_name(logged_in_client):
+    client, csrf_token = logged_in_client
     payload = {}
-    response = client.post("/api/tags", json=payload, headers=auth_headers)
+    response = client.post(
+        "/api/tags",
+        json=payload,
+        headers={"X-CSRF-TOKEN": csrf_token}
+    )
     assert response.status_code == 400
     assert "Missing 'name'" in response.get_json().get("error", "")
 
-def test_create_tag_empty_name(client, auth_headers):
+
+def test_create_tag_empty_name(logged_in_client):
+    client, csrf_token = logged_in_client
     payload = {"name": "   "}
-    response = client.post("/api/tags", json=payload, headers=auth_headers)
+    response = client.post(
+        "/api/tags",
+        json=payload,
+        headers={"X-CSRF-TOKEN": csrf_token}
+    )
     assert response.status_code == 400
     assert "must be a non-empty string" in response.get_json().get("error", "")
 
+
 def test_create_tag_unauthenticated(client):
-    payload = {"name": "Auth Test"}
+    with client.session_transaction() as sess:
+        sess.clear()
+    payload = {"name": "Auth Test Session"}
     response = client.post("/api/tags", json=payload)
     assert response.status_code == 401
+    json_response = response.get_json()
+    assert json_response is not None and "msg" in json_response
+    assert "Authentication required" in json_response["msg"]
 
-def test_add_tag_to_deck_success(client, app, db, auth_headers, sample_deck_data, sample_tags_data, test_user):
+
+def test_add_tag_to_deck_success(app, db, logged_in_client, sample_deck_data, sample_tags_data):
+    client, csrf_token = logged_in_client
     deck_id = sample_deck_data["id"]
-    tag_id = sample_tags_data["budget"]
+    tag_id = sample_tags_data["budget_tags_s"]
     payload = {"tag_id": tag_id}
-    user_id = test_user.id
 
-    with app.app_context():
-        found_user_deck = _db.session.query(UserDeck).filter_by(user_id=user_id, deck_id=deck_id).first()
-        found_tag = _db.session.query(Tag).filter_by(id=tag_id, user_id=user_id).first()
-        assert found_user_deck is not None, "UserDeck should exist before API call"
-        assert found_tag is not None, "Tag should exist before API call"
-
-    response = client.post(f"/api/decks/{deck_id}/tags", json=payload, headers=auth_headers)
+    response = client.post(
+        f"/api/decks/{deck_id}/tags",
+        json=payload,
+        headers={"X-CSRF-TOKEN": csrf_token}
+    )
 
     assert response.status_code == 201
     assert "Tag associated successfully" in response.get_json().get("message", "")
 
     with app.app_context():
-        reloaded_deck = _db.session.get(Deck, deck_id)
+        reloaded_deck = _db.session.get(Deck, deck_id, options=[selectinload(Deck.tags)])
         assert reloaded_deck is not None
-        _db.session.refresh(reloaded_deck)
         tag_ids_on_deck = {tag.id for tag in reloaded_deck.tags}
         assert tag_id in tag_ids_on_deck
 
 
-def test_add_tag_to_deck_already_associated(client, app, db, auth_headers, deck_with_tag_data):
+def test_add_tag_to_deck_already_associated(logged_in_client, deck_with_tag_data):
+    client, csrf_token = logged_in_client
     deck_id = deck_with_tag_data["deck_id"]
     tag_id = deck_with_tag_data["tag_id"]
     payload = {"tag_id": tag_id}
 
-    response = client.post(f"/api/decks/{deck_id}/tags", json=payload, headers=auth_headers)
+    response = client.post(
+        f"/api/decks/{deck_id}/tags",
+        json=payload,
+        headers={"X-CSRF-TOKEN": csrf_token}
+    )
     assert response.status_code == 200
     assert "Tag already associated" in response.get_json().get("message", "")
 
 
-def test_add_tag_to_deck_deck_not_found(client, auth_headers, sample_tags_data):
-    invalid_deck_id = 9999
-    tag_id = sample_tags_data["budget"]
+def test_add_tag_to_deck_deck_not_found(logged_in_client, sample_tags_data):
+    client, csrf_token = logged_in_client
+    invalid_deck_id = 99999
+    tag_id = sample_tags_data["budget_tags_s"]
     payload = {"tag_id": tag_id}
-    response = client.post(f"/api/decks/{invalid_deck_id}/tags", json=payload, headers=auth_headers)
+    response = client.post(
+        f"/api/decks/{invalid_deck_id}/tags",
+        json=payload,
+        headers={"X-CSRF-TOKEN": csrf_token}
+    )
     assert response.status_code == 404
 
-def test_add_tag_to_deck_tag_not_found(client, auth_headers, sample_deck_data):
+
+def test_add_tag_to_deck_tag_not_found(logged_in_client, sample_deck_data):
+    client, csrf_token = logged_in_client
     deck_id = sample_deck_data["id"]
-    invalid_tag_id = 9999
+    invalid_tag_id = 99999
     payload = {"tag_id": invalid_tag_id}
-    response = client.post(f"/api/decks/{deck_id}/tags", json=payload, headers=auth_headers)
+    response = client.post(
+        f"/api/decks/{deck_id}/tags",
+        json=payload,
+        headers={"X-CSRF-TOKEN": csrf_token}
+    )
     assert response.status_code == 404
 
 
-def test_add_tag_to_deck_deck_not_owned(client, auth_headers_user_2, sample_deck_data, sample_tags_data):
+def test_add_tag_to_deck_deck_not_owned(logged_in_client_user_2, sample_deck_data, sample_tags_data):
+    client, csrf_token = logged_in_client_user_2
     deck_id = sample_deck_data["id"]
-    tag_id = sample_tags_data["budget"]
+    tag_id = sample_tags_data["budget_tags_s"]
     payload = {"tag_id": tag_id}
-    response = client.post(f"/api/decks/{deck_id}/tags", json=payload, headers=auth_headers_user_2)
+    response = client.post(
+        f"/api/decks/{deck_id}/tags",
+        json=payload,
+        headers={"X-CSRF-TOKEN": csrf_token}
+    )
     assert response.status_code == 404
 
 
-def test_add_tag_to_deck_tag_not_owned(client, app, db, auth_headers, sample_deck_data, test_user_2):
+def test_add_tag_to_deck_tag_not_owned(app, db, logged_in_client, sample_deck_data, test_user_2):
+    client, csrf_token = logged_in_client
     deck_id = sample_deck_data["id"]
+
+    user_2_id = test_user_2["user_obj"].id
+    tag_name_user_2 = "user2tag_owned_s"
     with app.app_context():
-        tag_user_2 = Tag.query.filter_by(user_id=test_user_2.id, name="user2tag").first()
+        stmt = select(Tag).where(Tag.user_id == user_2_id, Tag.name == tag_name_user_2)
+        tag_user_2 = _db.session.scalars(stmt).first()
         if not tag_user_2:
-            tag_user_2 = Tag(user_id=test_user_2.id, name="user2tag")
+            tag_user_2 = Tag(user_id=user_2_id, name=tag_name_user_2)
             _db.session.add(tag_user_2)
             _db.session.commit()
+            _db.session.refresh(tag_user_2)
         tag_id_user_2 = tag_user_2.id
 
     payload = {"tag_id": tag_id_user_2}
-    response = client.post(f"/api/decks/{deck_id}/tags", json=payload, headers=auth_headers)
+    response = client.post(
+        f"/api/decks/{deck_id}/tags",
+        json=payload,
+        headers={"X-CSRF-TOKEN": csrf_token}
+    )
     assert response.status_code == 404
 
 
-def test_add_tag_to_deck_missing_tag_id(client, auth_headers, sample_deck_data):
+def test_add_tag_to_deck_missing_tag_id(logged_in_client, sample_deck_data):
+    client, csrf_token = logged_in_client
     deck_id = sample_deck_data["id"]
     payload = {}
-    response = client.post(f"/api/decks/{deck_id}/tags", json=payload, headers=auth_headers)
+    response = client.post(
+        f"/api/decks/{deck_id}/tags",
+        json=payload,
+        headers={"X-CSRF-TOKEN": csrf_token}
+    )
     assert response.status_code == 400
     json_response = response.get_json()
     assert json_response is not None
@@ -248,52 +356,74 @@ def test_add_tag_to_deck_missing_tag_id(client, auth_headers, sample_deck_data):
 
 def test_add_tag_to_deck_unauthenticated(client, sample_deck_data, sample_tags_data):
     deck_id = sample_deck_data["id"]
-    tag_id = sample_tags_data["budget"]
+    tag_id = sample_tags_data["budget_tags_s"]
     payload = {"tag_id": tag_id}
     response = client.post(f"/api/decks/{deck_id}/tags", json=payload)
     assert response.status_code == 401
 
-def test_remove_tag_from_deck_success(client, app, db, auth_headers, deck_with_tag_data):
+
+def test_remove_tag_from_deck_success(app, db, logged_in_client, deck_with_tag_data):
+    client, csrf_token = logged_in_client
     deck_id = deck_with_tag_data["deck_id"]
     tag_id = deck_with_tag_data["tag_id"]
-
-    response = client.delete(f"/api/decks/{deck_id}/tags/{tag_id}", headers=auth_headers)
+    response = client.delete(
+        f"/api/decks/{deck_id}/tags/{tag_id}",
+        headers={"X-CSRF-TOKEN": csrf_token}
+    )
     assert response.status_code == 204
 
     with app.app_context():
-        reloaded_deck = _db.session.get(Deck, deck_id)
+        reloaded_deck = _db.session.get(Deck, deck_id, options=[selectinload(Deck.tags)])
         assert reloaded_deck is not None
-        _db.session.refresh(reloaded_deck)
         tag_ids_on_deck = {tag.id for tag in reloaded_deck.tags}
         assert tag_id not in tag_ids_on_deck
 
-def test_remove_tag_from_deck_not_associated(client, auth_headers, deck_with_tag_data, sample_tags_data):
-    deck_id = deck_with_tag_data["deck_id"]
-    tag_id_not_associated = sample_tags_data["budget"]
 
-    response = client.delete(f"/api/decks/{deck_id}/tags/{tag_id_not_associated}", headers=auth_headers)
+def test_remove_tag_from_deck_not_associated(logged_in_client, deck_with_tag_data, sample_tags_data):
+    client, csrf_token = logged_in_client
+    deck_id = deck_with_tag_data["deck_id"]
+    tag_id_not_associated = sample_tags_data["budget_tags_s"]
+
+    response = client.delete(
+        f"/api/decks/{deck_id}/tags/{tag_id_not_associated}",
+        headers={"X-CSRF-TOKEN": csrf_token}
+    )
     assert response.status_code == 404
     json_response = response.get_json()
     if json_response:
         assert "Tag is not associated" in json_response.get("error", "")
 
-def test_remove_tag_from_deck_deck_not_found(client, auth_headers, sample_tags_data):
-    invalid_deck_id = 9999
-    tag_id = sample_tags_data["competitive"]
-    response = client.delete(f"/api/decks/{invalid_deck_id}/tags/{tag_id}", headers=auth_headers)
+
+def test_remove_tag_from_deck_deck_not_found(logged_in_client, sample_tags_data):
+    client, csrf_token = logged_in_client
+    invalid_deck_id = 99999
+    tag_id = sample_tags_data["competitive_tags_s"]
+    response = client.delete(
+        f"/api/decks/{invalid_deck_id}/tags/{tag_id}",
+        headers={"X-CSRF-TOKEN": csrf_token}
+    )
     assert response.status_code == 404
 
-def test_remove_tag_from_deck_tag_not_found(client, auth_headers, sample_deck_data):
+
+def test_remove_tag_from_deck_tag_not_found(logged_in_client, sample_deck_data):
+    client, csrf_token = logged_in_client
     deck_id = sample_deck_data["id"]
-    invalid_tag_id = 9999
-    response = client.delete(f"/api/decks/{deck_id}/tags/{invalid_tag_id}", headers=auth_headers)
+    invalid_tag_id = 99999
+    response = client.delete(
+        f"/api/decks/{deck_id}/tags/{invalid_tag_id}",
+        headers={"X-CSRF-TOKEN": csrf_token}
+    )
     assert response.status_code == 404
 
 
-def test_remove_tag_from_deck_deck_not_owned(client, auth_headers_user_2, deck_with_tag_data):
+def test_remove_tag_from_deck_deck_not_owned(logged_in_client_user_2, deck_with_tag_data):
+    client, csrf_token = logged_in_client_user_2
     deck_id = deck_with_tag_data["deck_id"]
     tag_id = deck_with_tag_data["tag_id"]
-    response = client.delete(f"/api/decks/{deck_id}/tags/{tag_id}", headers=auth_headers_user_2)
+    response = client.delete(
+        f"/api/decks/{deck_id}/tags/{tag_id}",
+        headers={"X-CSRF-TOKEN": csrf_token}
+    )
     assert response.status_code == 404
 
 
