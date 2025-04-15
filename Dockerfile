@@ -3,6 +3,9 @@
 ARG PYTHON_VERSION=3.13.2
 FROM python:${PYTHON_VERSION}-slim
 
+ARG GIT_SHA="unknown"
+ENV APP_VERSION=${GIT_SHA}
+
 LABEL fly_launch_runtime="flask"
 
 WORKDIR /code
