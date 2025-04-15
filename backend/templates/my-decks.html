@@ -175,8 +175,8 @@
     <script type="module" src="{{ url_for('static', filename='js/ui/decks/deck-list-manager.js') }}"></script>
     <script type="module" src="{{ url_for('static', filename='js/ui/decks/filter-decks.js') }}"></script>
     <script type="module" src="{{ url_for('static', filename='js/ui/decks/filter-decks-by-tag.js') }}"></script>
-
-    <script src="{{ url_for('static', filename='js/ui/decks/new-deck-modal.js') }}" defer></script>
+    <script type="module" src="{{ url_for('static', filename='js/ui/decks/new-deck-modal.js') }}" defer></script>
+    
     <script src="{{ url_for('static', filename='js/ui/decks/mobile_sort_filter.js') }}" defer></script>
 
 {% endblock %}
