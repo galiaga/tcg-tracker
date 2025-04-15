@@ -67,7 +67,7 @@
           <div class="relative">
             <label for="tag-filter-button" class="block text-sm font-medium text-violet-900 mb-1">Tags</label>
             <button type="button" id="tag-filter-button" aria-haspopup="listbox" aria-expanded="false"
-              class="relative w-full cursor-default rounded-md border border-violet-300 bg-white py-2 pl-3 pr-10 text-left text-sm text-violet-900 shadow-sm focus:border-violet-500 focus:outline-none focus:ring-1 focus:ring-violet-500 hover:bg-gray-50">
+              class="relative w-full cursor-default rounded-md border border-violet-300 bg-white py-2 pl-3 pr-10 text-left text-sm text-violet-900 shadow-sm focus:border-violet-500 focus:outline-none focus:ring-1 focus:ring-violet-500 hover:bg-violet-50">
               <span id="tag-filter-button-text" class="block truncate">All Tags</span>
               <span class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
                 <svg class="h-5 w-5 text-violet-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
@@ -92,7 +92,6 @@
         </div>
      </div>
   </section>
-
 
   <div id="newDeckModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center px-4 hidden">
     <div class="bg-white rounded-xl shadow-xl w-full max-w-lg p-6 space-y-5 transform transition-all scale-95 opacity-0">
@@ -122,9 +121,9 @@
         ] %}
         <div id="{{ field[0] }}Field" class="hidden relative">
           <input autocomplete="off" id="{{ field[0] }}_name" placeholder="{{ field[1] }}" type="text"
-            class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-violet-500 focus:ring focus:ring-violet-200 focus:ring-opacity-50" />
+            class="w-full rounded-md border border-violet-300 px-3 py-2 text-sm shadow-sm focus:border-violet-500 focus:ring focus:ring-violet-200 focus:ring-opacity-50" />
           <ul id="{{ field[0] }}-suggestions"
-            class="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg"></ul>
+            class="absolute z-10 mt-1 w-full bg-white border border-violet-200 rounded-md shadow-lg"></ul>
         </div>
         {% endfor %}
         <div>
@@ -151,7 +150,7 @@
     </div>
   </div>
 
-  <section aria-labelledby="deck-list-heading">
+  <section aria-labelledby="deck-list-heading" class="contain-layout">
       <h2 id="deck-list-heading" class="sr-only">Deck List</h2>
       <div id="decks-container" class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
          <div class="text-center text-violet-500 mt-8 p-4 text-base border border-dashed border-violet-300 rounded-lg md:col-span-2 xl:col-span-3">

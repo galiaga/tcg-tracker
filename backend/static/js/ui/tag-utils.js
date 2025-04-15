@@ -195,10 +195,9 @@ function openQuickAddTagModal(itemId, itemType, refreshCallback) {
 function closeQuickAddTagModal() {
     const modal = document.getElementById("quickAddTagModal");
     const modalContent = modal?.querySelector(".bg-white");
+    
     if (!modal || !modalContent) return;
-    if (quickAddTagInputInstance && typeof quickAddTagInputInstance.destroy === 'function') {
-        quickAddTagInputInstance.destroy();
-    }
+
     quickAddTagInputInstance = null;
     currentItemIdForTagging = null;
     currentItemTypeForTagging = null;

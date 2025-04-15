@@ -308,7 +308,7 @@ document.addEventListener("DOMContentLoaded", () => {
     loadDeckDetails(deckId);
 
     const quickAddModal = document.getElementById("quickAddTagModal");
-    const quickAddModalCloseBtn = document.getElementById("quickAddModalCloseButton");
+    const quickAddModalCloseBtn = document.getElementById("quickAddTagModalCloseButton");
     if (quickAddModal && quickAddModalCloseBtn && typeof closeQuickAddTagModal === 'function') {
         quickAddModalCloseBtn.addEventListener('click', closeQuickAddTagModal);
         quickAddModal.addEventListener('click', (event) => {

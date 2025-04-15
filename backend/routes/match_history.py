@@ -1,5 +1,5 @@
-from flask import jsonify, Blueprint, request
-from flask_jwt_extended import jwt_required, get_jwt_identity
+from flask import jsonify, Blueprint, request, session
+from backend.utils.decorators import login_required
 import logging
 from backend.services.matches.match_history_service import get_matches_by_user
 
@@ -7,14 +7,9 @@ matches_history_bp = Blueprint("matches_history", __name__, url_prefix="/api")
 logger = logging.getLogger(__name__)
 
 @matches_history_bp.route("/matches_history", methods=["GET"])
-@jwt_required()
+@login_required
 def matches_history():
-    user_id_str = get_jwt_identity()
-    try:
-        user_id = int(user_id_str)
-    except (ValueError, TypeError):
-        return jsonify({"error": "Invalid user identity format"}), 400
-
+    user_id = session.get('user_id')
     deck_id = request.args.get('deck_id', type=int, default=None)
     tags_param = request.args.get('tags', default=None)
     limit = request.args.get('limit', type=int, default=None)

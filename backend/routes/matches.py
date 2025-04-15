@@ -1,10 +1,12 @@
-from flask import jsonify, Blueprint, request
-from flask_jwt_extended import jwt_required, get_jwt_identity
+from flask import jsonify, Blueprint, request, session
+from backend.utils.decorators import login_required
 from backend import db
 from backend.models import Match, UserDeck, Tag, Deck, DeckType
 from backend.models.tag import match_tags
 from sqlalchemy.orm import joinedload, selectinload
+from sqlalchemy import select, delete 
 import logging
+from datetime import timezone
 
 matches_bp = Blueprint("matches", __name__, url_prefix="/api")
 logger = logging.getLogger(__name__)
@@ -19,11 +21,20 @@ RESULT_MAP_TEXT = {
     RESULT_DRAW_ID: "Draw"
 }
 
-@matches_bp.route("/log_match", methods=["POST"])
-@jwt_required()
-def log_match():
-    user_id = get_jwt_identity()
+def format_timestamp(dt):
+    """Helper function to ensure aware UTC timestamp before isoformat."""
+    if not dt:
+        return None
+    if dt.tzinfo is None:
+        aware_dt = dt.replace(tzinfo=timezone.utc)
+    else:
+        aware_dt = dt.astimezone(timezone.utc)
+    return aware_dt.isoformat()
 
+@matches_bp.route("/log_match", methods=["POST"])
+@login_required
+def log_match():
+    user_id = session.get('user_id')
     data = request.get_json()
     if not data:
         return jsonify({"error": "Invalid request body. JSON expected."}), 400
@@ -43,10 +54,11 @@ def log_match():
     if match_result not in VALID_RESULTS:
          return jsonify({"error": f"Invalid match_result value. Must be one of {VALID_RESULTS}"}), 400
 
-    user_deck_entry = db.session.query(UserDeck).filter_by(
-        user_id=user_id,
-        deck_id=deck_id
-    ).first()
+    stmt_ud = select(UserDeck).where(
+        UserDeck.user_id == user_id,
+        UserDeck.deck_id == deck_id
+    )
+    user_deck_entry = db.session.scalars(stmt_ud).first()
 
     if not user_deck_entry:
         logger.warning(f"User {user_id} attempted to log match for non-owned/non-existent deck {deck_id}")
@@ -56,6 +68,7 @@ def log_match():
         new_match = Match(result=match_result, user_deck_id=user_deck_entry.id)
         db.session.add(new_match)
         db.session.commit()
+        db.session.refresh(new_match)
 
         logger.info(f"Match logged successfully (ID: {new_match.id}) for user {user_id}, deck {deck_id}")
 
@@ -63,7 +76,7 @@ def log_match():
             "message": "Match logged successfully",
             "match": {
                 "id": new_match.id,
-                "timestamp": new_match.timestamp.isoformat(),
+                "timestamp": format_timestamp(new_match.timestamp), 
                 "result": new_match.result,
                 "result_text": RESULT_MAP_TEXT.get(new_match.result, "Unknown"),
                 "user_deck_id": new_match.user_deck_id,
@@ -77,21 +90,21 @@ def log_match():
         return jsonify({"error": "Database error", "details": str(e)}), 500
 
 @matches_bp.route('/matches_history', methods=['GET'])
-@jwt_required()
+@login_required
 def get_matches_history():
-    current_user_id = get_jwt_identity()
+    current_user_id = session.get('user_id')
     tag_ids_str = request.args.get('tags')
     deck_id_str = request.args.get('deck_id')
 
     try:
-        query = db.session.query(Match).join(UserDeck, Match.user_deck_id == UserDeck.id)\
-                                       .filter(UserDeck.user_id == current_user_id)
+        stmt = select(Match).join(UserDeck, Match.user_deck_id == UserDeck.id)\
+                            .where(UserDeck.user_id == current_user_id)
 
         deck_id = None
         if deck_id_str and deck_id_str.isdigit():
             try:
                 deck_id = int(deck_id_str)
-                query = query.filter(UserDeck.deck_id == deck_id)
+                stmt = stmt.where(UserDeck.deck_id == deck_id)
             except ValueError:
                  pass
 
@@ -106,19 +119,19 @@ def get_matches_history():
                 return jsonify({"error": "Invalid tags format. Use comma-separated integers."}), 400
 
         if apply_tag_filter:
-            query = query.join(match_tags, Match.id == match_tags.c.match_id)\
-                         .filter(match_tags.c.tag_id.in_(tag_ids))\
-                         .distinct()
+            stmt = stmt.join(match_tags, Match.id == match_tags.c.match_id)\
+                       .where(match_tags.c.tag_id.in_(tag_ids))\
+                       .distinct()
 
-        query = query.options(
+        stmt = stmt.options(
             joinedload(Match.user_deck)
                 .joinedload(UserDeck.deck)
                 .joinedload(Deck.deck_type),
-            joinedload(Match.tags)
+            selectinload(Match.tags) 
         )
-        query = query.order_by(Match.timestamp.desc())
+        stmt = stmt.order_by(Match.timestamp.desc())
 
-        matches = query.all()
+        matches = db.session.scalars(stmt).unique().all()
 
         matches_list = []
         for match in matches:
@@ -138,7 +151,7 @@ def get_matches_history():
             matches_list.append({
                 'id': match.id,
                 'result': match.result,
-                'date': match.timestamp.isoformat() if match.timestamp else None,
+                'date': format_timestamp(match.timestamp), 
                 'user_deck_id': match.user_deck_id,
                 'deck': deck_info,
                 'deck_type': deck_type_info,
@@ -153,14 +166,9 @@ def get_matches_history():
 
 
 @matches_bp.route('/matches/<int:match_id>/tags', methods=['POST'])
-@jwt_required()
+@login_required
 def add_tag_to_match(match_id):
-    current_user_id_str = get_jwt_identity()
-    try:
-        current_user_id = int(current_user_id_str)
-    except (ValueError, TypeError):
-        return jsonify({"error": "Invalid user identity format"}), 400
-
+    current_user_id = session.get('user_id')
     data = request.get_json()
     if not data or 'tag_id' not in data:
         return jsonify({"error": "Missing 'tag_id' in request body"}), 400
@@ -169,15 +177,19 @@ def add_tag_to_match(match_id):
     if not isinstance(tag_id, int):
          return jsonify({"error": "'tag_id' must be an integer"}), 400
 
-    match = db.session.query(Match).join(Match.user_deck).filter(
+    stmt_match = select(Match).join(Match.user_deck).where(
         Match.id == match_id,
         UserDeck.user_id == current_user_id
-    ).options(selectinload(Match.tags)).first()
+    ).options(selectinload(Match.tags))
+    match = db.session.scalars(stmt_match).first()
+
 
     if not match:
         return jsonify({"error": "Match not found or not owned by user"}), 404
 
-    tag_to_add = Tag.query.filter_by(id=tag_id, user_id=current_user_id).first()
+    stmt_tag = select(Tag).where(Tag.id==tag_id, Tag.user_id==current_user_id)
+    tag_to_add = db.session.scalars(stmt_tag).first()
+
     if not tag_to_add:
         return jsonify({"error": "Tag not found or not owned by user"}), 404
 
@@ -195,18 +207,15 @@ def add_tag_to_match(match_id):
 
 
 @matches_bp.route('/matches/<int:match_id>/tags/<int:tag_id>', methods=['DELETE'])
-@jwt_required()
+@login_required
 def remove_tag_from_match(match_id, tag_id):
-    current_user_id_str = get_jwt_identity()
-    try:
-        current_user_id = int(current_user_id_str)
-    except (ValueError, TypeError):
-        return jsonify({"error": "Invalid user identity format"}), 400
+    current_user_id = session.get('user_id')
 
-    match = db.session.query(Match).join(Match.user_deck).filter(
+    stmt_match = select(Match).join(Match.user_deck).where(
         Match.id == match_id,
         UserDeck.user_id == current_user_id
-    ).options(selectinload(Match.tags)).first()
+    ).options(selectinload(Match.tags))
+    match = db.session.scalars(stmt_match).first()
 
     if not match:
         return jsonify({"error": "Match not found or not owned by user"}), 404

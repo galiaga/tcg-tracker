@@ -6,27 +6,33 @@ async function login() {
         const response = await fetch("/api/auth/login", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
+            credentials: 'include', // Critical for cookie storage
             body: JSON.stringify({ username, password })
         });
 
-        const data = await response.json();
-
+        // Check if login was successful
         if (response.ok) {
-            localStorage.setItem("access_token", data.access_token);
-            localStorage.setItem("refresh_token", data.refresh_token);
+            const data = await response.json();
+            
+            // Just store username, don't try to store tokens
             localStorage.setItem("username", data.username);
-
+            
+            // Log cookies after login for debugging
+            console.log("All cookies after login:", document.cookie);
+            
             sessionStorage.setItem("flashMessage", `Welcome back, ${data.username}!`);
             sessionStorage.setItem("flashType", "success");
 
             console.log("Login successful, redirecting...");
             window.location.href = "/";
         } else {
-            console.warn("Login failed. Clearing tokens.");
-            localStorage.removeItem("access_token");
-            localStorage.removeItem("refresh_token");
-
-            showFlashMessage(data.error || "Login failed. Please try again.", "error");
+            // Try to parse error message
+            try {
+                const errorData = await response.json();
+                showFlashMessage(errorData.error || "Login failed. Please try again.", "error");
+            } catch (e) {
+                showFlashMessage("Login failed. Please try again.", "error");
+            }
         }
     } catch (error) {
         console.error("Error during login:", error);

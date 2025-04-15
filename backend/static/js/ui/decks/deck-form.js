@@ -171,7 +171,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
         suggestionsListElement.style.display = "block";
         const loadingItem = document.createElement("li");
-        loadingItem.className = "px-4 py-2 text-center text-gray-500";
+        loadingItem.className = "px-4 py-2 text-center text-violet-500";
         loadingItem.textContent = "Loading...";
         suggestionsListElement.appendChild(loadingItem);
         adjustSuggestionsList(suggestionsListElement, inputElement);
@@ -187,7 +187,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
             if (commanders.length === 0) {
                 const noResults = document.createElement("li");
-                noResults.className = "px-4 py-2 text-center text-gray-500";
+                noResults.className = "px-4 py-2 text-center text-violet-500";
                 noResults.textContent = "No results";
                 suggestionsListElement.appendChild(noResults);
                 return;
@@ -199,7 +199,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 }
 
                 const item = document.createElement("li");
-                item.className = "px-4 py-2 hover:bg-gray-100 cursor-pointer flex items-center";
+                item.className = "px-4 py-2 hover:bg-violet-100 cursor-pointer flex items-center";
                 item.innerHTML = commander.image
                     ? `<img src="${commander.image}" alt="${commander.name}" class="w-8 h-10 mr-2 object-contain"> ${commander.name}`
                     : commander.name;

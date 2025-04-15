@@ -1,5 +1,5 @@
-from flask import Blueprint, jsonify, request
-from flask_jwt_extended import jwt_required, get_jwt_identity
+from flask import Blueprint, jsonify, request, session
+from backend.utils.decorators import login_required
 from backend import db
 from backend.models.tag import Tag
 from sqlalchemy.exc import IntegrityError
@@ -7,17 +7,17 @@ from sqlalchemy.exc import IntegrityError
 tags_bp = Blueprint('tags', __name__, url_prefix='/api')
 
 @tags_bp.route('/tags', methods=['GET'])
-@jwt_required()
+@login_required
 def get_user_tags():
-    current_user_id = get_jwt_identity()
+    current_user_id = session.get('user_id')
     user_tags = Tag.query.filter_by(user_id=current_user_id).order_by(Tag.name).all()
     tags_list = [{'id': tag.id, 'name': tag.name} for tag in user_tags]
     return jsonify(tags_list)
 
 @tags_bp.route('/tags', methods=['POST'])
-@jwt_required()
+@login_required
 def create_user_tag():
-    current_user_id = get_jwt_identity()
+    current_user_id = session.get('user_id')
     data = request.get_json()
 
     if not data or 'name' not in data:
