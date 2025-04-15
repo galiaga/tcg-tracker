@@ -97,20 +97,27 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     async function checkCommanderRelations(commanderId) {
-        const token = localStorage.getItem("access_token");
-        if (!token) {
-            console.error("Token not found in localStorage.");
-            return;
-        }
-
         hideAllAssociatedFields();
 
         try {
             const apiUrl = `/api/get_commander_attributes?q=${commanderId}`;
             const response = await authFetch(apiUrl);
-            if (!response) throw new Error("Authentication or network error occurred.");
+
+            if (!response) {
+                 console.error("checkCommanderRelations: authFetch failed, likely handled error.");
+                 return;
+            }
+            if (response.status === 401) {
+                 console.error("checkCommanderRelations: Received 401 from authFetch. Logout should be triggered.");
+                 return;
+            }
             if (!response.ok) {
                 console.error("Error fetching commander attributes:", response.status, response.statusText);
+                let errorMsg = `Failed to fetch commander details (Status: ${response.status})`;
+                try {
+                    const errData = await response.json();
+                    errorMsg = errData.error || errorMsg;
+                } catch(e) { }
                 return;
             }
 
@@ -124,7 +131,7 @@ document.addEventListener("DOMContentLoaded", function () {
             if (commanderData.choose_a_background) showAssociatedField('chooseABackground');
 
         } catch (error) {
-            console.error("Network error while fetching attributes:", error);
+            console.error("Network or other error while fetching attributes:", error);
         }
     }
 
@@ -194,7 +201,7 @@ document.addEventListener("DOMContentLoaded", function () {
             }
 
             commanders.forEach(commander => {
-                if (type !== 'commander' && commander.id === selectedCommanderId) {
+                 if (type !== 'commander' && commander.id === selectedCommanderId) {
                     return;
                 }
 
@@ -257,5 +264,4 @@ document.addEventListener("DOMContentLoaded", function () {
             console.warn(`Input or suggestions element not found for type: ${type}`);
         }
     });
-
 });
