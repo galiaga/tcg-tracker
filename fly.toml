@@ -23,3 +23,6 @@ primary_region = 'scl'
 
 [env]
   FLASK_ENV = "production"
+
+  [deploy]
+  release_command = "flask db upgrade"
