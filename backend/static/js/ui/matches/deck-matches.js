@@ -31,25 +31,28 @@ export async function loadDeckMatches() {
     }
 
     try {
-        const token = localStorage.getItem("access_token");
-        if (!token) {
-            showFlashMessage("Authentication required.", "warning");
-            return;
-        }
-
         const apiUrl = `/api/matches_history?deck_id=${deckId}&limit=5&offset=0`
         const response = await authFetch(apiUrl);
-        if (!response) return;
-        
+
+        if (!response) {
+            console.error("loadDeckMatches: authFetch failed, likely handled error.");
+            return;
+        }
+        if (response.status === 401) {
+             console.error("loadDeckMatches: Received 401 from authFetch. Logout should be triggered.");
+             return;
+        }
+
         if (!response.ok) {
              let errorMsg = `Error loading matches (${response.status})`;
              try {
                  const errorData = await response.json();
                  errorMsg = errorData.message || errorMsg;
-             } catch(e) { /* Ignore non-JSON error body */ }
+             } catch(e) { }
 
              if (response.status === 404) {
                  showFlashMessage("Matches not found for this deck.", "warning");
+                 noMatchesMessage.classList.remove('hidden');
              } else {
                 showFlashMessage(errorMsg, "danger");
              }
