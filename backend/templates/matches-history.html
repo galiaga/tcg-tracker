@@ -5,7 +5,7 @@
 {% endblock %}
 
 {% block main %}
-<div class="space-y-6">
+<div class="space-y-6 w-full">
     <div class="flex items-center mb-4">
         <img src="{{ url_for('static', filename='img/logo.png') }}"
         alt="Logo TCG Tracker"
@@ -73,7 +73,7 @@
                  Loading match history...
              </div>
          </div>
-         <div id="no-matches-message-history" class="text-center text-violet-500 mt-8 p-4 text-base border border-dashed border-violet-300 rounded-lg md:col-span-2 xl:col-span-3">
+         <div id="no-matches-message-history" class="w-full text-center text-violet-500 mt-8 p-4 text-base border border-dashed border-violet-300 rounded-lg">
              No match history found.
          </div>
     </section>

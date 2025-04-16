@@ -74,7 +74,7 @@
 
         {% endif %}
 
-        <main class="flex flex-grow items-center justify-center container max-w-6xl mx-auto px-4 py-6 {% if is_logged_in %}md:pt-6 pb-16 md:pb-6{% endif %}">
+        <main class="flex flex-grow {% if is_logged_in %}items-start{% else %}items-center justify-center{% endif %} container max-w-6xl mx-auto px-4 py-6 {% if is_logged_in %}md:pt-6 pb-16 md:pb-6{% endif %}">
              {% block main %}{% endblock %}
         </main>
 
