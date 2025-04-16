@@ -24,5 +24,3 @@ The 'My Tags' section allows users to easily view all decks and matches connecte
 TCG Tracker requires users to register with a unique username and password to start using the app. It uses Flask secrets to manage user sessions securely, helping to prevent potential cyber-attacks. Furthermore, it employs a CSRF-compatible token mechanism that reduces vulnerability to cross-site request forgery.
 
 Users remain logged into the app until they explicitly choose to log out by selecting the 'Logout' option via the application menu. TCG Tracker aims to be the go-to tool for players serious about improving their game through data.
-
-(Word Count: Approximately 719 words)
