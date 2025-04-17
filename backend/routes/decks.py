@@ -1,11 +1,17 @@
 from flask import Blueprint, jsonify, request, Response, session
+from sqlalchemy import select, delete
+from sqlalchemy.orm import joinedload, selectinload
+from sqlalchemy.exc import IntegrityError
+import json
+import logging
+
 from backend import db
 from backend.models import CommanderDeck, Commander, UserDeck, Deck, Tag
 from backend.services.matches.match_service import get_deck_stats, get_all_decks_stats
 from backend.services.decks.get_user_decks_service import get_user_decks
 from backend.services.decks.get_commander_attributes_service import get_commander_attributes_by_id
 from backend.utils.decorators import login_required
-import json, logging
+
 
 decks_bp = Blueprint("decks_api", __name__, url_prefix="/api")
 
@@ -17,7 +23,10 @@ logger = logging.getLogger(__name__)
 @decks_bp.route("/decks", methods=["GET"])
 @login_required
 def get_all_decks():
-    decks = Deck.query.all()
+    # Note: Consider if this should be user-specific or if it's for admin purposes.
+    # For user-specific decks, see /user_decks endpoint.
+    stmt = select(Deck)
+    decks = db.session.scalars(stmt).all()
     decks_list = [{"id": deck.id, "deck_name": deck.name} for deck in decks]
     return jsonify(decks_list)
 
@@ -25,11 +34,12 @@ def get_all_decks():
 @login_required
 def deck_details(deck_id):
     user_id = session.get('user_id')
-    deck = Deck.query.filter_by(id=deck_id, user_id=user_id).first()
-    if not deck:
-         return jsonify({"error": f"Deck with id {deck_id} not found for this user."}), 404
 
-    deck_data = deck.to_dict()
+    deck = db.session.get(Deck, deck_id, options=[selectinload(Deck.tags)])
+    if not deck or deck.user_id != user_id:
+        return jsonify({"error": f"Deck with id {deck_id} not found for this user."}), 404
+
+    deck_data = deck.to_dict() # Assuming Deck model has a suitable to_dict method
 
     stats = get_deck_stats(user_id, deck_id)
     deck_data.update({
@@ -39,7 +49,8 @@ def deck_details(deck_id):
     })
 
     if deck_data.get("deck_type", {}).get("id") == COMMANDER_DECK_TYPE_ID:
-        commander_deck_info = CommanderDeck.query.filter_by(deck_id=deck.id).first()
+        stmt_cd = select(CommanderDeck).where(CommanderDeck.deck_id == deck.id)
+        commander_deck_info = db.session.scalars(stmt_cd).first()
         if commander_deck_info:
             if commander_deck_info.commander_id:
                 commander_attributes = get_commander_attributes_by_id(commander_deck_info.commander_id)
@@ -54,9 +65,8 @@ def deck_details(deck_id):
                     deck_data["associated_commander_id"] = commander_deck_info.associated_commander_id
 
     deck_data["tags"] = [{"id": tag.id, "name": tag.name} for tag in deck.tags]
-    
-    return jsonify(deck_data), 200
 
+    return jsonify(deck_data), 200
 
 @decks_bp.route("/register_deck", methods=["POST"])
 @login_required
@@ -100,7 +110,6 @@ def register_deck():
     if deck_type_id == COMMANDER_DECK_TYPE_ID and not commander_id:
         return jsonify({"error": "Add your Commander"}), 400
 
-
     try:
         new_deck = Deck(user_id=user_id, name=deck_name, deck_type_id=deck_type_id)
         db.session.add(new_deck)
@@ -108,6 +117,9 @@ def register_deck():
 
         user_deck = UserDeck(user_id=user_id, deck_id=new_deck.id)
         db.session.add(user_deck)
+
+        associated_commander_id = None # Initialize
+        non_null_associations = {} # Initialize
 
         if deck_type_id == COMMANDER_DECK_TYPE_ID and commander:
             associations = {
@@ -118,7 +130,6 @@ def register_deck():
                 "background_id": background_id_str
             }
 
-            non_null_associations = {}
             for key, value_str in associations.items():
                 if value_str is not None:
                     try:
@@ -185,7 +196,7 @@ def register_deck():
                 )
                 db.session.add(commander_deck)
 
-            else:
+            else: # Case where no associated commander was provided
                 required_partner_type = ""
                 if commander.partner: required_partner_type = "Partner"
                 elif commander.friends_forever: required_partner_type = "Friends Forever"
@@ -220,9 +231,11 @@ def register_deck():
                 "background_id": None
             }
         }
-        if deck_type_id == COMMANDER_DECK_TYPE_ID and 'commander_deck' in locals():
+        # Populate commander IDs in response only if a CommanderDeck was created
+        if deck_type_id == COMMANDER_DECK_TYPE_ID and 'commander_deck' in locals() and commander_deck:
              response_data["deck"]["commander_id"] = commander_deck.commander_id
              if commander_deck.associated_commander_id:
+                 # Determine which key was used for the association to put it back in response
                  saved_assoc_key = next((k for k, v in non_null_associations.items() if v == commander_deck.associated_commander_id), None)
                  if saved_assoc_key:
                      response_data["deck"][saved_assoc_key] = commander_deck.associated_commander_id
@@ -253,24 +266,35 @@ def user_decks():
                  tag_ids = None
         except ValueError:
              return jsonify({"error": "Invalid character in 'tags' parameter. Use comma-separated integers."}), 400
-        except Exception:
-             tag_ids = None
 
     try:
+        # Assume get_user_decks uses modern syntax internally
         user_decks_result = get_user_decks(user_id, deck_type_id=deck_type_filter, tag_ids=tag_ids)
 
         if not user_decks_result:
             return jsonify([]), 200
 
+        # Assume get_all_decks_stats uses modern syntax internally
         all_stats = get_all_decks_stats(user_id)
         stats_map = {deck_stat["id"]: deck_stat for deck_stat in all_stats}
 
         decks_list = []
         for deck, deck_type in user_decks_result:
             deck_stats = stats_map.get(deck.id, {})
+            # Format last_match timestamp if it exists
+            last_match_iso = None
+            if deck_stats.get("last_match"):
+                 # Make sure it's aware UTC before formatting
+                 ts = deck_stats["last_match"]
+                 if ts.tzinfo is None:
+                      aware_ts = ts.replace(tzinfo=timezone.utc)
+                 else:
+                      aware_ts = ts.astimezone(timezone.utc)
+                 last_match_iso = aware_ts.isoformat()
+
             decks_list.append({
                 "id": deck.id,
-                "creation_date": deck.creation_date,
+                "creation_date": deck.creation_date.isoformat() if deck.creation_date else None, # Format creation date
                 "name": deck.name,
                 "type": deck.deck_type_id,
                 "deck_type": {
@@ -280,22 +304,23 @@ def user_decks():
                 "win_rate": deck_stats.get("win_rate", 0),
                 "total_matches": deck_stats.get("total_matches", 0),
                 "total_wins": deck_stats.get("total_wins", 0),
-                "last_match": deck_stats.get("last_match", None),
-                "tags": [{"id": tag.id, "name": tag.name} for tag in deck.tags] 
+                "last_match": last_match_iso, # Use formatted timestamp
+                "tags": [{"id": tag.id, "name": tag.name} for tag in deck.tags]
             })
 
         return jsonify(decks_list), 200
 
     except Exception as e:
-         logger.error(f"Error fetching user decks: {e}", exc_info=True)
+         logger.error(f"Error fetching user decks for user {user_id}: {e}", exc_info=True)
          return jsonify({"error": "Failed to fetch user decks"}), 500
 
 @decks_bp.route("/decks/<int:deck_id>", methods=["PATCH"])
 @login_required
 def update_deck(deck_id):
     user_id = session.get('user_id')
-    deck = Deck.query.filter_by(id=deck_id, user_id=user_id).first()
-    if not deck:
+
+    deck = db.session.get(Deck, deck_id)
+    if not deck or deck.user_id != user_id:
         return jsonify({"error": f"Deck with id {deck_id} not found for this user."}), 404
 
     data = request.get_json()
@@ -324,31 +349,32 @@ def update_deck(deck_id):
 
     except Exception as e:
         db.session.rollback()
-        logger.error(f"Database error during deck update: {e}", exc_info=True)
+        logger.error(f"Database error during deck update for deck {deck_id}: {e}", exc_info=True)
         return jsonify({"error": "Database error", "details": str(e)}), 500
-
 
 @decks_bp.route("/decks/<int:deck_id>", methods=["DELETE"])
 @login_required
 def delete_deck(deck_id):
     user_id = session.get('user_id')
-    deck = Deck.query.filter_by(id=deck_id, user_id=user_id).first()
-    if not deck:
+
+    deck = db.session.get(Deck, deck_id)
+    if not deck or deck.user_id != user_id:
         return jsonify({"error": f"Deck with id {deck_id} not found for this user."}), 404
 
     try:
-        CommanderDeck.query.filter_by(deck_id=deck.id).delete(synchronize_session=False)
-        UserDeck.query.filter_by(deck_id=deck.id, user_id=user_id).delete(synchronize_session=False)
         db.session.delete(deck)
         db.session.commit()
-
         logger.info(f"Deck {deck_id} deleted successfully by user {user_id}")
         return jsonify({"message": f"Deck {deck_id} deleted successfully"}), 200
 
+    except IntegrityError as e:
+        db.session.rollback()
+        logger.error(f"Database integrity error during deck deletion {deck_id} for user {user_id}: {e}", exc_info=True)
+        return jsonify({"error": "Cannot delete deck due to existing related data (e.g., matches). Ensure DB cascades are set.", "details": str(e)}), 500
     except Exception as e:
         db.session.rollback()
-        logger.error(f"Database error during deck deletion: {e}", exc_info=True)
-        return jsonify({"error": "Database error", "details": str(e)}), 500
+        logger.error(f"Unexpected error during deck deletion {deck_id} for user {user_id}: {e}", exc_info=True)
+        return jsonify({"error": "An unexpected error occurred during deletion.", "details": str(e)}), 500
 
 @decks_bp.route('/decks/<int:deck_id>/tags', methods=['POST'])
 @login_required
@@ -363,20 +389,14 @@ def add_tag_to_deck(deck_id):
     if not isinstance(tag_id, int):
          return jsonify({"error": "'tag_id' must be an integer"}), 400
 
-    user_deck = UserDeck.query.filter_by(user_id=current_user_id, deck_id=deck_id).first()
-    if not user_deck:
+    deck = db.session.get(Deck, deck_id, options=[selectinload(Deck.tags)])
+    if not deck or deck.user_id != current_user_id:
         return jsonify({"error": "Deck not found or not owned by user"}), 404
 
-    deck = db.session.get(Deck, user_deck.deck_id)
-    if not deck:
-         return jsonify({"error": "Deck data inconsistency"}), 500
-
-
-    tag_to_add = Tag.query.filter_by(id=tag_id, user_id=current_user_id).first()
-    if not tag_to_add:
+    tag_to_add = db.session.get(Tag, tag_id)
+    if not tag_to_add or tag_to_add.user_id != current_user_id:
         return jsonify({"error": "Tag not found or not owned by user"}), 404
 
-    db.session.refresh(deck)
     if tag_to_add in deck.tags:
          return jsonify({"message": "Tag already associated with this deck"}), 200
 
@@ -386,27 +406,22 @@ def add_tag_to_deck(deck_id):
         return jsonify({"message": "Tag associated successfully"}), 201
     except Exception as e:
         db.session.rollback()
-        print(f"Error adding tag to deck: {e}")
+        logger.error(f"Error adding tag {tag_id} to deck {deck_id}: {e}", exc_info=True)
         return jsonify({"error": "An unexpected error occurred while associating the tag"}), 500
-
 
 @decks_bp.route('/decks/<int:deck_id>/tags/<int:tag_id>', methods=['DELETE'])
 @login_required
 def remove_tag_from_deck(deck_id, tag_id):
     current_user_id = session.get('user_id')
-    user_deck = UserDeck.query.filter_by(user_id=current_user_id, deck_id=deck_id).first()
-    if not user_deck:
+
+    deck = db.session.get(Deck, deck_id, options=[selectinload(Deck.tags)])
+    if not deck or deck.user_id != current_user_id:
         return jsonify({"error": "Deck not found or not owned by user"}), 404
 
-    deck = db.session.get(Deck, user_deck.deck_id)
-    if not deck:
-         return jsonify({"error": "Deck data inconsistency"}), 500
-
     tag_to_remove = db.session.get(Tag, tag_id)
-    if not tag_to_remove:
-        return jsonify({"error": "Tag not found"}), 404
+    if not tag_to_remove or tag_to_remove.user_id != current_user_id:
+        return jsonify({"error": "Tag not found or not owned by user"}), 404
 
-    db.session.refresh(deck)
     if tag_to_remove not in deck.tags:
          return jsonify({"error": "Tag is not associated with this deck"}), 404
 
@@ -416,5 +431,5 @@ def remove_tag_from_deck(deck_id, tag_id):
         return '', 204
     except Exception as e:
         db.session.rollback()
-        print(f"Error removing tag from deck: {e}")
+        logger.error(f"Error removing tag {tag_id} from deck {deck_id}: {e}", exc_info=True)
         return jsonify({"error": "An unexpected error occurred while disassociating the tag"}), 500
