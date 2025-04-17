@@ -238,3 +238,41 @@ def remove_tag_from_match(match_id, tag_id):
         db.session.rollback()
         logger.error(f"Error removing tag {tag_id} from match {match_id} for user {current_user_id}: {e}", exc_info=True)
         return jsonify({"error": "An unexpected error occurred while disassociating the tag"}), 500
+    
+
+@matches_bp.route('/matches/<int:match_id>', methods=['DELETE'])
+@login_required
+def delete_match(match_id):
+    """Deletes a specific match record owned by the logged-in user."""
+    current_user_id = session.get('user_id')
+
+    # Find the match and verify ownership in one query
+    # We join Match with UserDeck to filter by user_id
+    stmt = select(Match).join(Match.user_deck).where(
+        Match.id == match_id,
+        UserDeck.user_id == current_user_id
+    )
+    match_to_delete = db.session.scalars(stmt).first()
+
+    # If the query returns nothing, the match either doesn't exist
+    # or doesn't belong to the current user.
+    if not match_to_delete:
+        logger.warning(f"User {current_user_id} failed attempt to delete non-existent or unauthorized match {match_id}.")
+        # Return 404 - standard practice even if it's an auth issue,
+        # avoids revealing existence of the resource.
+        return jsonify({"error": "Match not found or not owned by user"}), 404
+
+    try:
+        # Use the ORM's delete method
+        db.session.delete(match_to_delete)
+        # Important: Commit the transaction to make the deletion permanent
+        db.session.commit()
+        logger.info(f"Match {match_id} deleted successfully by user {current_user_id}.")
+        # Return 204 No Content, the standard success response for DELETE
+        return '', 204
+
+    except Exception as e:
+        # Rollback the session in case of any database error during deletion
+        db.session.rollback()
+        logger.error(f"Database error deleting match {match_id} for user {current_user_id}: {e}", exc_info=True)
+        return jsonify({"error": "An internal error occurred while deleting the match."}), 500
