@@ -15,36 +15,33 @@ down_revision = 'beae9c0631ce'
 branch_labels = None
 depends_on = None
 
-
 def upgrade():
-    print("Applying ON DELETE CASCADE to matches_user_deck_id_fkey (Manual Migration)")
-    with op.batch_alter_table('matches', schema=None) as batch_op:
+    print("Applying ON DELETE CASCADE to user_decks_deck_id_fkey (Manual Migration)")
+    with op.batch_alter_table('user_decks', schema=None) as batch_op:
+        # Drop the existing constraint first
+        batch_op.drop_constraint('user_decks_deck_id_fkey', type_='foreignkey')
+        # Recreate the constraint with ON DELETE CASCADE
         batch_op.create_foreign_key(
-            'matches_user_deck_id_fkey',  # Constraint name to create/ensure
-            'user_decks',                 # Target table
-            ['user_deck_id'],             # Local columns
-            ['id'],                       # Remote columns
-            ondelete='CASCADE'            # Add the cascade behavior
+            'user_decks_deck_id_fkey', # Constraint name
+            'decks',                   # Referenced table
+            ['deck_id'],               # Local column(s)
+            ['id'],                    # Remote column(s)
+            ondelete='CASCADE'         # Add the cascade rule!
         )
-        print("Ensured constraint 'matches_user_deck_id_fkey' exists with ON DELETE CASCADE")
+    print("Ensured constraint 'user_decks_deck_id_fkey' exists with ON DELETE CASCADE")
 
 
 def downgrade():
-    print("Removing ON DELETE CASCADE from matches_user_deck_id_fkey (Manual Migration)")
-    with op.batch_alter_table('matches', schema=None) as batch_op:
-        # --- REMOVE or COMMENT OUT the drop constraint line ---
-        # try:
-        #     batch_op.drop_constraint('matches_user_deck_id_fkey', type_='foreignkey')
-        #     print("Dropped constraint with CASCADE: matches_user_deck_id_fkey")
-        # except Exception as e:
-        #      print(f"Could not drop constraint 'matches_user_deck_id_fkey' during downgrade (may not exist): {e}")
-
-        # Keep the create_foreign_key WITHOUT ON DELETE CASCADE
+    print("Removing ON DELETE CASCADE from user_decks_deck_id_fkey (Manual Migration)")
+    with op.batch_alter_table('user_decks', schema=None) as batch_op:
+        # Drop the cascade constraint
+        batch_op.drop_constraint('user_decks_deck_id_fkey', type_='foreignkey')
+        # Recreate the original constraint without ON DELETE CASCADE
         batch_op.create_foreign_key(
-            'matches_user_deck_id_fkey', # Constraint name to create/ensure
-            'user_decks',                # Target table
-            ['user_deck_id'],            # Local columns
-            ['id']                       # Remote columns
+            'user_decks_deck_id_fkey', # Constraint name
+            'decks',                   # Referenced table
+            ['deck_id'],               # Local column(s)
+            ['id']                     # Remote column(s)
             # No ondelete='CASCADE' here
         )
-        print("Ensured constraint 'matches_user_deck_id_fkey' exists without CASCADE")
+    print("Reverted constraint 'user_decks_deck_id_fkey' to no action on delete")
