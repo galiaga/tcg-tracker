@@ -48,7 +48,6 @@ document.addEventListener("DOMContentLoaded", () => {
     function openModal() {
       modal.classList.remove("hidden");
 
-      console.log("Opening New Deck Modal, loading deck types..."); 
       loadDeckTypes(); 
 
       setTimeout(() => {

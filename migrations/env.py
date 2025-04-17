@@ -2,103 +2,108 @@
 
 import logging
 from logging.config import fileConfig
-
 from flask import current_app
-
 from alembic import context
+import os
+import sys
 
-# Existing config setup...
+# --- Ensure models are imported ---
+sys.path.insert(0, os.path.realpath(os.path.join(os.path.dirname(__file__), '..')))
+try:
+    # Import directly from the modules where models are defined
+    from backend.models import user # Assuming User is in user.py
+    from backend.models import deck # Assuming Deck is in deck.py
+    from backend.models import deck_type # Assuming DeckType is in deck_type.py
+    from backend.models import commanders # Assuming Commander is in commanders.py
+    from backend.models import commander_deck # Assuming CommanderDeck is in commander_deck.py
+    from backend.models import match # Assuming Match is in match.py
+    from backend.models import tag # Assuming Tag is in tag.py
+    from backend.models import user_deck # Assuming UserDeck is in user_deck.py
+    # Add any other model files if they exist
+    print("INFO: Model modules imported explicitly in env.py")
+except ImportError as e:
+    print(f"ERROR: Failed to import models: {e}")
+    sys.exit(1)
+# --- End Model Import ---
+
+# --- Alembic Configuration ---
+# ... (rest of env.py remains the same as the previous version) ...
 config = context.config
-fileConfig(config.config_file_name)
+if config.config_file_name is not None:
+    fileConfig(config.config_file_name)
 logger = logging.getLogger('alembic.env')
 
-# Existing helper functions...
-def get_engine():
+# --- Metadata and Connection Setup ---
+if current_app is None:
+    print("ERROR: current_app proxy is not active...")
+    print("Attempting manual app context push as fallback...")
     try:
-        # Use the engine directly if available
-        return current_app.extensions['migrate'].db.engine
-    except AttributeError:
-        # Fallback for older Flask-SQLAlchemy versions or different setups
-        return current_app.extensions['migrate'].db.get_engine()
+        from backend import create_app
+        current_app_fallback = create_app()
+        if current_app_fallback:
+             _context = current_app_fallback.app_context()
+             _context.push()
+             print("INFO: Manual fallback app context pushed.")
+             target_db = current_app_fallback.extensions['migrate'].db
+        else:
+             print("ERROR: Fallback create_app() failed.")
+             sys.exit(1)
+    except Exception as e_fallback:
+        print(f"ERROR: Fallback app context creation failed: {e_fallback}")
+        sys.exit(1)
+else:
+    target_db = current_app.extensions['migrate'].db
+
+target_metadata = target_db.metadata
+logger.info(f"Target Metadata Tables detected: {list(target_metadata.tables.keys())}")
+
+def get_engine():
+    try: return target_db.engine
+    except AttributeError: return target_db.get_engine()
 
 def get_engine_url():
-    try:
-        return get_engine().url.render_as_string(hide_password=False).replace(
-            '%', '%%')
-    except AttributeError:
-        return str(get_engine().url).replace('%', '%%')
+    try: return get_engine().url.render_as_string(hide_password=False).replace('%', '%%')
+    except AttributeError: return str(get_engine().url).replace('%', '%%')
 
-config.set_main_option('sqlalchemy.url', get_engine_url())
-target_db = current_app.extensions['migrate'].db
+db_url = get_engine_url()
+logger.info(f"Setting Alembic sqlalchemy.url to: {db_url.replace('%%', '%')}")
+config.set_main_option('sqlalchemy.url', db_url)
 
+# --- Migration Functions ---
 def get_metadata():
-    if hasattr(target_db, 'metadatas'):
-        return target_db.metadatas[None]
-    return target_db.metadata
+    return target_metadata
 
-# --- run_migrations_offline ---
-def run_migrations_offline():
-    """Run migrations in 'offline' mode."""
+def run_migrations_offline() -> None:
     url = config.get_main_option("sqlalchemy.url")
-    # --- Add batch mode check for SQLite based on URL ---
     is_sqlite = url.startswith('sqlite')
-    context.configure(
-        url=url,
-        target_metadata=get_metadata(),
-        literal_binds=True,
-        dialect_opts={"paramstyle": "named"},
-        # Add this line:
-        render_as_batch=is_sqlite
-    )
-    # --- End of change ---
+    logger.info(f"Running migrations offline. Batch mode: {is_sqlite}")
+    context.configure(url=url, target_metadata=get_metadata(), literal_binds=True, dialect_opts={"paramstyle": "named"}, render_as_batch=is_sqlite)
+    with context.begin_transaction(): context.run_migrations()
 
-    with context.begin_transaction():
-        context.run_migrations()
-
-# --- run_migrations_online ---
-def run_migrations_online():
-    """Run migrations in 'online' mode."""
-
+def run_migrations_online() -> None:
+    connectable = get_engine()
     def process_revision_directives(context, revision, directives):
         if getattr(config.cmd_opts, 'autogenerate', False):
             script = directives[0]
-            if script.upgrade_ops.is_empty():
-                directives[:] = []
-                logger.info('No changes in schema detected.')
+            if script.upgrade_ops.is_empty(): directives[:] = []; logger.info('No changes in schema detected.')
 
-    # Ensure configure_args is initialized if not present
-    conf_args = current_app.extensions['migrate'].configure_args or {}
-    if conf_args.get("process_revision_directives") is None:
-        conf_args["process_revision_directives"] = process_revision_directives
+    app_for_config = current_app or current_app_fallback
+    try: conf_args = app_for_config.extensions['migrate'].configure_args or {}
+    except (KeyError, AttributeError): logger.warning("Flask-Migrate extension not found on app context. Using empty configure_args."); conf_args = {}
+    if conf_args.get("process_revision_directives") is None: conf_args["process_revision_directives"] = process_revision_directives
 
-    conf_args.pop('render_as_batch', None)
-    
-    connectable = get_engine()
-
-    # --- Add batch mode check for SQLite based on engine driver ---
-    # Check the driver of the engine
     is_sqlite = connectable.driver == 'pysqlite'
-    # Add the render_as_batch key to the conf_args dictionary
-    conf_args['render_as_batch'] = is_sqlite
-    logger.info(f"Batch mode {'enabled' if is_sqlite else 'disabled'} for driver: {connectable.driver}")
-    # --- End of change ---
+    conf_args.pop('render_as_batch', None)
+    logger.info(f"Running migrations online. Batch mode {'enabled' if is_sqlite else 'disabled'} for driver: {connectable.driver}")
 
     with connectable.connect() as connection:
-        context.configure(
-            connection=connection,
-            target_metadata=get_metadata(),
-            **conf_args # Pass the modified conf_args including render_as_batch
-        )
+        context.configure(connection=connection, target_metadata=get_metadata(), render_as_batch=is_sqlite, **conf_args)
+        with context.begin_transaction(): context.run_migrations()
 
-        with context.begin_transaction():
-            # Pass the migration context if needed by your setup, otherwise default is fine
-            context.run_migrations() # You can pass context=context if needed
+# --- Main Execution Logic ---
+if context.is_offline_mode(): run_migrations_offline()
+else: run_migrations_online()
 
-
-# --- Main execution logic ---
-if context.is_offline_mode():
-    logger.info("Running migrations in offline mode...")
-    run_migrations_offline()
-else:
-    logger.info("Running migrations in online mode...")
-    run_migrations_online()
+# --- Cleanup Fallback Context if Created ---
+if '_context' in locals() and _context: _context.pop(); print("INFO: Fallback app context popped.")
+print("INFO: env.py execution finished.")
