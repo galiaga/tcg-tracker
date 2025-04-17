@@ -25,4 +25,4 @@ primary_region = 'scl'
   FLASK_ENV = "production"
 
   [deploy]
-  release_command = "sh -c 'flask db downgrade base && flask db upgrade head'"
+  release_command = "flask db upgrade"
