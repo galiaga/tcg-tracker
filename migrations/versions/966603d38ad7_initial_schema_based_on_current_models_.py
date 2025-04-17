@@ -1,8 +1,8 @@
-"""Creacion inicial del esquema completo
+"""Initial schema based on current models (including soft delete)
 
-Revision ID: 5d980a71e9c0
+Revision ID: 966603d38ad7
 Revises: 
-Create Date: 2025-04-10 15:52:13.220742
+Create Date: 2025-04-17 16:07:16.579008
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '5d980a71e9c0'
+revision = '966603d38ad7'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -54,29 +54,42 @@ def upgrade():
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
     sa.Column('username', sa.String(length=80), nullable=False),
     sa.Column('hash', sa.String(length=255), nullable=False),
+    sa.Column('is_active', sa.Boolean(), server_default=sa.text('(TRUE)'), nullable=False),
+    sa.Column('deleted_at', sa.DateTime(timezone=True), nullable=True),
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('username')
     )
+    with op.batch_alter_table('users', schema=None) as batch_op:
+        batch_op.create_index(batch_op.f('ix_users_is_active'), ['is_active'], unique=False)
+
     op.create_table('decks',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('user_id', sa.Integer(), nullable=False),
     sa.Column('name', sa.String(length=100), nullable=False),
     sa.Column('deck_type_id', sa.Integer(), nullable=False),
-    sa.Column('creation_date', sa.DateTime(), server_default=sa.text('(CURRENT_TIMESTAMP)'), nullable=False),
+    sa.Column('creation_date', sa.DateTime(timezone=True), server_default=sa.text('(CURRENT_TIMESTAMP)'), nullable=False),
+    sa.Column('is_active', sa.Boolean(), server_default=sa.text('TRUE'), nullable=False),
+    sa.Column('deleted_at', sa.DateTime(timezone=True), nullable=True),
     sa.ForeignKeyConstraint(['deck_type_id'], ['deck_types.id'], ),
     sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
+    with op.batch_alter_table('decks', schema=None) as batch_op:
+        batch_op.create_index(batch_op.f('ix_decks_is_active'), ['is_active'], unique=False)
+
     op.create_table('tags',
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
     sa.Column('user_id', sa.Integer(), nullable=False),
     sa.Column('name', sa.String(), nullable=False),
     sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('(CURRENT_TIMESTAMP)'), nullable=True),
+    sa.Column('is_active', sa.Boolean(), server_default=sa.text('(TRUE)'), nullable=False),
+    sa.Column('deleted_at', sa.DateTime(timezone=True), nullable=True),
     sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('user_id', 'name', name='uq_user_tag_name')
     )
     with op.batch_alter_table('tags', schema=None) as batch_op:
+        batch_op.create_index(batch_op.f('ix_tags_is_active'), ['is_active'], unique=False)
         batch_op.create_index(batch_op.f('ix_tags_user_id'), ['user_id'], unique=False)
 
     op.create_table('commander_decks',
@@ -92,8 +105,8 @@ def upgrade():
     op.create_table('deck_tags',
     sa.Column('deck_id', sa.Integer(), nullable=False),
     sa.Column('tag_id', sa.Integer(), nullable=False),
-    sa.ForeignKeyConstraint(['deck_id'], ['decks.id'], ),
-    sa.ForeignKeyConstraint(['tag_id'], ['tags.id'], ),
+    sa.ForeignKeyConstraint(['deck_id'], ['decks.id'], ondelete='CASCADE'),
+    sa.ForeignKeyConstraint(['tag_id'], ['tags.id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('deck_id', 'tag_id')
     )
     op.create_table('user_decks',
@@ -106,18 +119,23 @@ def upgrade():
     )
     op.create_table('matches',
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
-    sa.Column('timestamp', sa.DateTime(), server_default=sa.text('(CURRENT_TIMESTAMP)'), nullable=False),
+    sa.Column('timestamp', sa.DateTime(timezone=True), nullable=False),
     sa.Column('result', sa.Integer(), nullable=False),
     sa.Column('user_deck_id', sa.Integer(), nullable=False),
+    sa.Column('is_active', sa.Boolean(), server_default=sa.text('(TRUE)'), nullable=False),
+    sa.Column('deleted_at', sa.DateTime(timezone=True), nullable=True),
     sa.CheckConstraint('result IN (0, 1, 2)', name='check_match_result'),
     sa.ForeignKeyConstraint(['user_deck_id'], ['user_decks.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
+    with op.batch_alter_table('matches', schema=None) as batch_op:
+        batch_op.create_index(batch_op.f('ix_matches_is_active'), ['is_active'], unique=False)
+
     op.create_table('match_tags',
     sa.Column('match_id', sa.Integer(), nullable=False),
     sa.Column('tag_id', sa.Integer(), nullable=False),
-    sa.ForeignKeyConstraint(['match_id'], ['matches.id'], ),
-    sa.ForeignKeyConstraint(['tag_id'], ['tags.id'], ),
+    sa.ForeignKeyConstraint(['match_id'], ['matches.id'], ondelete='CASCADE'),
+    sa.ForeignKeyConstraint(['tag_id'], ['tags.id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('match_id', 'tag_id')
     )
     # ### end Alembic commands ###
@@ -126,15 +144,25 @@ def upgrade():
 def downgrade():
     # ### commands auto generated by Alembic - please adjust! ###
     op.drop_table('match_tags')
+    with op.batch_alter_table('matches', schema=None) as batch_op:
+        batch_op.drop_index(batch_op.f('ix_matches_is_active'))
+
     op.drop_table('matches')
     op.drop_table('user_decks')
     op.drop_table('deck_tags')
     op.drop_table('commander_decks')
     with op.batch_alter_table('tags', schema=None) as batch_op:
         batch_op.drop_index(batch_op.f('ix_tags_user_id'))
+        batch_op.drop_index(batch_op.f('ix_tags_is_active'))
 
     op.drop_table('tags')
+    with op.batch_alter_table('decks', schema=None) as batch_op:
+        batch_op.drop_index(batch_op.f('ix_decks_is_active'))
+
     op.drop_table('decks')
+    with op.batch_alter_table('users', schema=None) as batch_op:
+        batch_op.drop_index(batch_op.f('ix_users_is_active'))
+
     op.drop_table('users')
     op.drop_table('deck_types')
     op.drop_table('commanders')

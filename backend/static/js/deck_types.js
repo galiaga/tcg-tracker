@@ -1,7 +1,6 @@
 import { authFetch } from './auth/auth.js';
 
 export async function loadDeckTypes() {
-    console.log("Attempting to load deck types..."); 
     try {
 
 
@@ -9,11 +8,9 @@ export async function loadDeckTypes() {
         const response = await authFetch(apiUrl); 
 
         if (!response) {
-            console.log("loadDeckTypes: authFetch returned nothing, likely handled error.");
             return; 
         }
         if (response.status === 401) {
-             console.log("loadDeckTypes: Received 401 response object from authFetch. Logout should have been triggered.");
              return;
         }
 
@@ -39,7 +36,6 @@ export async function loadDeckTypes() {
                 option.textContent = type.deck_type || type.name; 
                 select.appendChild(option);
             });
-            console.log("Deck types loaded successfully.");
         } else {
             console.warn("Deck type select element (#deck_type) not found on this page.");
         }
