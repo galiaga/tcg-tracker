@@ -4,6 +4,7 @@ from sqlalchemy.orm import joinedload, selectinload
 from sqlalchemy.exc import IntegrityError
 import json
 import logging
+from datetime import timezone # <-- ADD THIS IMPORT
 
 from backend import db
 from backend.models import CommanderDeck, Commander, UserDeck, Deck, Tag
@@ -23,8 +24,6 @@ logger = logging.getLogger(__name__)
 @decks_bp.route("/decks", methods=["GET"])
 @login_required
 def get_all_decks():
-    # Note: Consider if this should be user-specific or if it's for admin purposes.
-    # For user-specific decks, see /user_decks endpoint.
     stmt = select(Deck)
     decks = db.session.scalars(stmt).all()
     decks_list = [{"id": deck.id, "deck_name": deck.name} for deck in decks]
@@ -39,7 +38,7 @@ def deck_details(deck_id):
     if not deck or deck.user_id != user_id:
         return jsonify({"error": f"Deck with id {deck_id} not found for this user."}), 404
 
-    deck_data = deck.to_dict() # Assuming Deck model has a suitable to_dict method
+    deck_data = deck.to_dict()
 
     stats = get_deck_stats(user_id, deck_id)
     deck_data.update({
@@ -118,8 +117,8 @@ def register_deck():
         user_deck = UserDeck(user_id=user_id, deck_id=new_deck.id)
         db.session.add(user_deck)
 
-        associated_commander_id = None # Initialize
-        non_null_associations = {} # Initialize
+        associated_commander_id = None
+        non_null_associations = {}
 
         if deck_type_id == COMMANDER_DECK_TYPE_ID and commander:
             associations = {
@@ -196,7 +195,7 @@ def register_deck():
                 )
                 db.session.add(commander_deck)
 
-            else: # Case where no associated commander was provided
+            else:
                 required_partner_type = ""
                 if commander.partner: required_partner_type = "Partner"
                 elif commander.friends_forever: required_partner_type = "Friends Forever"
@@ -231,11 +230,9 @@ def register_deck():
                 "background_id": None
             }
         }
-        # Populate commander IDs in response only if a CommanderDeck was created
         if deck_type_id == COMMANDER_DECK_TYPE_ID and 'commander_deck' in locals() and commander_deck:
              response_data["deck"]["commander_id"] = commander_deck.commander_id
              if commander_deck.associated_commander_id:
-                 # Determine which key was used for the association to put it back in response
                  saved_assoc_key = next((k for k, v in non_null_associations.items() if v == commander_deck.associated_commander_id), None)
                  if saved_assoc_key:
                      response_data["deck"][saved_assoc_key] = commander_deck.associated_commander_id
@@ -268,23 +265,19 @@ def user_decks():
              return jsonify({"error": "Invalid character in 'tags' parameter. Use comma-separated integers."}), 400
 
     try:
-        # Assume get_user_decks uses modern syntax internally
         user_decks_result = get_user_decks(user_id, deck_type_id=deck_type_filter, tag_ids=tag_ids)
 
         if not user_decks_result:
             return jsonify([]), 200
 
-        # Assume get_all_decks_stats uses modern syntax internally
         all_stats = get_all_decks_stats(user_id)
         stats_map = {deck_stat["id"]: deck_stat for deck_stat in all_stats}
 
         decks_list = []
         for deck, deck_type in user_decks_result:
             deck_stats = stats_map.get(deck.id, {})
-            # Format last_match timestamp if it exists
             last_match_iso = None
             if deck_stats.get("last_match"):
-                 # Make sure it's aware UTC before formatting
                  ts = deck_stats["last_match"]
                  if ts.tzinfo is None:
                       aware_ts = ts.replace(tzinfo=timezone.utc)
@@ -294,7 +287,7 @@ def user_decks():
 
             decks_list.append({
                 "id": deck.id,
-                "creation_date": deck.creation_date.isoformat() if deck.creation_date else None, # Format creation date
+                "creation_date": deck.creation_date.isoformat() if deck.creation_date else None,
                 "name": deck.name,
                 "type": deck.deck_type_id,
                 "deck_type": {
@@ -304,7 +297,7 @@ def user_decks():
                 "win_rate": deck_stats.get("win_rate", 0),
                 "total_matches": deck_stats.get("total_matches", 0),
                 "total_wins": deck_stats.get("total_wins", 0),
-                "last_match": last_match_iso, # Use formatted timestamp
+                "last_match": last_match_iso,
                 "tags": [{"id": tag.id, "name": tag.name} for tag in deck.tags]
             })
 
