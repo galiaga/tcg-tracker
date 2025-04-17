@@ -1,4 +1,6 @@
-"""Re-attempt cascade on user_decks_deck_id_fkey directly
+# migrations/versions/c8bf90263bdb_re_attempt_cascade_on_user_decks_deck_.py
+
+"""Re-attempt cascade on user_decks_deck_id_fkey directly (using batch mode, new name, no explicit drop)
 
 Revision ID: c8bf90263bdb
 Revises: 4787278ff358
@@ -15,58 +17,50 @@ down_revision = '4787278ff358'
 branch_labels = None
 depends_on = None
 
-constraint_name = 'user_decks_deck_id_fkey'
+# Define names clearly
+original_constraint_name = 'user_decks_deck_id_fkey'
+# Use a distinct name for the new constraint with cascade
+new_constraint_name = 'user_decks_deck_id_fkey_cascade'
 table_name = 'user_decks'
 referenced_table = 'decks'
 local_cols = ['deck_id']
 remote_cols = ['id']
 
 def upgrade():
-    print(f"Attempting DIRECT drop/create for constraint {constraint_name} on {table_name}")
-    try:
-        # Drop the existing constraint
-        op.drop_constraint(constraint_name, table_name, type_='foreignkey')
-        print(f"Successfully dropped constraint {constraint_name}")
-    except Exception as e:
-        # Log error, but proceed. Maybe it was already gone? Unlikely given \d output.
-        print(f"WARNING: Could not drop constraint {constraint_name} (maybe it didn't exist?): {e}")
+    print(f"Attempting BATCH create for constraint on {table_name} (using new name: {new_constraint_name})")
+    with op.batch_alter_table(table_name, schema=None) as batch_op:
+        # --- REMOVED THE DROP CONSTRAINT CALL ---
+        # print(f"Dropping original constraint: {original_constraint_name}...")
+        # batch_op.drop_constraint(original_constraint_name, type_='foreignkey')
+        # print(f"Successfully dropped constraint {original_constraint_name}")
 
-    try:
-        # Recreate the constraint with ON DELETE CASCADE
-        op.create_foreign_key(
-            constraint_name,      # Constraint name
-            table_name,           # Source table
-            referenced_table,     # Referenced table
-            local_cols,           # Local column(s)
-            remote_cols,          # Remote column(s)
-            ondelete='CASCADE'    # Add the cascade rule!
+        # Create the new constraint with ON DELETE CASCADE and the NEW NAME
+        print(f"Creating new constraint: {new_constraint_name} with CASCADE...")
+        batch_op.create_foreign_key(
+            new_constraint_name,    # <<< Use the NEW constraint name here
+            referenced_table,
+            local_cols,
+            remote_cols,
+            ondelete='CASCADE'
         )
-        print(f"Successfully created constraint {constraint_name} with ON DELETE CASCADE")
-    except Exception as e:
-        print(f"ERROR: Failed to create constraint {constraint_name} with CASCADE: {e}")
-        # Re-raise to ensure the migration fails if creation doesn't work
-        raise e
+        print(f"Successfully created constraint {new_constraint_name} with CASCADE")
 
 def downgrade():
-    print(f"Reverting constraint {constraint_name} on {table_name} (removing CASCADE)")
-    try:
-        # Drop the cascade constraint
-        op.drop_constraint(constraint_name, table_name, type_='foreignkey')
-        print(f"Successfully dropped constraint {constraint_name}")
-    except Exception as e:
-        print(f"WARNING: Could not drop constraint {constraint_name} during downgrade: {e}")
+    # Downgrade remains the same as the previous attempt: drop the new, recreate the old.
+    print(f"Reverting constraint on {table_name} (removing CASCADE) using BATCH mode")
+    with op.batch_alter_table(table_name, schema=None) as batch_op:
+        # Drop the cascade constraint (using the NEW NAME)
+        print(f"Dropping constraint: {new_constraint_name}...")
+        batch_op.drop_constraint(new_constraint_name, type_='foreignkey') # <<< Drop the NEW name
+        print(f"Successfully dropped constraint {new_constraint_name}")
 
-    try:
-        # Recreate the original constraint without ON DELETE CASCADE
-        op.create_foreign_key(
-            constraint_name,      # Constraint name
-            table_name,           # Source table
-            referenced_table,     # Referenced table
-            local_cols,           # Local column(s)
-            remote_cols           # Remote column(s)
+        # Recreate the original constraint (using the ORIGINAL NAME)
+        print(f"Recreating original constraint: {original_constraint_name} without CASCADE...")
+        batch_op.create_foreign_key(
+            original_constraint_name, # <<< Recreate the ORIGINAL name
+            referenced_table,
+            local_cols,
+            remote_cols
             # No ondelete='CASCADE' here
         )
-        print(f"Successfully recreated constraint {constraint_name} without CASCADE")
-    except Exception as e:
-        print(f"ERROR: Failed to recreate constraint {constraint_name} without CASCADE: {e}")
-        raise e
+        print(f"Successfully recreated constraint {original_constraint_name} without CASCADE")

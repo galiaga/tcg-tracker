@@ -1,13 +1,18 @@
+# backend/services/decks/get_user_decks_service.py
+
 from backend import db
 from backend.models import Deck, DeckType, Tag
 from sqlalchemy.orm import selectinload
+from sqlalchemy import true
 
 def get_user_decks(user_id, deck_type_id=None, tag_ids=None):
+    """Fetches active decks for a user, optionally filtering by type and tags."""
     query = (
         db.session.query(Deck, DeckType)
         .options(selectinload(Deck.tags))
         .join(DeckType, Deck.deck_type_id == DeckType.id)
         .filter(Deck.user_id == user_id)
+        .filter(Deck.is_active == true()) # Filter for active decks
     )
 
     apply_deck_type_filter = False
