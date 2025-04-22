@@ -37,7 +37,6 @@ async function deleteMatchOnServer(matchId) {
         });
 
         if (response.status === 204 || response.ok) {
-            console.log(`Match ${matchId} soft deleted successfully on server.`);
             return true;
         } else {
             let errorMsg = `Failed to hide match. Status: ${response.status}`;
