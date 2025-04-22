@@ -62,6 +62,7 @@
                       </div>
                    </div>
                  </div>
+                 <!-- Add other filters here if needed (e.g., Deck filter) -->
             </div>
         </div>
     </section>
@@ -69,26 +70,39 @@
     <section aria-labelledby="match-history-container-heading">
          <h2 id="match-history-container-heading" class="sr-only">Match List</h2>
          <div id="matches-list-items" class="grid gap-4 md:grid-cols-2">
-             <div class="bg-white shadow-md rounded-xl border border-violet-200 p-6 text-center text-violet-500">
+             <!-- Loading message initially -->
+             <div class="bg-white shadow-md rounded-xl border border-violet-200 p-6 text-center text-violet-500 md:col-span-2">
                  Loading match history...
              </div>
          </div>
-         <div id="no-matches-message-history" class="w-full text-center text-violet-500 mt-8 p-4 text-base border border-dashed border-violet-300 rounded-lg">
-             No match history found.
+         <!-- Message shown when no matches are found -->
+         <div id="no-matches-message-history" class="w-full text-center text-violet-500 mt-8 p-4 text-base border border-dashed border-violet-300 rounded-lg hidden">
+             No match history found. Try adjusting filters or log a new match!
          </div>
     </section>
 
 </div>
-
 {% endblock %}
 
 {% block scripts %}
+    {# Load dependencies first #}
     <script type="module" src="{{ url_for('static', filename='js/utils.js') }}"></script>
+    {# Ensure authFetch is available, assuming it's in auth.js or similar #}
+    <script type="module" src="{{ url_for('static', filename='js/auth/auth.js') }}"></script>
+
+    {# Tag related scripts #}
     <script type="module" src="{{ url_for('static', filename='js/ui/tag-utils.js') }}"></script>
     <script type="module" src="{{ url_for('static', filename='js/ui/tagInput.js') }}"></script>
+
+    {# NEW Match Actions script (Handles menu toggle, delete logic, click outside) #}
+    <script type="module" src="{{ url_for('static', filename='js/ui/matches/match-actions.js') }}"></script>
+
+    {# Match List Manager (Loads data, renders items including menu HTML, initializes actions, handles tag clicks) #}
     <script type="module" src="{{ url_for('static', filename='js/ui/matches/match-list-manager.js') }}"></script>
+
+    {# Other match related scripts #}
     <script type="module" src="{{ url_for('static', filename='js/ui/matches/filter-matches-by-tag.js') }}"></script>
     <script type="module" src="{{ url_for('static', filename='js/ui/matches/log-match.js') }}"></script>
-    <script type="module" src="{{ url_for('static', filename='js/ui/matches/log-match-modal.js') }}"></script> 
+    <script type="module" src="{{ url_for('static', filename='js/ui/matches/log-match-modal.js') }}"></script>
     <script type="module" src="{{ url_for('static', filename='js/ui/matches/mobile-match-filter.js') }}"></script>
 {% endblock %}

@@ -1,16 +1,19 @@
+# backend/routes/matches.py
+
 from flask import jsonify, Blueprint, request, session
 from backend.utils.decorators import login_required
 from backend import db
 from backend.models import Match, UserDeck, Tag, Deck, DeckType
 from backend.models.tag import match_tags
 from sqlalchemy.orm import joinedload, selectinload
-from sqlalchemy import select, delete 
+from sqlalchemy import select
 import logging
-from datetime import timezone
+from datetime import timezone, datetime
 
 matches_bp = Blueprint("matches", __name__, url_prefix="/api")
 logger = logging.getLogger(__name__)
 
+# --- Constants ---
 RESULT_WIN_ID = 0
 RESULT_LOSS_ID = 1
 RESULT_DRAW_ID = 2
@@ -21,23 +24,20 @@ RESULT_MAP_TEXT = {
     RESULT_DRAW_ID: "Draw"
 }
 
+# --- Helper Functions ---
 def format_timestamp(dt):
-    """Helper function to ensure aware UTC timestamp before isoformat."""
-    if not dt:
-        return None
-    if dt.tzinfo is None:
-        aware_dt = dt.replace(tzinfo=timezone.utc)
-    else:
-        aware_dt = dt.astimezone(timezone.utc)
+    if not dt: return None
+    aware_dt = dt.astimezone(timezone.utc) if dt.tzinfo else dt.replace(tzinfo=timezone.utc)
     return aware_dt.isoformat()
+
+# --- API Endpoints ---
 
 @matches_bp.route("/log_match", methods=["POST"])
 @login_required
 def log_match():
     user_id = session.get('user_id')
     data = request.get_json()
-    if not data:
-        return jsonify({"error": "Invalid request body. JSON expected."}), 400
+    if not data: return jsonify({"error": "Invalid request body. JSON expected."}), 400
 
     deck_id_str = data.get("deck_id")
     match_result_str = data.get("match_result")
@@ -54,10 +54,7 @@ def log_match():
     if match_result not in VALID_RESULTS:
          return jsonify({"error": f"Invalid match_result value. Must be one of {VALID_RESULTS}"}), 400
 
-    stmt_ud = select(UserDeck).where(
-        UserDeck.user_id == user_id,
-        UserDeck.deck_id == deck_id
-    )
+    stmt_ud = select(UserDeck).where(UserDeck.user_id == user_id, UserDeck.deck_id == deck_id)
     user_deck_entry = db.session.scalars(stmt_ud).first()
 
     if not user_deck_entry:
@@ -65,25 +62,19 @@ def log_match():
         return jsonify({"error": "Deck not found or not owned by user."}), 404
 
     try:
-        new_match = Match(result=match_result, user_deck_id=user_deck_entry.id)
+        new_match = Match(result=match_result, user_deck_id=user_deck_entry.id) # is_active defaults True
         db.session.add(new_match)
         db.session.commit()
         db.session.refresh(new_match)
-
         logger.info(f"Match logged successfully (ID: {new_match.id}) for user {user_id}, deck {deck_id}")
-
         return jsonify({
             "message": "Match logged successfully",
             "match": {
-                "id": new_match.id,
-                "timestamp": format_timestamp(new_match.timestamp), 
-                "result": new_match.result,
-                "result_text": RESULT_MAP_TEXT.get(new_match.result, "Unknown"),
-                "user_deck_id": new_match.user_deck_id,
-                "deck_id": deck_id
+                "id": new_match.id, "timestamp": format_timestamp(new_match.timestamp),
+                "result": new_match.result, "result_text": RESULT_MAP_TEXT.get(new_match.result, "Unknown"),
+                "user_deck_id": new_match.user_deck_id, "deck_id": deck_id, "is_active": new_match.is_active
             }
             }), 201
-
     except Exception as e:
         db.session.rollback()
         logger.error(f"Database error logging match for user {user_id}, deck {deck_id}: {e}", exc_info=True)
@@ -97,182 +88,142 @@ def get_matches_history():
     deck_id_str = request.args.get('deck_id')
 
     try:
+        # Base query for active matches owned by the user
         stmt = select(Match).join(UserDeck, Match.user_deck_id == UserDeck.id)\
-                            .where(UserDeck.user_id == current_user_id)
+                            .where(UserDeck.user_id == current_user_id)\
+                            .where(Match.is_active == True)
 
-        deck_id = None
+        # Apply deck filter if provided and valid
         if deck_id_str and deck_id_str.isdigit():
             try:
                 deck_id = int(deck_id_str)
                 stmt = stmt.where(UserDeck.deck_id == deck_id)
-            except ValueError:
-                 pass
+            except ValueError: pass # Ignore invalid deck_id
 
-        apply_tag_filter = False
-        tag_ids = []
+        # Apply tag filter if provided and valid
         if tag_ids_str:
             try:
                 tag_ids = [int(tid) for tid in tag_ids_str.split(',') if tid.strip().isdigit()]
                 if tag_ids:
-                    apply_tag_filter = True
+                    stmt = stmt.join(match_tags, Match.id == match_tags.c.match_id)\
+                               .where(match_tags.c.tag_id.in_(tag_ids))\
+                               .distinct()
             except ValueError:
                 return jsonify({"error": "Invalid tags format. Use comma-separated integers."}), 400
 
-        if apply_tag_filter:
-            stmt = stmt.join(match_tags, Match.id == match_tags.c.match_id)\
-                       .where(match_tags.c.tag_id.in_(tag_ids))\
-                       .distinct()
-
+        # Eager load related data and order
         stmt = stmt.options(
-            joinedload(Match.user_deck)
-                .joinedload(UserDeck.deck)
-                .joinedload(Deck.deck_type),
-            selectinload(Match.tags) 
-        )
-        stmt = stmt.order_by(Match.timestamp.desc())
+            joinedload(Match.user_deck).joinedload(UserDeck.deck).joinedload(Deck.deck_type),
+            selectinload(Match.tags) # Consider filtering inactive tags here if needed
+        ).order_by(Match.timestamp.desc())
 
         matches = db.session.scalars(stmt).unique().all()
 
+        # Format results
         matches_list = []
         for match in matches:
+            active_tags = [tag for tag in match.tags if tag.is_active] if hasattr(Tag, 'is_active') else match.tags
             deck_info = None
             deck_type_info = None
             if match.user_deck and match.user_deck.deck:
-                deck_info = {
-                    'id': match.user_deck.deck.id,
-                    'name': match.user_deck.deck.name
-                }
+                deck_info = {'id': match.user_deck.deck.id, 'name': match.user_deck.deck.name}
                 if match.user_deck.deck.deck_type:
-                    deck_type_info = {
-                         'id': match.user_deck.deck.deck_type.id,
-                         'name': match.user_deck.deck.deck_type.name
-                    }
+                    deck_type_info = {'id': match.user_deck.deck.deck_type.id, 'name': match.user_deck.deck.deck_type.name}
 
             matches_list.append({
-                'id': match.id,
-                'result': match.result,
-                'date': format_timestamp(match.timestamp), 
-                'user_deck_id': match.user_deck_id,
-                'deck': deck_info,
-                'deck_type': deck_type_info,
-                'tags': [{'id': tag.id, 'name': tag.name} for tag in match.tags]
+                'id': match.id, 'result': match.result, 'date': format_timestamp(match.timestamp),
+                'user_deck_id': match.user_deck_id, 'deck': deck_info, 'deck_type': deck_type_info,
+                'tags': [{'id': tag.id, 'name': tag.name} for tag in active_tags],
+                'is_active': match.is_active
             })
-
         return jsonify(matches_list)
-
     except Exception as e:
         logger.error(f"Error fetching match history for user {current_user_id}: {e}", exc_info=True)
         return jsonify({"error": "An internal error occurred while fetching match history."}), 500
-
 
 @matches_bp.route('/matches/<int:match_id>/tags', methods=['POST'])
 @login_required
 def add_tag_to_match(match_id):
     current_user_id = session.get('user_id')
     data = request.get_json()
-    if not data or 'tag_id' not in data:
-        return jsonify({"error": "Missing 'tag_id' in request body"}), 400
+    if not data or 'tag_id' not in data: return jsonify({"error": "Missing 'tag_id' in request body"}), 400
+    try: tag_id = int(data['tag_id'])
+    except (ValueError, TypeError): return jsonify({"error": "'tag_id' must be an integer"}), 400
 
-    tag_id = data.get('tag_id')
-    if not isinstance(tag_id, int):
-         return jsonify({"error": "'tag_id' must be an integer"}), 400
-
+    # Find active match owned by user
     stmt_match = select(Match).join(Match.user_deck).where(
-        Match.id == match_id,
-        UserDeck.user_id == current_user_id
+        Match.id == match_id, UserDeck.user_id == current_user_id, Match.is_active == True
     ).options(selectinload(Match.tags))
     match = db.session.scalars(stmt_match).first()
+    if not match: return jsonify({"error": "Match not found or not available for tagging"}), 404
 
-
-    if not match:
-        return jsonify({"error": "Match not found or not owned by user"}), 404
-
+    # Find tag owned by user (add is_active check if Tag model has it)
     stmt_tag = select(Tag).where(Tag.id==tag_id, Tag.user_id==current_user_id)
     tag_to_add = db.session.scalars(stmt_tag).first()
+    if not tag_to_add: return jsonify({"error": "Tag not found or not available"}), 404
 
-    if not tag_to_add:
-        return jsonify({"error": "Tag not found or not owned by user"}), 404
-
-    if tag_to_add in match.tags:
-         return jsonify({"message": "Tag already associated with this match"}), 200
+    if tag_to_add in match.tags: return jsonify({"message": "Tag already associated with this match"}), 200
 
     try:
         match.tags.append(tag_to_add)
         db.session.commit()
+        logger.info(f"Tag {tag_id} added to match {match_id} by user {current_user_id}")
         return jsonify({"message": "Tag associated successfully"}), 201
     except Exception as e:
         db.session.rollback()
         logger.error(f"Error adding tag to match {match_id} for user {current_user_id}: {e}", exc_info=True)
         return jsonify({"error": "An unexpected error occurred while associating the tag"}), 500
 
-
 @matches_bp.route('/matches/<int:match_id>/tags/<int:tag_id>', methods=['DELETE'])
 @login_required
 def remove_tag_from_match(match_id, tag_id):
     current_user_id = session.get('user_id')
 
+    # Find active match owned by user
     stmt_match = select(Match).join(Match.user_deck).where(
-        Match.id == match_id,
-        UserDeck.user_id == current_user_id
+        Match.id == match_id, UserDeck.user_id == current_user_id, Match.is_active == True
     ).options(selectinload(Match.tags))
     match = db.session.scalars(stmt_match).first()
+    if not match: return jsonify({"error": "Match not found or not available for tag removal"}), 404
 
-    if not match:
-        return jsonify({"error": "Match not found or not owned by user"}), 404
-
+    # Find the tag
     tag_to_remove = db.session.get(Tag, tag_id)
-    if not tag_to_remove:
-        return jsonify({"error": "Tag not found"}), 404
-
-    if tag_to_remove.user_id != current_user_id:
-         return jsonify({"error": "Tag not owned by user"}), 403
-
-    if tag_to_remove not in match.tags:
-         return jsonify({"error": "Tag is not associated with this match"}), 404
+    if not tag_to_remove: return jsonify({"error": "Tag not found"}), 404
+    if tag_to_remove not in match.tags: return jsonify({"error": "Tag is not associated with this match"}), 404
 
     try:
         match.tags.remove(tag_to_remove)
         db.session.commit()
-        return '', 204
+        logger.info(f"Tag {tag_id} removed from match {match_id} by user {current_user_id}")
+        return '', 204 # Success, no content
     except Exception as e:
         db.session.rollback()
         logger.error(f"Error removing tag {tag_id} from match {match_id} for user {current_user_id}: {e}", exc_info=True)
         return jsonify({"error": "An unexpected error occurred while disassociating the tag"}), 500
-    
 
 @matches_bp.route('/matches/<int:match_id>', methods=['DELETE'])
 @login_required
 def delete_match(match_id):
-    """Deletes a specific match record owned by the logged-in user."""
+    """Soft deletes a specific match record."""
     current_user_id = session.get('user_id')
 
-    # Find the match and verify ownership in one query
-    # We join Match with UserDeck to filter by user_id
+    # Find active match owned by user
     stmt = select(Match).join(Match.user_deck).where(
-        Match.id == match_id,
-        UserDeck.user_id == current_user_id
+        Match.id == match_id, UserDeck.user_id == current_user_id, Match.is_active == True
     )
-    match_to_delete = db.session.scalars(stmt).first()
+    match_to_soft_delete = db.session.scalars(stmt).first()
 
-    # If the query returns nothing, the match either doesn't exist
-    # or doesn't belong to the current user.
-    if not match_to_delete:
-        logger.warning(f"User {current_user_id} failed attempt to delete non-existent or unauthorized match {match_id}.")
-        # Return 404 - standard practice even if it's an auth issue,
-        # avoids revealing existence of the resource.
-        return jsonify({"error": "Match not found or not owned by user"}), 404
+    if not match_to_soft_delete:
+        logger.warning(f"User {current_user_id} failed attempt to delete non-existent, unauthorized, or inactive match {match_id}.")
+        return jsonify({"error": "Match not found or cannot be deleted"}), 404
 
     try:
-        # Use the ORM's delete method
-        db.session.delete(match_to_delete)
-        # Important: Commit the transaction to make the deletion permanent
+        # Perform soft delete using model method
+        match_to_soft_delete.soft_delete()
         db.session.commit()
-        logger.info(f"Match {match_id} deleted successfully by user {current_user_id}.")
-        # Return 204 No Content, the standard success response for DELETE
-        return '', 204
-
+        logger.info(f"Match {match_id} soft deleted successfully by user {current_user_id}.")
+        return '', 204 # Success, no content
     except Exception as e:
-        # Rollback the session in case of any database error during deletion
         db.session.rollback()
-        logger.error(f"Database error deleting match {match_id} for user {current_user_id}: {e}", exc_info=True)
+        logger.error(f"Database error soft deleting match {match_id} for user {current_user_id}: {e}", exc_info=True)
         return jsonify({"error": "An internal error occurred while deleting the match."}), 500
