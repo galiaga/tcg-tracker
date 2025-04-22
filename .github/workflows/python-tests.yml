@@ -1,3 +1,5 @@
+# .github/workflows/python-tests.yml
+
 name: Run Python Tests
 
 on:
@@ -10,9 +12,28 @@ jobs:
   test:
     runs-on: ubuntu-latest
 
+    # Add a PostgreSQL service container for tests
+    services:
+      postgres:
+        image: postgres:13 # Or your preferred PostgreSQL version
+        env:
+          # Define credentials for the test database
+          POSTGRES_USER: testuser
+          POSTGRES_PASSWORD: testpassword
+          POSTGRES_DB: testdb
+        ports:
+          # Map container port 5432 to host port 5432 within the runner environment
+          - 5432:5432
+        # Options to wait for the database to be ready before starting the steps
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v3 # Consider updating to v4 if compatible
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -27,6 +48,14 @@ jobs:
           pip install pytest-cov
 
       - name: Run tests with coverage
+        # *** IMPORTANT: Define environment variables for THIS STEP ***
+        env:
+          # Override DATABASE_URL to point to the service container
+          DATABASE_URL: postgresql://testuser:testpassword@localhost:5432/testdb
+          # You might also want to explicitly set FLASK_ENV for tests
+          FLASK_ENV: testing
         run: |
           source .venv/bin/activate
+          # Ensure psycopg2 prerequisites are met if needed on runner (usually included in ubuntu-latest)
+          # sudo apt-get update && sudo apt-get install -y libpq-dev build-essential # Uncomment if psycopg2 build fails
           pytest --cov=backend --cov-report=term-missing
