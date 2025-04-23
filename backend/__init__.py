@@ -1,16 +1,45 @@
 import os
-from flask import Flask, jsonify, redirect, url_for, request, session
+from flask import Flask, session
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
-from datetime import timedelta
+from datetime import timedelta, date
 from flask_session import Session
-import click, logging, secrets
+import secrets
 
 
 # Initialize extensions top-level
 db = SQLAlchemy(session_options={"autocommit": False, "autoflush": False})
 migrate = Migrate()
 server_session = Session()
+
+# --- Version Loading Function ---
+def get_app_version(app_instance):
+    """Reads the version from the .version file in the project root."""
+    try:
+        # Calculate path relative to the app's root path (which is the 'backend' folder)
+        # Go one level up to reach the project root where .version should be.
+        project_root = os.path.abspath(os.path.join(app_instance.root_path, '..'))
+        version_file_path = os.path.join(project_root, '.version')
+
+        # More robust check if the file exists before opening
+        if not os.path.isfile(version_file_path):
+             app_instance.logger.warning(f".version file not found at expected path: {version_file_path}. Defaulting to 'dev'.")
+             return 'dev'
+
+        with open(version_file_path, 'r') as f:
+            version = f.read().strip()
+            if not version: # Handle empty file case
+                 app_instance.logger.warning(f".version file at {version_file_path} is empty. Defaulting to 'empty'.")
+                 return 'empty'
+            return version
+    except Exception as e:
+        # Use app_instance logger if available
+        if hasattr(app_instance, 'logger'):
+             app_instance.logger.error(f"Error reading .version file: {e}", exc_info=True) # Log traceback
+        else:
+             print(f"ERROR: Error reading .version file: {e}") # Fallback print
+        return 'unknown'
+
 
 def create_app(config_name=None):
     """Flask application factory."""
@@ -54,11 +83,26 @@ def create_app(config_name=None):
     app.config['SESSION_COOKIE_HTTPONLY'] = True  # Crucial for security
     app.config['SESSION_COOKIE_SAMESITE'] = 'Lax' # Good default ('Strict' is more secure but can break some cross-origin links)
 
+    # --- Load and Store Application Version ---
+    app_version = get_app_version(app)
+    app.config['APP_VERSION'] = app_version
+    app.logger.info(f"Application Version loaded: {app.config.get('APP_VERSION')}")
+
     # --- Initialize Extensions ---
     db.init_app(app)
     migrate.init_app(app, db)
     server_session.init_app(app)
 
+    # --- Make Version Available to Templates ---
+    @app.context_processor
+    def inject_global_context():
+        """Injects global variables into the template context."""
+        return dict(
+            app_version=app.config.get('APP_VERSION', 'unknown'),
+            # <<< MODIFIED LINE: Use 'date' directly >>>
+            current_year=date.today().year
+        )
+    
     @app.before_request
     def generate_csrf_token():
         # Generate a token if one doesn't exist in the session
