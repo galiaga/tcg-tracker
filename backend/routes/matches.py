@@ -80,66 +80,6 @@ def log_match():
         logger.error(f"Database error logging match for user {user_id}, deck {deck_id}: {e}", exc_info=True)
         return jsonify({"error": "Database error", "details": str(e)}), 500
 
-@matches_bp.route('/matches_history', methods=['GET'])
-@login_required
-def get_matches_history():
-    current_user_id = session.get('user_id')
-    tag_ids_str = request.args.get('tags')
-    deck_id_str = request.args.get('deck_id')
-
-    try:
-        # Base query for active matches owned by the user
-        stmt = select(Match).join(UserDeck, Match.user_deck_id == UserDeck.id)\
-                            .where(UserDeck.user_id == current_user_id)\
-                            .where(Match.is_active == True)
-
-        # Apply deck filter if provided and valid
-        if deck_id_str and deck_id_str.isdigit():
-            try:
-                deck_id = int(deck_id_str)
-                stmt = stmt.where(UserDeck.deck_id == deck_id)
-            except ValueError: pass # Ignore invalid deck_id
-
-        # Apply tag filter if provided and valid
-        if tag_ids_str:
-            try:
-                tag_ids = [int(tid) for tid in tag_ids_str.split(',') if tid.strip().isdigit()]
-                if tag_ids:
-                    stmt = stmt.join(match_tags, Match.id == match_tags.c.match_id)\
-                               .where(match_tags.c.tag_id.in_(tag_ids))\
-                               .distinct()
-            except ValueError:
-                return jsonify({"error": "Invalid tags format. Use comma-separated integers."}), 400
-
-        # Eager load related data and order
-        stmt = stmt.options(
-            joinedload(Match.user_deck).joinedload(UserDeck.deck).joinedload(Deck.deck_type),
-            selectinload(Match.tags) # Consider filtering inactive tags here if needed
-        ).order_by(Match.timestamp.desc())
-
-        matches = db.session.scalars(stmt).unique().all()
-
-        # Format results
-        matches_list = []
-        for match in matches:
-            active_tags = [tag for tag in match.tags if tag.is_active] if hasattr(Tag, 'is_active') else match.tags
-            deck_info = None
-            deck_type_info = None
-            if match.user_deck and match.user_deck.deck:
-                deck_info = {'id': match.user_deck.deck.id, 'name': match.user_deck.deck.name}
-                if match.user_deck.deck.deck_type:
-                    deck_type_info = {'id': match.user_deck.deck.deck_type.id, 'name': match.user_deck.deck.deck_type.name}
-
-            matches_list.append({
-                'id': match.id, 'result': match.result, 'date': format_timestamp(match.timestamp),
-                'user_deck_id': match.user_deck_id, 'deck': deck_info, 'deck_type': deck_type_info,
-                'tags': [{'id': tag.id, 'name': tag.name} for tag in active_tags],
-                'is_active': match.is_active
-            })
-        return jsonify(matches_list)
-    except Exception as e:
-        logger.error(f"Error fetching match history for user {current_user_id}: {e}", exc_info=True)
-        return jsonify({"error": "An internal error occurred while fetching match history."}), 500
 
 @matches_bp.route('/matches/<int:match_id>/tags', methods=['POST'])
 @login_required
