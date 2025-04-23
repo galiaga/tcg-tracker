@@ -12,44 +12,71 @@
     class="h-10 w-10 mr-3">
     <h1 class="text-2xl font-bold text-violet-900">My Tags</h1>
   </div>
-    <div id="tags-filter-controls" class="bg-white shadow-md rounded-xl border border-violet-200 p-4 grid grid-cols-1 gap-4">
-        <div class="relative">
-          <label for="tag-filter-button" class="block text-sm font-medium text-violet-900 mb-1">Filter by Tags</label>
-          <button type="button" id="tag-filter-button" aria-haspopup="listbox" aria-expanded="false"
-            class="relative w-full cursor-default rounded-md border border-violet-300 bg-white py-2 pl-3 pr-10 text-left text-sm text-violet-900 shadow-sm focus:border-violet-500 focus:outline-none focus:ring-1 focus:ring-violet-500 hover:bg-violet-50">
-            <span id="tag-filter-button-text" class="block truncate">All Tags</span>
-            <span class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
-              <svg class="h-5 w-5 text-violet-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                <path fill-rule="evenodd" d="M10 3a.75.75 0 01.53.22l3.5 3.5a.75.75 0 01-1.06 1.06L10 4.81 7.03 7.78a.75.75 0 01-1.06-1.06l3.5-3.5A.75.75 0 0110 3z" clip-rule="evenodd" />
-                <path fill-rule="evenodd" d="M10 17a.75.75 0 01-.53-.22l-3.5-3.5a.75.75 0 011.06-1.06L10 15.19l2.97-2.97a.75.75 0 011.06 1.06l-3.5 3.5A.75.75 0 0110 17z" clip-rule="evenodd" />
-              </svg>
-            </span>
-          </button>
-          <div id="tag-filter-dropdown"
-               class="absolute z-10 mt-1 w-full rounded-md bg-white shadow-lg border border-violet-200 hidden max-h-60 overflow-y-auto focus:outline-none ring-1 ring-black ring-opacity-5">
-             <div id="tag-filter-options" class="px-2 py-1 space-y-1" role="listbox">
-               <div class="text-center text-xs text-violet-700 py-2">Loading tags...</div>
-             </div>
-             <div class="border-t border-violet-200 px-3 py-2">
-               <button type="button" id="clear-tag-filter-button" class="w-full text-center text-xs font-medium text-violet-600 hover:text-violet-900 focus:outline-none">
-                 Clear selection
-               </button>
-             </div>
-          </div>
-        </div>
-   </div>
 
-    <div class="mt-8 space-y-6">
+    <!-- Updated Tag Selection Area -->
+    <div id="tag-selection-area" class="space-y-4">
+
+        <!-- Section for displaying currently selected tags -->
+        <div id="selected-tags-row" class="flex items-center gap-x-2"> 
+            <div class="flex flex-col flex-shrink-0">
+                <h3 class="text-sm font-medium text-violet-900">Selected Tags:</h3>
+                <button type="button" id="clear-all-tags-button" class="hidden text-xs text-left text-violet-600 hover:text-violet-800 mt-1 focus:outline-none">
+                    Clear All
+                </button>
+            </div>
+
+            <div id="selected-tags-display" class="flex-grow bg-white border border-violet-200 rounded-md shadow-sm min-h-[2.5rem] p-2 flex flex-wrap gap-1 items-center">
+                <span id="no-tags-selected-text" class="text-sm text-gray-500 italic">No tags selected.</span>
+                <!-- Selected tag chips will be added here by JS -->
+            </div>
+        </div>
+
+
+        <!-- Section for Quick Select / Recent Tags -->
+        <div>
+            <h3 class="text-sm font-medium text-violet-900 mb-1">Quick Select (Recent Tags):</h3>
+            <div id="recent-tags-container" class="flex flex-wrap gap-2">
+                <p class="text-sm text-gray-500 italic w-full">Loading recent tags...</p>
+                <!-- Recent tag chips will be added here by JS -->
+            </div>
+        </div>
+
+        <!-- Section for Searching/Viewing All Tags (Label and Field Inline) -->
+        <div>
+            <div class="flex items-center gap-x-2">
+                <label for="tag-search-input" class="block text-sm font-medium text-violet-900 flex-shrink-0">Find Tags:</label>
+                <div class="relative flex-grow">
+                    <input type="search" id="tag-search-input" placeholder="Search all your tags..."
+                           class="w-full rounded-md border border-violet-300 bg-white py-2 pl-3 pr-10 text-sm text-violet-900 shadow-sm focus:border-violet-500 focus:outline-none focus:ring-1 focus:ring-violet-500 placeholder-gray-400">
+                    <div class="absolute inset-y-0 right-0 flex py-1.5 pr-1.5 pointer-events-none">
+                         <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                            <path fill-rule="evenodd" d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z" clip-rule="evenodd" />
+                        </svg>
+                    </div>
+                </div>
+            </div>
+            <div id="tag-search-results" class="mt-2 space-y-1 max-h-48 overflow-y-auto">
+                <!-- Search results will appear here -->
+            </div>
+        </div>
+    </div>
+    <!-- End Updated Tag Selection Area -->
+
+
+    <!-- Associated Decks/Matches Section -->
+    <div class="mt-4 space-y-6">
         <div>
             <h2 class="text-xl font-semibold text-violet-900 mb-3">Associated Decks</h2>
             <div id="associated-decks-list" class="space-y-2">
                 <p class="text-violet-800 italic text-sm">Select tags above to view associated decks.</p>
+                <!-- Deck cards will be rendered here -->
             </div>
         </div>
         <div>
             <h2 class="text-xl font-semibold text-violet-900 mb-3">Associated Matches</h2>
             <div id="associated-matches-list" class="space-y-2">
                 <p class="text-violet-800 italic text-sm">Select tags above to view associated matches.</p>
+                <!-- Match cards will be rendered here -->
             </div>
         </div>
     </div>
