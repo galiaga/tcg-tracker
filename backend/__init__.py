@@ -5,7 +5,7 @@ from flask_migrate import Migrate
 from datetime import timedelta, date
 from flask_session import Session
 import secrets
-
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 # Initialize extensions top-level
 db = SQLAlchemy(session_options={"autocommit": False, "autoflush": False})
@@ -88,6 +88,11 @@ def create_app(config_name=None):
     app.config['APP_VERSION'] = app_version
     app.logger.info(f"Application Version loaded: {app.config.get('APP_VERSION')}")
 
+    # --- Apply ProxyFix Middleware ---
+    app.wsgi_app = ProxyFix(
+        app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1
+    )
+
     # --- Initialize Extensions ---
     db.init_app(app)
     migrate.init_app(app, db)
@@ -128,12 +133,24 @@ def create_app(config_name=None):
         print(f"ERROR: Could not import or register custom CLI commands from manage.py: {e}")
         print("INFO: Ensure manage.py is in the project root or adjust import path.")
 
+    # --- Session Table Creation Command ---
     @app.cli.command("create-session-table")
     def create_session_table():
         """Creates the session table in the database."""
         with app.app_context():
-            # This creates the table based on SESSION_SQLALCHEMY_TABLE config
-            server_session.app.session_interface.db.create_all()
-            print(f"Session table '{app.config['SESSION_SQLALCHEMY_TABLE']}' created (if it didn't exist).")
+            # Ensure the table schema defined by Flask-Session exists
+            # You might need to adjust this depending on how Flask-Session expects table creation
+            # Often, Flask-Migrate handles table creation/updates if the 'sessions' model is defined implicitly or explicitly
+            # Check Flask-Session docs if needed, but db.create_all() within context might work
+            # Or rely on Flask-Migrate (`flask db upgrade`) if the session table model is managed by it.
+            try:
+                # Assuming Flask-Migrate handles the 'sessions' table creation via migrations
+                print(f"INFO: Ensure the '{app.config['SESSION_SQLALCHEMY_TABLE']}' table exists via 'flask db upgrade'.")
+                # Alternatively, if Flask-Session requires explicit creation:
+                # server_session.app.session_interface.db.create_all()
+                # print(f"Session table '{app.config['SESSION_SQLALCHEMY_TABLE']}' creation attempted (if not managed by migrations).")
+            except Exception as e:
+                app.logger.error(f"Error during session table check/creation command: {e}")
+        return app
 
     return app
