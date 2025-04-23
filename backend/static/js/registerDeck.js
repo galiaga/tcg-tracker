@@ -1,62 +1,68 @@
 import { authFetch } from './auth/auth.js';
-import { TagInputManager } from './ui/tagInput.js'; 
+import { TagInputManager } from './ui/tagInput.js';
 
 const COMMANDER_DECK_TYPE_ID = "7";
+let deckTagInputInstance = null;
 
-document.addEventListener("DOMContentLoaded", function() {
-    const registerForm = document.getElementById("register-deck-form");
-    if (!registerForm) {
-        console.error("Register deck form not found!");
-        return;
-    }
-
-    let deckTagInputInstance = null;
-    const openModalBtn = document.getElementById('newDeckModalButton');
-    const modal = document.getElementById('newDeckModal');
-    const closeModalBtn = document.getElementById('newDeckModalCloseButton');
-
-    function initializeTagInput() {
-        if (typeof TagInputManager !== 'undefined') {
+// --- Tag Input Management ---
+function initializeTagInput() {
+    if (typeof TagInputManager !== 'undefined') {
+        // Only initialize if not already done
+        if (!deckTagInputInstance) {
             deckTagInputInstance = TagInputManager.init({
                 inputId: 'deck-tags-input',
                 suggestionsId: 'deck-tags-suggestions',
                 containerId: 'deck-tags-container'
             });
-            if (deckTagInputInstance) {
-                deckTagInputInstance.clearTags();
-            } else {
-                 console.error("Failed to initialize TagInputManager for decks.");
-            }
-        } else {
-             console.warn("TagInputManager not loaded before registerDeck.js attempted init.");
         }
-    }
-
-    function clearTagInput() {
-         if (deckTagInputInstance) {
-             deckTagInputInstance.clearTags();
-         }
-    }
-
-    if (openModalBtn) {
-        openModalBtn.addEventListener('click', initializeTagInput);
+        // Ensure it's clear on init (though reset logic should handle it too)
+        if (deckTagInputInstance) {
+            deckTagInputInstance.clearTags();
+        } else {
+             console.error("Failed to initialize TagInputManager for decks.");
+        }
     } else {
-        console.warn("Button 'newDeckModalButton' not found for tag input init binding.");
+         console.warn("TagInputManager not loaded when registerDeck.js attempted init.");
     }
+}
 
-     if(closeModalBtn) {
-         closeModalBtn.addEventListener('click', clearTagInput);
+function clearTagInput() {
+     if (deckTagInputInstance) {
+         deckTagInputInstance.clearTags();
+     } else {
+         // Fallback manual clear
+         const tagContainer = document.getElementById('deck-tags-container');
+         const tagInput = document.getElementById('deck-tags-input');
+         const tagSuggestions = document.getElementById('deck-tags-suggestions');
+         if (tagContainer) tagContainer.innerHTML = '';
+         if (tagInput) tagInput.value = '';
+         if (tagSuggestions) {
+             tagSuggestions.innerHTML = '';
+             tagSuggestions.classList.add('hidden');
+         }
      }
-     if(modal) {
-        modal.addEventListener('click', (event) => {
-           if (event.target === modal) {
-               clearTagInput();
-           }
-        });
-     }
+}
 
+document.addEventListener("DOMContentLoaded", function() {
+    const registerForm = document.getElementById("register-deck-form");
+    if (!registerForm) return;
+
+    // Initialization is now primarily handled by new-deck-modal.js on open
+
+    // --- Form Submission ---
     registerForm.addEventListener("submit", async function(event) {
         event.preventDefault();
+
+        // Ensure tag instance exists before trying to get tags
+        if (!deckTagInputInstance) {
+             console.warn("TagInputManager instance missing during submit. Attempting re-init.");
+             initializeTagInput(); // Try to get it
+             if (!deckTagInputInstance) {
+                  console.error("Cannot submit: TagInputManager instance is unavailable.");
+                  // Optionally show user error: if (typeof showFlashMessage === 'function') showFlashMessage("Tag input error. Please close and reopen the modal.", "error");
+                  return;
+             }
+        }
 
         const deckTypeElement = document.getElementById("deck_type");
         const deckNameElement = document.getElementById("deck_name");
@@ -92,22 +98,11 @@ document.addEventListener("DOMContentLoaded", function() {
                 return;
             }
             commanderId = commanderInputElement.dataset.commanderId;
-
-            if (partnerInputElement && partnerInputElement.dataset.partnerId) {
-                partnerId = partnerInputElement.dataset.partnerId;
-            }
-            if (friendsForeverInputElement && friendsForeverInputElement.dataset.friendsForeverId) {
-                friendsForeverId = friendsForeverInputElement.dataset.friendsForeverId;
-            }
-            if (doctorCompanionInputElement && doctorCompanionInputElement.dataset.timeLordDoctorId) {
-                timeLordDoctorId = doctorCompanionInputElement.dataset.timeLordDoctorId;
-            }
-            if (timeLordDoctorInputElement && timeLordDoctorInputElement.dataset.doctorCompanionId) {
-                 doctorCompanionId = timeLordDoctorInputElement.dataset.doctorCompanionId;
-            }
-            if (backgroundInputElement && backgroundInputElement.dataset.backgroundId) {
-                 backgroundId = backgroundInputElement.dataset.backgroundId;
-            }
+            if (partnerInputElement && partnerInputElement.dataset.partnerId) partnerId = partnerInputElement.dataset.partnerId;
+            if (friendsForeverInputElement && friendsForeverInputElement.dataset.friendsForeverId) friendsForeverId = friendsForeverInputElement.dataset.friendsForeverId;
+            if (doctorCompanionInputElement && doctorCompanionInputElement.dataset.timeLordDoctorId) timeLordDoctorId = doctorCompanionInputElement.dataset.timeLordDoctorId;
+            if (timeLordDoctorInputElement && timeLordDoctorInputElement.dataset.doctorCompanionId) doctorCompanionId = timeLordDoctorInputElement.dataset.doctorCompanionId;
+            if (backgroundInputElement && backgroundInputElement.dataset.backgroundId) backgroundId = backgroundInputElement.dataset.backgroundId;
         }
 
         const payload = {
@@ -148,17 +143,16 @@ document.addEventListener("DOMContentLoaded", function() {
                              return null;
                         });
                     });
-
                     await Promise.all(associationPromises);
                 }
 
                 let finalMessage = data.message || `Deck "${deckName}" registered!`;
                 if (associationErrors) {
-                     finalMessage += " (Note: Some tags might not have been associated due to errors - check console).";
+                     finalMessage += " (Note: Some tags might not have been associated).";
                 }
                 sessionStorage.setItem("flashMessage", finalMessage);
                 sessionStorage.setItem("flashType", associationErrors ? "warning" : "success");
-                window.location.href = "/";
+                window.location.href = "/"; // Or trigger a refresh/update of the deck list
 
             } else {
                 if (typeof showFlashMessage === 'function') showFlashMessage(data.error || `Error: ${response.statusText}`, "error");
@@ -169,3 +163,6 @@ document.addEventListener("DOMContentLoaded", function() {
         }
     });
 });
+
+// --- Exports ---
+export { clearTagInput, initializeTagInput };
