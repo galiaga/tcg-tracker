@@ -1,46 +1,19 @@
-import { searchCommander } from "../../api/index.js";
-import { authFetch } from "../../auth/auth.js";
+import { searchCommanders, getCommanderAttributes } from '../../api/deck-api.js';
 
+// --- Configuration ---
 const COMMANDER_DECK_TYPE_ID = "7";
 
 const FIELD_CONFIG = {
-    commander: {
-        inputId: "commander_name",
-        suggestionsId: "commander-suggestions",
-        fieldId: "commanderField",
-        datasetKey: "commanderId"
-    },
-    partner: {
-        inputId: "partner_name",
-        suggestionsId: "partner-suggestions",
-        fieldId: "partnerField",
-        datasetKey: "partnerId"
-    },
-    friendsForever: {
-        inputId: "friendsForever_name",
-        suggestionsId: "friendsForever-suggestions",
-        fieldId: "friendsForeverField",
-        datasetKey: "friendsForeverId"
-    },
-    doctorCompanion: {
-        inputId: "doctorCompanion_name",
-        suggestionsId: "doctorCompanion-suggestions",
-        fieldId: "doctorCompanionField",
-        datasetKey: "timeLordDoctorId"
-    },
-    timeLordDoctor: {
-        inputId: "timeLordDoctor_name",
-        suggestionsId: "timeLordDoctor-suggestions",
-        fieldId: "timeLordDoctorField",
-        datasetKey: "doctorCompanionId"
-    },
-    chooseABackground: {
-        inputId: "chooseABackground_name",
-        suggestionsId: "chooseABackground-suggestions",
-        fieldId: "chooseABackgroundField",
-        datasetKey: "backgroundId"
-    }
+    commander: { inputId: "commander_name", suggestionsId: "commander-suggestions", fieldId: "commanderField", datasetKey: "commanderId" },
+    partner: { inputId: "partner_name", suggestionsId: "partner-suggestions", fieldId: "partnerField", datasetKey: "partnerId" },
+    friendsForever: { inputId: "friendsForever_name", suggestionsId: "friendsForever-suggestions", fieldId: "friendsForeverField", datasetKey: "friendsForeverId" },
+    doctorCompanion: { inputId: "doctorCompanion_name", suggestionsId: "doctorCompanion-suggestions", fieldId: "doctorCompanionField", datasetKey: "timeLordDoctorId" }, // Key seems reversed in original? Check API/HTML
+    timeLordDoctor: { inputId: "timeLordDoctor_name", suggestionsId: "timeLordDoctor-suggestions", fieldId: "timeLordDoctorField", datasetKey: "doctorCompanionId" }, // Key seems reversed in original? Check API/HTML
+    chooseABackground: { inputId: "chooseABackground_name", suggestionsId: "chooseABackground-suggestions", fieldId: "chooseABackgroundField", datasetKey: "backgroundId" }
 };
+
+// Extract prefixes for easier iteration, export for use in modal reset
+const conditionalFieldPrefixes = Object.keys(FIELD_CONFIG);
 
 function debounce(func, wait) {
     let timeout;
@@ -56,18 +29,17 @@ function debounce(func, wait) {
 
 document.addEventListener("DOMContentLoaded", function () {
     const deckTypeSelect = document.getElementById("deck_type");
-    const commanderInput = document.getElementById(FIELD_CONFIG.commander.inputId);
-    const commanderSuggestions = document.getElementById(FIELD_CONFIG.commander.suggestionsId);
     const commanderField = document.getElementById(FIELD_CONFIG.commander.fieldId);
+    const commanderInput = document.getElementById(FIELD_CONFIG.commander.inputId);
 
     let selectedCommanderId = null;
-    const searchTimeouts = {};
 
     if (!deckTypeSelect || !commanderField || !commanderInput) {
         console.error("Essential form elements (deck type, commander field/input) not found.");
         return;
     }
 
+    // --- Dynamic Field Visibility Logic ---
     deckTypeSelect.addEventListener("change", function () {
         const showCommander = this.value === COMMANDER_DECK_TYPE_ID;
         commanderField.style.display = showCommander ? "block" : "none";
@@ -76,12 +48,15 @@ document.addEventListener("DOMContentLoaded", function () {
             commanderInput.removeAttribute(`data-${FIELD_CONFIG.commander.datasetKey.toLowerCase()}`);
             selectedCommanderId = null;
             hideAllAssociatedFields();
+        } else {
+             // Ensure field is visible if switching back to Commander type
+             commanderField.style.display = "block";
         }
     });
 
     function hideAllAssociatedFields() {
-        Object.keys(FIELD_CONFIG).forEach(type => {
-            if (type !== 'commander') {
+        conditionalFieldPrefixes.forEach(type => {
+            if (type !== 'commander') { // Don't hide the main commander field itself here
                 const config = FIELD_CONFIG[type];
                 const fieldElement = document.getElementById(config.fieldId);
                 const inputElement = document.getElementById(config.inputId);
@@ -98,32 +73,11 @@ document.addEventListener("DOMContentLoaded", function () {
 
     async function checkCommanderRelations(commanderId) {
         hideAllAssociatedFields();
-
         try {
-            const apiUrl = `/api/get_commander_attributes?q=${commanderId}`;
-            const response = await authFetch(apiUrl);
+            const commanderData = await getCommanderAttributes(commanderId);
+            selectedCommanderId = commanderData.id; // Store the confirmed ID
 
-            if (!response) {
-                 console.error("checkCommanderRelations: authFetch failed, likely handled error.");
-                 return;
-            }
-            if (response.status === 401) {
-                 console.error("checkCommanderRelations: Received 401 from authFetch. Logout should be triggered.");
-                 return;
-            }
-            if (!response.ok) {
-                console.error("Error fetching commander attributes:", response.status, response.statusText);
-                let errorMsg = `Failed to fetch commander details (Status: ${response.status})`;
-                try {
-                    const errData = await response.json();
-                    errorMsg = errData.error || errorMsg;
-                } catch(e) { }
-                return;
-            }
-
-            const commanderData = await response.json();
-            selectedCommanderId = commanderData.id;
-
+            // Show fields based on API response
             if (commanderData.partner) showAssociatedField('partner');
             if (commanderData.friends_forever) showAssociatedField('friendsForever');
             if (commanderData.doctor_companion) showAssociatedField('doctorCompanion');
@@ -131,7 +85,8 @@ document.addEventListener("DOMContentLoaded", function () {
             if (commanderData.choose_a_background) showAssociatedField('chooseABackground');
 
         } catch (error) {
-            console.error("Network or other error while fetching attributes:", error);
+            console.error("Error checking commander relations:", error.message);
+            // Optionally display an error to the user in the UI
         }
     }
 
@@ -140,18 +95,19 @@ document.addEventListener("DOMContentLoaded", function () {
         if (!config) return;
         const fieldElement = document.getElementById(config.fieldId);
         if (fieldElement) {
-            fieldElement.style.display = "block";
+            fieldElement.style.display = "block"; // Use style.display for dynamic showing
         }
     }
 
+    // --- Autocomplete Suggestion Logic ---
     function handleSuggestionClick(type, commander, suggestionsListElement) {
         const config = FIELD_CONFIG[type];
         if (!config) return;
 
         const inputElement = document.getElementById(config.inputId);
-
         inputElement.value = commander.name;
-        inputElement.dataset[config.datasetKey] = commander.id;
+        // Use the correct dataset key based on FIELD_CONFIG
+        inputElement.dataset[config.datasetKey.toLowerCase()] = commander.id; // Ensure lowercase key
 
         suggestionsListElement.innerHTML = '';
         suggestionsListElement.style.display = 'none';
@@ -184,13 +140,10 @@ document.addEventListener("DOMContentLoaded", function () {
         adjustSuggestionsList(suggestionsListElement, inputElement);
 
         try {
-            const response = await fetch(`/api/search_commanders?q=${encodeURIComponent(query)}&type=${type}`);
-            if (!response.ok) {
-                throw new Error(`API search_commanders error: ${response.status}`);
-            }
-            const commanders = await response.json();
+            // Use the centralized API function
+            const commanders = await searchCommanders(query, type);
 
-            suggestionsListElement.innerHTML = "";
+            suggestionsListElement.innerHTML = ""; // Clear loading/previous results
 
             if (commanders.length === 0) {
                 const noResults = document.createElement("li");
@@ -202,7 +155,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
             commanders.forEach(commander => {
                  if (type !== 'commander' && commander.id === selectedCommanderId) {
-                    return;
+                    return; // Don't suggest the main commander as its own partner/etc.
                 }
 
                 const item = document.createElement("li");
@@ -218,8 +171,8 @@ document.addEventListener("DOMContentLoaded", function () {
             });
 
         } catch (error) {
-            console.error(`Error populating suggestions for ${type}:`, error);
-            suggestionsListElement.innerHTML = "";
+            console.error(`Error populating suggestions for ${type}:`, error.message);
+            suggestionsListElement.innerHTML = ""; // Clear loading indicator
             const errorItem = document.createElement("li");
             errorItem.className = "px-4 py-2 text-center text-red-500";
             errorItem.textContent = "Error loading suggestions";
@@ -237,6 +190,7 @@ document.addEventListener("DOMContentLoaded", function () {
     function handleSearchInput(type, event) {
         const config = FIELD_CONFIG[type];
         if(!config) return;
+         // Clear stored ID if input is cleared
          if (event.target.value.trim() === '') {
             event.target.removeAttribute(`data-${config.datasetKey.toLowerCase()}`);
             if(type === 'commander') {
@@ -247,7 +201,8 @@ document.addEventListener("DOMContentLoaded", function () {
         debouncedPopulateSuggestions(type);
     }
 
-    Object.keys(FIELD_CONFIG).forEach(type => {
+    // --- Event Listener Setup for Dynamic Fields ---
+    conditionalFieldPrefixes.forEach(type => {
         const config = FIELD_CONFIG[type];
         const inputElement = document.getElementById(config.inputId);
         const suggestionsListElement = document.getElementById(config.suggestionsId);
@@ -255,8 +210,9 @@ document.addEventListener("DOMContentLoaded", function () {
         if (inputElement && suggestionsListElement) {
              inputElement.addEventListener("input", (event) => handleSearchInput(type, event));
 
+             // Hide suggestions when clicking outside
              document.addEventListener("click", function(event) {
-                if (inputElement && suggestionsListElement && !inputElement.contains(event.target) && !suggestionsListElement.contains(event.target)) {
+                if (!inputElement.contains(event.target) && !suggestionsListElement.contains(event.target)) {
                      suggestionsListElement.style.display = "none";
                 }
             });
@@ -265,3 +221,6 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     });
 });
+
+// --- Exports ---
+export { conditionalFieldPrefixes, FIELD_CONFIG }; 
