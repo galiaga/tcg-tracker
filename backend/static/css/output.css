@@ -1055,6 +1055,9 @@
   .text-yellow-600 {
     color: var(--color-yellow-600);
   }
+  .lowercase {
+    text-transform: lowercase;
+  }
   .uppercase {
     text-transform: uppercase;
   }

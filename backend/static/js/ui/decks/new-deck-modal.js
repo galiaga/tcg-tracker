@@ -1,5 +1,6 @@
 import { loadDeckTypes } from '../../deck_types.js';
-import { clearTagInput, initializeTagInput as initializeRegisterDeckTagInput } from '../../registerDeck.js'; // Renamed import to avoid conflict
+import { conditionalFieldPrefixes, FIELD_CONFIG } from './deck-form.js'; // Import shared config
+import { TagInputManager } from '../tagInput.js'; // Import Tag Manager
 
 document.addEventListener("DOMContentLoaded", () => {
     const modal = document.getElementById("newDeckModal");
@@ -12,69 +13,96 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (!modalContent || !openBtn || !closeBtn || !form) return;
 
-    const conditionalFieldPrefixes = [
-        "commander", "partner", "friendsForever",
-        "doctorCompanion", "timeLordDoctor", "chooseABackground"
-    ];
-
+    // --- Tag Input Management ---
+    let deckTagInputInstance = null; // Instance managed by this modal script
     const tagInputContainerId = 'deck-tags-container';
     const tagInputElementId = 'deck-tags-input';
     const tagSuggestionsId = 'deck-tags-suggestions';
 
-    // --- Reset Logic ---
-    function resetNewDeckForm() {
-        form.reset();
-
-        const select = document.getElementById("deck_type");
-        if (select) {
-            select.value = "";
-        }
-
-        conditionalFieldPrefixes.forEach(prefix => {
-            const fieldDiv = document.getElementById(`${prefix}Field`);
-            const inputElement = document.getElementById(`${prefix}_name`);
-            const suggestionsUl = document.getElementById(`${prefix}-suggestions`);
-
-            if (fieldDiv) {
-                fieldDiv.style.display = 'none';
-                fieldDiv.classList.add('hidden');
+    function initializeTagInput() {
+        if (typeof TagInputManager !== 'undefined') {
+            if (!deckTagInputInstance) { // Initialize only once per page load potentially
+                 try {
+                    deckTagInputInstance = TagInputManager.init({
+                        inputId: tagInputElementId,
+                        suggestionsId: tagSuggestionsId,
+                        containerId: tagInputContainerId
+                    });
+                    // Attach instance to form for access during submission
+                    if (deckTagInputInstance) {
+                        form.tagInputInstance = deckTagInputInstance;
+                    } else {
+                         console.error("Failed to initialize TagInputManager for decks.");
+                    }
+                 } catch (err) {
+                     console.error("Error initializing TagInputManager:", err);
+                 }
             }
-            if (inputElement) {
-                const datasetKey = Object.keys(inputElement.dataset)[0];
-                if (datasetKey) {
-                    delete inputElement.dataset[datasetKey];
-                }
-                inputElement.value = '';
-            }
-            if (suggestionsUl) {
-                suggestionsUl.innerHTML = '';
-                suggestionsUl.style.display = 'none';
-            }
-        });
-
-        // --- Tag Input Reset ---
-        if (typeof clearTagInput === 'function') {
-            try {
-                clearTagInput();
-            } catch (err) {
-                console.error("Error calling imported clearTagInput:", err);
-                manualClearTagInput();
+            // Always clear tags when initializing/re-initializing for modal open
+            if (deckTagInputInstance) {
+                deckTagInputInstance.clearTags();
             }
         } else {
-            manualClearTagInput();
+             console.warn("TagInputManager not loaded when new-deck-modal.js attempted init.");
         }
     }
 
-    function manualClearTagInput() {
-         const tagContainer = document.getElementById(tagInputContainerId);
-         const tagInput = document.getElementById(tagInputElementId);
-         const tagSuggestions = document.getElementById(tagSuggestionsId);
-         if (tagContainer) tagContainer.innerHTML = '';
-         if (tagInput) tagInput.value = '';
-         if (tagSuggestions) {
-             tagSuggestions.innerHTML = '';
-             tagSuggestions.classList.add('hidden');
-         }
+    function clearTagInput() {
+        if (deckTagInputInstance) {
+            try {
+                deckTagInputInstance.clearTags();
+            } catch (err) {
+                console.error("Error clearing tags:", err);
+            }
+        } else {
+            // Manual fallback if instance somehow got lost (shouldn't happen often)
+            const tagContainer = document.getElementById(tagInputContainerId);
+            const tagInput = document.getElementById(tagInputElementId);
+            if (tagContainer) tagContainer.innerHTML = '';
+            if (tagInput) tagInput.value = '';
+        }
+    }
+
+    // --- Reset Logic ---
+    function resetNewDeckForm() {
+        form.reset(); // Resets standard inputs, textareas, selects
+
+        const select = document.getElementById("deck_type");
+        if (select) {
+            select.value = ""; // Explicitly set select to default value
+        }
+
+        // Use imported prefixes to reset dynamic fields
+        conditionalFieldPrefixes.forEach(prefix => {
+            const config = FIELD_CONFIG[prefix]; // Use imported config
+            if (!config) return;
+
+            const fieldDiv = document.getElementById(config.fieldId);
+            const inputElement = document.getElementById(config.inputId);
+            const suggestionsUl = document.getElementById(config.suggestionsId);
+
+            if (fieldDiv) {
+                fieldDiv.style.display = 'none'; // Force hide using style
+                // Optionally ensure hidden class is also present if your CSS relies on it
+                // fieldDiv.classList.add('hidden');
+            }
+            if (inputElement) {
+                // Clear any potential dataset value (form.reset might not clear dataset)
+                 const datasetKey = config.datasetKey.toLowerCase();
+                 if (inputElement.dataset[datasetKey]) {
+                     delete inputElement.dataset[datasetKey];
+                 }
+                 // Ensure value is clear (form.reset should handle this, but belt-and-suspenders)
+                 inputElement.value = '';
+            }
+            if (suggestionsUl) {
+                suggestionsUl.innerHTML = ''; // Clear suggestions
+                suggestionsUl.style.display = 'none'; // Hide suggestions list
+            }
+        });
+
+        // Clear tags using the instance managed by this script
+        clearTagInput();
     }
 
     // --- Modal Lifecycle ---
@@ -82,10 +110,11 @@ document.addEventListener("DOMContentLoaded", () => {
         modal.classList.remove("hidden");
         modal.classList.add("flex");
 
-        loadDeckTypes();
-        resetNewDeckForm(); // Reset state before showing
-        initializeTagInput(); // Initialize tags after reset
+        loadDeckTypes(); // Load dynamic select options
+        resetNewDeckForm(); // Reset form to default state FIRST
+        initializeTagInput(); // Initialize tag input AFTER reset
 
+        // Start animation
         setTimeout(() => {
             modalContent.classList.remove("scale-95", "opacity-0");
             modalContent.classList.add("scale-100", "opacity-100");
@@ -93,33 +122,16 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function closeModal() {
+        // Start animation
         modalContent.classList.remove("scale-100", "opacity-100");
         modalContent.classList.add("scale-95", "opacity-0");
 
+        // Hide modal and reset form AFTER animation
         setTimeout(() => {
             modal.classList.add("hidden");
             modal.classList.remove("flex");
-            resetNewDeckForm(); // Reset state after hiding
-        }, 150);
-    }
-
-    // --- Tag Input Handling (Initialization within Modal Context) ---
-    function initializeTagInput() {
-        // Use the initialization function potentially imported from registerDeck.js
-        // This assumes registerDeck.js sets up the TagInputManager instance
-        if (typeof initializeRegisterDeckTagInput === 'function') {
-             try {
-                 initializeRegisterDeckTagInput();
-                 // Ensure tags are cleared by the reset logic, but call clear here too if needed
-                 // clearTagInput(); // Called within resetNewDeckForm now
-             } catch (err) {
-                 console.error("Error calling imported initializeRegisterDeckTagInput:", err);
-             }
-        } else {
-             console.warn("initializeRegisterDeckTagInput function not imported.");
-             // If TagInputManager is global, you might initialize directly here as a fallback
-             // if (typeof TagInputManager !== 'undefined') { ... }
-        }
+            resetNewDeckForm(); // Ensure clean state for next open
+        }, 150); // Match CSS transition duration
     }
 
     // --- Event Listeners ---
@@ -127,7 +139,7 @@ document.addEventListener("DOMContentLoaded", () => {
     closeBtn.addEventListener("click", closeModal);
 
     modal.addEventListener("click", (event) => {
-        if (event.target === modal) {
+        if (event.target === modal) { // Click on backdrop
             closeModal();
         }
     });
