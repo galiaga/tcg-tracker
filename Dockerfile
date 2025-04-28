@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-ARG PYTHON_VERSION=3.13.2
+ARG PYTHON_VERSION=3.11
 FROM python:${PYTHON_VERSION}-slim
 
 ARG GIT_SHA="unknown"
