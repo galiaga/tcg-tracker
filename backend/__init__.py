@@ -13,7 +13,6 @@ from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from flask_bcrypt import Bcrypt
 from itsdangerous import URLSafeTimedSerializer
-from flask_mail import Mail
 from dotenv import load_dotenv
 
 # --- Extension Initialization ---
@@ -22,7 +21,6 @@ migrate = Migrate()
 server_session = Session()
 limiter = Limiter(key_func=get_remote_address)
 bcrypt = Bcrypt()
-mail = Mail()
 load_dotenv() # Load .env file into os.environ
 
 # --- Helper Functions ---
@@ -143,7 +141,6 @@ def create_app(config_name=None):
     print(f"DEBUG MAIL: Server={app.config.get('MAIL_SERVER')}, Port={app.config.get('MAIL_PORT')}")
     print(f"DEBUG MAIL: Use TLS={app.config.get('MAIL_USE_TLS')}, Use SSL={app.config.get('MAIL_USE_SSL')}")
     print(f"DEBUG MAIL: Username={app.config.get('MAIL_USERNAME')}")
-    mail.init_app(app)
 
     # --- Limiter Initialization ---
     if app.config.get("TESTING"):

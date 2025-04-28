@@ -4,7 +4,7 @@
 from flask import Blueprint, request, jsonify, current_app, session, url_for, render_template
 from flask_bcrypt import Bcrypt
 from sqlalchemy.exc import IntegrityError
-from backend import db, limiter, mail
+from backend import db, limiter
 from backend.models.user import User
 from backend.utils.decorators import login_required
 from backend.utils.validation import validate_password_strength_backend
