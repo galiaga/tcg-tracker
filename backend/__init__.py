@@ -14,6 +14,8 @@ from flask_limiter.util import get_remote_address
 from flask_bcrypt import Bcrypt
 from itsdangerous import URLSafeTimedSerializer
 from dotenv import load_dotenv
+import sys  # Import sys for stderr and path printing
+import logging # Import logging if not already done for logger access
 
 # --- Extension Initialization ---
 db = SQLAlchemy(session_options={"autocommit": False, "autoflush": False})
@@ -29,20 +31,35 @@ def get_app_version(app_instance):
         project_root = os.path.abspath(os.path.join(app_instance.root_path, '..'))
         version_file_path = os.path.join(project_root, '.version')
         if not os.path.isfile(version_file_path):
-             app_instance.logger.warning(f".version file not found at expected path: {version_file_path}. Defaulting to 'dev'.")
+             # Use logger if available, otherwise print
+             logger = getattr(app_instance, 'logger', None) or logging.getLogger(__name__)
+             logger.warning(f".version file not found at expected path: {version_file_path}. Defaulting to 'dev'.")
              return 'dev'
         with open(version_file_path, 'r') as f:
             version = f.read().strip()
             if not version:
-                 app_instance.logger.warning(f".version file at {version_file_path} is empty. Defaulting to 'empty'.")
+                 logger = getattr(app_instance, 'logger', None) or logging.getLogger(__name__)
+                 logger.warning(f".version file at {version_file_path} is empty. Defaulting to 'empty'.")
                  return 'empty'
             return version
     except Exception as e:
-        if hasattr(app_instance, 'logger'):
-             app_instance.logger.error(f"Error reading .version file: {e}", exc_info=True)
-        else:
-             print(f"ERROR: Error reading .version file: {e}")
+        logger = getattr(app_instance, 'logger', None) or logging.getLogger(__name__)
+        logger.error(f"Error reading .version file: {e}", exc_info=True)
         return 'unknown'
+
+# --- Diagnostic Import Check (Before Factory) ---
+try:
+    # Try importing the specific dialect module SQLAlchemy uses
+    import sqlalchemy.dialects.postgresql
+    # You could also try importing the driver directly
+    # import psycopg2
+    print("--- DIAGNOSTIC: Successfully imported sqlalchemy.dialects.postgresql ---", file=sys.stderr) # Print to stderr
+except ImportError as e:
+    print(f"--- DIAGNOSTIC: FAILED to import sqlalchemy.dialects.postgresql: {e} ---", file=sys.stderr) # Print to stderr
+    # Optionally, print sys.path here for more debugging
+    print(f"--- DIAGNOSTIC: sys.path = {sys.path} ---", file=sys.stderr)
+# --- End Diagnostic Import Check ---
+
 
 # --- Application Factory ---
 def create_app(config_name=None):
@@ -70,7 +87,8 @@ def create_app(config_name=None):
         db_path = os.path.join(backend_folder_path, 'app.db')
         database_url = f"sqlite:///{db_path}"
     elif database_url.startswith('postgres://'):
-         database_url = database_url.replace('postgresql://', 'postgresql://', 1)
+         # Ensure correct prefix for SQLAlchemy 2.x if needed (usually handles both)
+         database_url = database_url.replace('postgres://', 'postgresql://', 1)
     app.config['SQLALCHEMY_DATABASE_URI'] = database_url
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
@@ -84,11 +102,13 @@ def create_app(config_name=None):
         app.config['SECRET_KEY'] = flask_secret_key
 
     # --- Serializer Initialization ---
+    # Note: Accessing app.logger here might be too early if logging isn't configured yet.
+    # Consider moving this after extensions are initialized or use print for early errors.
     try:
         app.password_reset_serializer = URLSafeTimedSerializer(app.config['SECRET_KEY'], salt='password-reset-salt')
-        app.logger.info("URLSafeTimedSerializer initialized and stored on app.")
+        print("INFO: URLSafeTimedSerializer initialized.") # Use print initially
     except Exception as e:
-        app.logger.error(f"FATAL: Failed to initialize URLSafeTimedSerializer: {e}", exc_info=True)
+        print(f"FATAL: Failed to initialize URLSafeTimedSerializer: {e}") # Use print initially
         raise
 
     # --- Frontend URL Configuration ---
@@ -96,12 +116,13 @@ def create_app(config_name=None):
     app.config['FRONTEND_BASE_URL'] = os.environ.get('FRONTEND_BASE_URL', default_frontend_url)
     if not app.config['FRONTEND_BASE_URL']:
          if is_production:
-             app.logger.error("FATAL: FRONTEND_BASE_URL environment variable is not set (required for password reset emails).")
+             print("FATAL: FRONTEND_BASE_URL environment variable is not set (required for password reset emails).")
+             # Consider raising an error here in production if it's critical
          else:
-             app.logger.warning(f"FRONTEND_BASE_URL not set, defaulting to '{default_frontend_url}' for development.")
+             print(f"WARNING: FRONTEND_BASE_URL not set, defaulting to '{default_frontend_url}' for development.")
              app.config['FRONTEND_BASE_URL'] = default_frontend_url
     else:
-        app.logger.info(f"FRONTEND_BASE_URL configured: {app.config['FRONTEND_BASE_URL']}")
+        print(f"INFO: FRONTEND_BASE_URL configured: {app.config['FRONTEND_BASE_URL']}")
 
     # --- Mail Configuration ---
     app.config['MAIL_SERVER'] = os.environ.get('MAIL_SERVER')
@@ -124,9 +145,11 @@ def create_app(config_name=None):
     app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 
     # --- Application Version Loading ---
-    app_version = get_app_version(app)
+    # Defer logger access until after app is fully configured if needed
+    app_version = get_app_version(app) # Pass app instance if needed by helper
     app.config['APP_VERSION'] = app_version
-    app.logger.info(f"Application Version loaded: {app.config.get('APP_VERSION')}")
+    # Use print here as logger might not be fully ready
+    print(f"INFO: Application Version loaded: {app.config.get('APP_VERSION')}")
 
     # --- Middleware ---
     app.wsgi_app = ProxyFix(
@@ -134,31 +157,45 @@ def create_app(config_name=None):
     )
 
     # --- Initialize Extensions with App ---
-    db.init_app(app)
-    migrate.init_app(app, db)
-    server_session.init_app(app)
-    bcrypt.init_app(app)
+    # Use print for early debug messages as logger might rely on app context
     print(f"DEBUG MAIL: Server={app.config.get('MAIL_SERVER')}, Port={app.config.get('MAIL_PORT')}")
     print(f"DEBUG MAIL: Use TLS={app.config.get('MAIL_USE_TLS')}, Use SSL={app.config.get('MAIL_USE_SSL')}")
     print(f"DEBUG MAIL: Username={app.config.get('MAIL_USERNAME')}")
+
+    bcrypt.init_app(app)
+    server_session.init_app(app)
+
+    # --- Diagnostic Print Around db.init_app ---
+    print("--- DIAGNOSTIC: About to call db.init_app(app) ---", file=sys.stderr)
+    try:
+        db.init_app(app) # This is where the original error occurs
+        print("--- DIAGNOSTIC: db.init_app(app) called successfully ---", file=sys.stderr)
+    except Exception as e_init:
+         print(f"--- DIAGNOSTIC: Error during db.init_app(app): {e_init} ---", file=sys.stderr)
+         # Optionally print more context
+         print(f"--- DIAGNOSTIC: SQLALCHEMY_DATABASE_URI = {app.config.get('SQLALCHEMY_DATABASE_URI')} ---", file=sys.stderr)
+         raise # Re-raise the exception to see the original traceback
+    # --- End Diagnostic Print ---
+
+    migrate.init_app(app, db)
 
     # --- Limiter Initialization ---
     if app.config.get("TESTING"):
         limiter.init_app(app)
         limiter.enabled = False
-        app.logger.info("Rate limiting DISABLED for TESTING environment.")
+        print("INFO: Rate limiting DISABLED for TESTING environment.")
     else:
         limiter.enabled = True
         redis_url = os.environ.get('REDIS_URL')
         if is_production and not redis_url:
-            app.logger.warning("REDIS_URL environment variable not set in Production. Rate limiting will use memory storage (may be inconsistent).")
+            print("WARNING: REDIS_URL environment variable not set in Production. Rate limiting will use memory storage (may be inconsistent).")
             limiter_storage_uri = "memory://"
         elif redis_url:
             limiter_storage_uri = redis_url
-            app.logger.info("Rate limiting ENABLED using Redis.")
+            print("INFO: Rate limiting ENABLED using Redis.")
         else:
             limiter_storage_uri = "memory://"
-            app.logger.info("Rate limiting ENABLED using in-memory storage (development).")
+            print("INFO: Rate limiting ENABLED using in-memory storage (development).")
         app.config['RATELIMIT_STORAGE_URL'] = limiter_storage_uri
         limiter.init_app(app)
 
@@ -213,7 +250,9 @@ def create_app(config_name=None):
             try:
                 print(f"INFO: Ensure the '{app.config['SESSION_SQLALCHEMY_TABLE']}' table exists via 'flask db upgrade'.")
             except Exception as e:
-                app.logger.error(f"Error during session table check/creation command: {e}")
-        return app
+                # Use print as logger might not be available in CLI context easily
+                print(f"Error during session table check/creation command: {e}")
+        # This command doesn't return the app instance
+        # return app # Remove this line if it was present
 
     return app
