@@ -1,12 +1,13 @@
 from flask import Blueprint, jsonify, request, session
 from backend.utils.decorators import login_required
-from backend import db
+from backend import db, limiter
 from backend.models.tag import Tag
 from sqlalchemy.exc import IntegrityError
 
 tags_bp = Blueprint('tags', __name__, url_prefix='/api')
 
 @tags_bp.route('/tags', methods=['GET'])
+@limiter.limit("60 per minute")
 @login_required
 def get_user_tags():
     current_user_id = session.get('user_id')
@@ -15,6 +16,7 @@ def get_user_tags():
     return jsonify(tags_list)
 
 @tags_bp.route('/tags', methods=['POST'])
+@limiter.limit("60 per minute")
 @login_required
 def create_user_tag():
     current_user_id = session.get('user_id')

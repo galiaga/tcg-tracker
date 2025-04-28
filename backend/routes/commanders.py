@@ -2,7 +2,7 @@ from flask import Blueprint, jsonify, request
 from sqlalchemy import select, true
 from pprint import pprint
 
-from backend import db
+from backend import db, limiter
 from backend.utils.decorators import login_required
 from backend.models.commanders import Commander
 
@@ -43,6 +43,7 @@ def search_commanders():
 
 
 @commanders_bp.route("/get_commander_attributes", methods=["GET"])
+@limiter.limit("60 per minute")
 @login_required
 def get_commander_attributes():
     q = request.args.get("q")

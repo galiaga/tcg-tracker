@@ -7,7 +7,7 @@ import json
 import logging
 from datetime import timezone, datetime
 
-from backend import db
+from backend import db, limiter
 from backend.models import CommanderDeck, Commander, UserDeck, Deck, Tag
 from backend.services.matches.match_service import get_deck_stats, get_all_decks_stats
 from backend.services.decks.get_user_decks_service import get_user_decks
@@ -22,6 +22,7 @@ COMMANDER_DECK_TYPE_ID = 7
 # --- Read Operations ---
 
 @decks_bp.route("/decks", methods=["GET"])
+@limiter.limit("60 per minute")
 @login_required
 def get_all_decks():
     # WARNING: This fetches ALL active decks, not just the user's. Adjust if needed.
@@ -31,6 +32,7 @@ def get_all_decks():
     return jsonify(decks_list)
 
 @decks_bp.route("/decks/<int:deck_id>", methods=["GET"])
+@limiter.limit("60 per minute")
 @login_required
 def deck_details(deck_id):
     user_id = session.get('user_id')
@@ -68,6 +70,7 @@ def deck_details(deck_id):
     return jsonify(deck_data), 200
 
 @decks_bp.route("/user_decks", methods=["GET"])
+@limiter.limit("60 per minute")
 @login_required
 def user_decks():
     user_id = session.get('user_id')
@@ -119,6 +122,7 @@ def user_decks():
 # --- Create Operation ---
 
 @decks_bp.route("/register_deck", methods=["POST"])
+@limiter.limit("60 per minute")
 @login_required
 def register_deck():
     user_id = session.get('user_id')
@@ -229,6 +233,7 @@ def register_deck():
 # --- Update Operation ---
 
 @decks_bp.route("/decks/<int:deck_id>", methods=["PATCH"])
+@limiter.limit("60 per minute")
 @login_required
 def update_deck(deck_id):
     user_id = session.get('user_id')
@@ -259,6 +264,7 @@ def update_deck(deck_id):
 # --- Delete Operation ---
 
 @decks_bp.route("/decks/<int:deck_id>", methods=["DELETE"])
+@limiter.limit("60 per minute")
 @login_required
 def delete_deck(deck_id):
     user_id = session.get('user_id')
@@ -284,6 +290,7 @@ def delete_deck(deck_id):
 # --- Tag Operations ---
 
 @decks_bp.route('/decks/<int:deck_id>/tags', methods=['POST'])
+@limiter.limit("60 per minute")
 @login_required
 def add_tag_to_deck(deck_id):
     current_user_id = session.get('user_id')
@@ -309,6 +316,7 @@ def add_tag_to_deck(deck_id):
         return jsonify({"error": "An unexpected error occurred while associating the tag"}), 500
 
 @decks_bp.route('/decks/<int:deck_id>/tags/<int:tag_id>', methods=['DELETE'])
+@limiter.limit("60 per minute")
 @login_required
 def remove_tag_from_deck(deck_id, tag_id):
     current_user_id = session.get('user_id')

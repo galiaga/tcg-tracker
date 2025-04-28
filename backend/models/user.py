@@ -1,56 +1,58 @@
 # backend/models/user.py
 
+# --- Necessary Imports ---
 from backend import db
-# Import necessary types/functions
-from sqlalchemy import Boolean, DateTime, Index, String, Integer # Explicit types
-from sqlalchemy.sql import func, text # text for server_default
+from sqlalchemy import Boolean, DateTime, Index, String, Integer
+from sqlalchemy.sql import func, text
 from datetime import datetime, timezone
-# Import Tag for relationship definition (already present)
-from backend.models.tag import Tag
+from backend.models.tag import Tag # Example relationship import
 
+# --- User Model Definition ---
 class User(db.Model):
     __tablename__ = "users"
 
-    # --- Core Columns ---
-    id = db.Column(Integer, primary_key=True, autoincrement=True) # Explicit type
-    username = db.Column(String(80), unique=True, nullable=False) # Explicit type
-    hash = db.Column(String(255), nullable=False) # Explicit type
+    # --- Core User Attributes ---
+    id = db.Column(Integer, primary_key=True, autoincrement=True)
+    username = db.Column(String(80), unique=True, nullable=False)
+    email = db.Column(String(120), unique=True, nullable=True, index=True) # Nullable initially for existing users
+    password_hash = db.Column(String(255), nullable=False) # Stores hash from Flask-Bcrypt
 
-    # --- Soft Delete Columns ---
-    is_active = db.Column(
-        Boolean,
-        nullable=False,
-        default=True,
-        server_default=text('TRUE'), # Use text('TRUE') for DB compatibility
-        index=True                   # Index for filtering active users (e.g., at login)
-    )
-    deleted_at = db.Column(
-        DateTime(timezone=True),
-        nullable=True
-    )
+    # --- Soft Delete Implementation ---
+    is_active = db.Column(Boolean, nullable=False, default=True, server_default=text('TRUE'), index=True)
+    deleted_at = db.Column(DateTime(timezone=True), nullable=True)
 
     # --- Relationships ---
-    # cascade="all, delete-orphan" means tags are deleted if the User is hard-deleted,
-    # or if a tag is removed from the user.tags collection. This is usually fine
-    # even with soft-delete on User, as soft-delete won't trigger the cascade.
+    # Example: One-to-Many relationship with Tag model
     tags = db.relationship("Tag", back_populates="user", cascade="all, delete-orphan")
-    # Add other relationships if needed (e.g., back_populates for UserDeck)
-    # user_decks = db.relationship("UserDeck", back_populates="user", cascade="all, delete-orphan") # Example
 
     # --- Instance Methods ---
     def soft_delete(self):
-        """Marks the user as inactive and records the deletion time."""
+        """Marks the user as inactive and records the deletion timestamp."""
         self.is_active = False
         self.deleted_at = datetime.now(timezone.utc)
-        # Consider other actions: anonymize data, clear session, etc.
-        db.session.add(self) # Ensure object is in session
+        db.session.add(self) # Ensure changes are staged for commit
 
     def __repr__(self):
+        """Provides a developer-friendly string representation of the user."""
         active_status = "Active" if self.is_active else "Deleted"
-        return f"<User id={self.id} username={self.username} status={active_status}>"
+        return f"<User id={self.id} username={self.username} email={self.email} status={active_status}>"
 
-    # --- Class Methods (Optional Helpers) ---
+    # --- Class Methods (Query Helpers) ---
     @classmethod
     def query_active(cls):
-        """Returns a query object filtered by active users."""
+        """Base query to filter only active users."""
         return cls.query.filter(cls.is_active == True)
+
+    @classmethod
+    def find_by_email(cls, email):
+        """Finds an active user by email (case-insensitive)."""
+        if not email:
+            return None
+        return cls.query_active().filter(func.lower(cls.email) == func.lower(email)).first()
+
+    @classmethod
+    def find_by_username(cls, username):
+        """Finds an active user by username."""
+        if not username:
+            return None
+        return cls.query_active().filter(cls.username == username).first()

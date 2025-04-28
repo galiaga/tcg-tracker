@@ -1,24 +1,35 @@
+// backend/static/js/auth/auth.js
+
+// --- CSRF Token Handling ---
+
 let csrfToken = null;
 
 async function fetchAndStoreCSRFToken() {
+    if (csrfToken) {
+        return csrfToken;
+    }
     try {
         const response = await fetch('/api/auth/csrf_token', {
             method: 'GET',
-            credentials: 'include' // Ensure session cookie is sent
+            credentials: 'include'
         });
         if (response.ok) {
             const data = await response.json();
             csrfToken = data.csrf_token;
+            console.log("CSRF token fetched successfully.");
             return csrfToken;
         } else {
-            console.error("Failed to fetch CSRF token:", response.status, response.statusText);
             if (response.status === 401) {
-                 await handleLogout(true); // Force logout if session is gone
+                 console.log("fetchAndStoreCSRFToken: User not authenticated (401). Cannot fetch CSRF token.");
+            } else {
+                 console.error("fetchAndStoreCSRFToken: Failed to fetch CSRF token:", response.status, response.statusText);
             }
+            csrfToken = null;
             return null;
         }
     } catch (error) {
-        console.error("Error fetching CSRF token:", error);
+        console.error("fetchAndStoreCSRFToken: Network error fetching CSRF token:", error);
+        csrfToken = null;
         return null;
     }
 }
@@ -30,23 +41,24 @@ async function getCSRFToken() {
     return csrfToken;
 }
 
-// Main authentication fetch wrapper
+// --- Authenticated Fetch Wrapper ---
+
 export async function authFetch(url, options = {}) {
     options.headers = options.headers || {};
     if (options.body && !options.headers['Content-Type']) {
         options.headers['Content-Type'] = 'application/json';
     }
-    options.credentials = 'include'; 
+    options.credentials = 'include';
 
     const method = options.method ? options.method.toUpperCase() : 'GET';
-
     const csrfMethods = ["POST", "PUT", "DELETE", "PATCH"];
+
     if (csrfMethods.includes(method)) {
-        const token = await getCSRFToken(); 
+        const token = await getCSRFToken();
         if (token) {
-            options.headers['X-CSRF-TOKEN'] = token; 
+            options.headers['X-CSRF-TOKEN'] = token;
         } else {
-            console.error(`authFetch: Could not get CSRF token for ${method} ${url}. Request may fail.`);
+            console.warn(`authFetch: CSRF token not available for ${method} ${url}. User might not be logged in.`);
         }
     }
 
@@ -54,56 +66,49 @@ export async function authFetch(url, options = {}) {
         const response = await fetch(url, options);
 
         if (response.status === 401) {
-            console.warn(`authFetch: Received 401 Unauthorized for ${url}. Session likely expired.`);
-            await handleLogout(true);
-
-             return response;
+            console.warn(`authFetch: Received 401 Unauthorized for ${url}. Session likely expired. Forcing logout.`);
+            await handleLogout();
+            return response;
         }
-
-        if (response.status === 401 && csrfMethods.includes(method)) {
-             try {
-                 const errorData = await response.clone().json(); 
-                 if (errorData.msg && errorData.msg.toLowerCase().includes("csrf")) {
-                     console.error("authFetch: CSRF validation failed. Forcing logout.");
-                     csrfToken = null; 
-                     await handleLogout(true);
-                     return response; 
-                 }
-             } catch(e) { /* Ignore if body isn't JSON */ }
-        }
-
 
         return response;
 
     } catch (error) {
         console.error(`authFetch: Network or other error during fetch for ${url}:`, error);
-        throw error; 
+        throw error;
     }
 }
 
-// Function to handle logout
-export async function handleLogout(forceRedirect = false) {
+// --- Logout Handler ---
+
+export async function handleLogout() {
+    console.log("handleLogout called");
+    const token = await getCSRFToken();
     csrfToken = null;
+
     try {
         const response = await fetch('/api/auth/logout', {
             method: 'POST',
-            credentials: 'include', 
+            credentials: 'include',
             headers: {
-                'X-CSRF-TOKEN': await getCSRFToken() || ''
+                'X-CSRF-TOKEN': token || ''
             }
         });
         if (!response.ok) {
             console.error('Logout API call failed:', response.status, response.statusText);
         } else {
+             console.log("Logout API call successful.");
         }
     } catch (error) {
         console.error('Error during logout fetch:', error);
     } finally {
-        localStorage.removeItem('username'); 
-        window.location.href = '/login'; 
+        localStorage.removeItem('username');
+        console.log("Redirecting to /login");
+        window.location.href = '/login';
     }
 }
 
+// --- Initial Load Logic ---
 
 window.addEventListener('load', async function() {
     const logoutLink = document.querySelector('#nav-logout');
@@ -114,7 +119,6 @@ window.addEventListener('load', async function() {
             handleLogout();
         });
     }
-
     const mobileLogoutButton = document.querySelector('#mobile-navbar button[aria-label="Logout"]');
     if (mobileLogoutButton) {
         if (mobileLogoutButton.hasAttribute('onclick')) { mobileLogoutButton.removeAttribute('onclick'); }
@@ -124,14 +128,18 @@ window.addEventListener('load', async function() {
         });
     }
 
-    if (window.location.pathname !== '/login' && window.location.pathname !== '/register') {
+    const publicAuthPaths = ['/login', '/register', '/forgot-password', '/reset-password'];
+    const isPublicAuthPage = publicAuthPaths.some(path => window.location.pathname.startsWith(path));
+
+    if (!isPublicAuthPage) {
+       console.log("Attempting initial CSRF token fetch on non-public page.");
        await fetchAndStoreCSRFToken();
     } else {
+       console.log("Skipping initial CSRF token fetch on public auth page.");
     }
-
-
 });
 
-// Make functions globally available if needed
+// --- Global Availability ---
+
 window.authFetch = authFetch;
 window.handleLogout = handleLogout;

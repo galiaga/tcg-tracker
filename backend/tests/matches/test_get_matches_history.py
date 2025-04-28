@@ -18,7 +18,7 @@ def test_user(app, db):
         user = _db.session.scalar(stmt)
         if not user:
             hashed_password = bcrypt.generate_password_hash(password).decode("utf-8")
-            user = User(username=username, hash=hashed_password)
+            user = User(username=username, password_hash=hashed_password)
             _db.session.add(user)
             _db.session.commit()
             _db.session.refresh(user)
@@ -35,7 +35,7 @@ def test_user_2(app, db):
         user = _db.session.scalar(stmt)
         if not user:
             hashed_password = bcrypt.generate_password_hash(password).decode("utf-8")
-            user = User(username=username, hash=hashed_password)
+            user = User(username=username, password_hash=hashed_password)
             _db.session.add(user)
             _db.session.commit()
             _db.session.refresh(user)

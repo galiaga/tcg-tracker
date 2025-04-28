@@ -13,7 +13,7 @@ def test_user(app):
         user = _db.session.scalar(select(User).where(User.username == username))
         if not user:
             hashed_password = bcrypt.generate_password_hash(password).decode("utf-8")
-            user = User(username=username, hash=hashed_password)
+            user = User(username=username, password_hash=hashed_password)
             _db.session.add(user)
             _db.session.commit()
             _db.session.refresh(user)

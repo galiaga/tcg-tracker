@@ -83,3 +83,17 @@ def register_page():
     if is_logged_in:
         return redirect(url_for("frontend.index_page")) 
     return render_template("register.html", is_logged_in=False, user=None)
+
+@frontend_bp.route("/forgot-password", methods=["GET"])
+def forgot_password_page():
+    _user, is_logged_in = get_current_user_for_page_load()
+    if is_logged_in:
+        return redirect(url_for("frontend.index_page")) 
+    return render_template("auth/forgot-password.html", is_logged_in=False, user=None)
+
+@frontend_bp.route("/reset-password/<token>", methods=["GET"])
+def reset_password_page(token):
+    _user, is_logged_in = get_current_user_for_page_load()
+    if is_logged_in:
+        return redirect(url_for("frontend.index_page")) 
+    return render_template('auth/reset-password.html', token=token, is_logged_in=False, user=None)
