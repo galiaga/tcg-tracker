@@ -1,24 +1,44 @@
+# backend/tests/auth/test_user_register.py
+
+# --- Imports ---
 import pytest
 from backend.models import User
 from backend import db
+import secrets
 
+# --- Fixtures ---
 @pytest.fixture
 def new_user_data():
+    unique_part = secrets.token_hex(4)
+    compliant_password = "StrongPass1!" # Meets complexity rules
     return {
-        "username": "newuser_session",
-        "password": "strongpass123",
-        "confirmation": "strongpass123"
+        "username": f"newuser_session_{unique_part}",
+        "email": f"test_{unique_part}@example.com",
+        "password": compliant_password,
+        "confirmation": compliant_password
     }
 
+# --- Test Functions ---
+
+# --- Success Case ---
 def test_register_user_success(client, app, new_user_data):
     with app.app_context():
+        user_to_delete = db.session.query(User).filter_by(username=new_user_data['username']).first()
+        if user_to_delete:
+            db.session.delete(user_to_delete)
+            db.session.commit()
+        email_to_delete = db.session.query(User).filter_by(email=new_user_data['email']).first()
+        if email_to_delete:
+             db.session.delete(email_to_delete)
+             db.session.commit()
+
         response = client.post(
             "/api/auth/register",
             json=new_user_data,
             headers={"Content-Type": "application/json"}
         )
 
-        assert response.status_code == 201
+        assert response.status_code == 201, f"Expected 201, got {response.status_code}. Response: {response.get_data(as_text=True)}"
 
         data = response.get_json()
         assert data is not None
@@ -28,53 +48,72 @@ def test_register_user_success(client, app, new_user_data):
 
         set_cookie_headers = response.headers.getlist('Set-Cookie')
         assert any(h.strip().startswith("session=") for h in set_cookie_headers)
-
         session_cookie = next((h for h in set_cookie_headers if h.strip().startswith("session=")), None)
         assert session_cookie is not None
         assert "Path=/" in session_cookie
         assert "HttpOnly" in session_cookie
-        assert "SameSite=Lax" in session_cookie # Or Strict depending on your config
-
+        assert "SameSite=Lax" in session_cookie
         is_secure = app.config.get('SESSION_COOKIE_SECURE', False)
         assert ("Secure" in session_cookie) == is_secure
 
-        # Verify user exists in DB
         user = db.session.query(User).filter_by(username=new_user_data["username"]).first()
         assert user is not None
+        assert user.email == new_user_data["email"].lower()
+        assert user.password_hash is not None
 
-
-def test_register_user_already_exists(client, app, new_user_data):
+# --- Duplicate Field Failures ---
+def test_register_user_username_already_exists(client, app, new_user_data):
     with app.app_context():
         user_to_delete = db.session.query(User).filter_by(username=new_user_data['username']).first()
-        if user_to_delete:
-            print(f"DEBUG: Deleting existing user '{new_user_data['username']}' before test.")
-            db.session.delete(user_to_delete)
-            db.session.commit()
+        if user_to_delete: db.session.delete(user_to_delete)
+        email_to_delete = db.session.query(User).filter_by(email=new_user_data['email']).first()
+        if email_to_delete: db.session.delete(email_to_delete)
+        db.session.commit()
 
         response_1 = client.post("/api/auth/register", json=new_user_data)
-        if response_1.status_code != 201:
-            print(f"DEBUG: First registration STILL failed! Status: {response_1.status_code}")
-            try:
-                print(f"DEBUG: Response body: {response_1.get_json()}")
-            except:
-                print(f"DEBUG: Response body: (not json)")
-        assert response_1.status_code == 201
+        assert response_1.status_code == 201, f"First registration failed: {response_1.get_data(as_text=True)}"
 
-        response_2 = client.post("/api/auth/register", json=new_user_data)
+        second_attempt_data = new_user_data.copy()
+        second_attempt_data["email"] = f"another_{secrets.token_hex(4)}@example.com"
+        response_2 = client.post("/api/auth/register", json=second_attempt_data)
 
-        assert response_2.status_code in [400, 409] 
+        assert response_2.status_code == 409
         data = response_2.get_json()
         assert data is not None and "error" in data
-        error_msg = data["error"].lower()
-        assert "username already exists" in error_msg or "already exists" in error_msg
+        assert "username already exists" in data["error"].lower()
+        assert data.get("type") == "DUPLICATE_USERNAME"
 
+def test_register_user_email_already_exists(client, app, new_user_data):
+    with app.app_context():
+        user_to_delete = db.session.query(User).filter_by(username=new_user_data['username']).first()
+        if user_to_delete: db.session.delete(user_to_delete)
+        email_to_delete = db.session.query(User).filter_by(email=new_user_data['email']).first()
+        if email_to_delete: db.session.delete(email_to_delete)
+        db.session.commit()
 
+        response_1 = client.post("/api/auth/register", json=new_user_data)
+        assert response_1.status_code == 201, f"First registration failed: {response_1.get_data(as_text=True)}"
+
+        second_attempt_data = new_user_data.copy()
+        second_attempt_data["username"] = f"another_user_{secrets.token_hex(4)}"
+        second_attempt_data["email"] = new_user_data["email"]
+        response_2 = client.post("/api/auth/register", json=second_attempt_data)
+
+        assert response_2.status_code == 409
+        data = response_2.get_json()
+        assert data is not None and "error" in data
+        assert "email address already registered" in data["error"].lower()
+        assert data.get("type") == "DUPLICATE_EMAIL"
+
+# --- Input Validation Failures ---
 def test_register_passwords_do_not_match(client, app):
     with app.app_context():
+        unique_part = secrets.token_hex(4)
         response = client.post(
             "/api/auth/register",
             json={
-                "username": "mismatchuser_session",
+                "username": f"mismatchuser_{unique_part}",
+                "email": f"mismatch_{unique_part}@example.com",
                 "password": "abc12345",
                 "confirmation": "xyz98765"
             }
@@ -85,20 +124,57 @@ def test_register_passwords_do_not_match(client, app):
         assert data is not None and "error" in data
         assert "password" in data["error"].lower() and "match" in data["error"].lower()
 
-
 @pytest.mark.parametrize("payload, missing_field_desc", [
-    ({"password": "abc", "confirmation": "abc"}, "missing username"),
-    ({"username": "nouser_session", "confirmation": "abc"}, "missing password"),
-    ({"username": "nouser_session", "password": "abc"}, "missing confirmation"),
-    ({"username": "", "password": "abc", "confirmation": "abc"}, "empty username"),
-    ({"username": "nouser_session", "password": "", "confirmation": ""}, "empty password"),
+    ({"email": "test@example.com", "password": "abc", "confirmation": "abc"}, "missing username"),
+    ({"username": "noemail", "password": "abc", "confirmation": "abc"}, "missing email"),
+    ({"username": "nouser", "email": "test@example.com", "confirmation": "abc"}, "missing password"),
+    ({"username": "nouser", "email": "test@example.com", "password": "abc"}, "missing confirmation"),
+    ({"username": "", "email": "test@example.com", "password": "abc", "confirmation": "abc"}, "empty username"),
+    ({"username": "noemail", "email": "", "password": "abc", "confirmation": "abc"}, "empty email"),
+    ({"username": "nouser", "email": "test@example.com", "password": "", "confirmation": ""}, "empty password"),
 ])
 def test_register_missing_or_empty_fields(client, app, payload, missing_field_desc):
     with app.app_context():
+        if payload.get("username"):
+            user_to_delete = db.session.query(User).filter_by(username=payload['username']).first()
+            if user_to_delete: db.session.delete(user_to_delete)
+        if payload.get("email"):
+             email_to_delete = db.session.query(User).filter_by(email=payload['email']).first()
+             if email_to_delete: db.session.delete(email_to_delete)
+        db.session.commit()
+
         response = client.post("/api/auth/register", json=payload)
 
-        assert response.status_code == 400
+        assert response.status_code == 400, f"Test case: {missing_field_desc}"
         data = response.get_json()
         assert data is not None and "error" in data
         error_msg = data["error"].lower()
-        assert "required" in error_msg or "empty" in error_msg or "missing" in error_msg
+        assert "username, email, password, and confirmation are required" in error_msg
+
+@pytest.mark.parametrize("invalid_email", [
+    "plainaddress", "@missingusername.com", "username@.com", "username@domain.",
+    "username @domain.com", "username@domain com", "username@domain..com",
+    ".username@domain.com", "username.@domain.com",
+])
+def test_register_invalid_email_format(client, app, invalid_email):
+    with app.app_context():
+        unique_part = secrets.token_hex(4)
+        compliant_password = "StrongPass1!"
+        payload = {
+            "username": f"invalidemail_{unique_part}",
+            "email": invalid_email,
+            "password": compliant_password,
+            "confirmation": compliant_password
+        }
+        user_to_delete = db.session.query(User).filter_by(username=payload['username']).first()
+        if user_to_delete: db.session.delete(user_to_delete)
+        email_to_delete = db.session.query(User).filter_by(email=payload['email']).first()
+        if email_to_delete: db.session.delete(email_to_delete)
+        db.session.commit()
+
+        response = client.post("/api/auth/register", json=payload)
+
+        assert response.status_code == 400, f"Failed for email: {invalid_email}"
+        data = response.get_json()
+        assert data is not None and "error" in data
+        assert "invalid email address format" in data["error"].lower()

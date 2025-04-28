@@ -2,7 +2,7 @@
 
 from flask import jsonify, Blueprint, request, session
 from backend.utils.decorators import login_required
-from backend import db
+from backend import db, limiter
 from backend.models import Match, UserDeck, Tag, Deck, DeckType
 from backend.models.tag import match_tags
 from sqlalchemy.orm import joinedload, selectinload
@@ -33,6 +33,7 @@ def format_timestamp(dt):
 # --- API Endpoints ---
 
 @matches_bp.route("/log_match", methods=["POST"])
+@limiter.limit("60 per minute")
 @login_required
 def log_match():
     user_id = session.get('user_id')
@@ -82,6 +83,7 @@ def log_match():
 
 
 @matches_bp.route('/matches/<int:match_id>/tags', methods=['POST'])
+@limiter.limit("60 per minute")
 @login_required
 def add_tag_to_match(match_id):
     current_user_id = session.get('user_id')
@@ -115,6 +117,7 @@ def add_tag_to_match(match_id):
         return jsonify({"error": "An unexpected error occurred while associating the tag"}), 500
 
 @matches_bp.route('/matches/<int:match_id>/tags/<int:tag_id>', methods=['DELETE'])
+@limiter.limit("60 per minute")
 @login_required
 def remove_tag_from_match(match_id, tag_id):
     current_user_id = session.get('user_id')
@@ -142,6 +145,7 @@ def remove_tag_from_match(match_id, tag_id):
         return jsonify({"error": "An unexpected error occurred while disassociating the tag"}), 500
 
 @matches_bp.route('/matches/<int:match_id>', methods=['DELETE'])
+@limiter.limit("60 per minute")
 @login_required
 def delete_match(match_id):
     """Soft deletes a specific match record."""

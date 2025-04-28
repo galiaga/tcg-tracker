@@ -1,5 +1,6 @@
 from flask import jsonify, Blueprint, request, session
 from backend.utils.decorators import login_required
+from backend import limiter
 import logging
 from backend.services.matches.match_history_service import get_matches_by_user
 
@@ -7,6 +8,7 @@ matches_history_bp = Blueprint("matches_history", __name__, url_prefix="/api")
 logger = logging.getLogger(__name__)
 
 @matches_history_bp.route("/matches_history", methods=["GET"])
+@limiter.limit("60 per minute")
 @login_required
 def matches_history():
     user_id = session.get('user_id')

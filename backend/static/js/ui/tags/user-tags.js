@@ -460,7 +460,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     await fetchAllUserTags();
 
     // 2. Display Recent Tags (e.g., first 5-7 tags, assuming API doesn't sort by recency yet)
-    //    TODO: Ideally, fetch specifically recent tags from API if possible.
     const recentTagsToShow = allUserTags.slice(0, 5); // Adjust count as needed
     renderTagChips(recentTagsToShow, recentTagsContainer, true);
 

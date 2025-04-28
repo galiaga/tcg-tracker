@@ -1,36 +1,132 @@
+// backend/static/js/auth/register.js
+
+// --- Import Shared Utilities ---
+import { validatePasswordComplexity } from '../utils/validation-utils.js';
+
+// --- DOM Ready Event Listener ---
 document.addEventListener("DOMContentLoaded", function () {
-    document.getElementById("register-form").addEventListener("submit", async function (event) {
-      event.preventDefault();
+    const registerForm = document.getElementById("register-form");
+    const passwordErrorDiv = document.getElementById("password-errors");
 
-      const username = document.getElementById("username").value;
-      const password = document.getElementById("password").value;
-      const confirmation = document.getElementById("confirmation").value;
+    if (registerForm && passwordErrorDiv) {
+        // --- Form Submission Handler ---
+        registerForm.addEventListener("submit", async function (event) {
+            event.preventDefault();
 
-      if (password !== confirmation) {
-        showFlashMessage("Passwords do not match.", "error");
-        return;
-      }
+            passwordErrorDiv.innerHTML = '';
+            // clearFlashMessages(); // Assumes a function to clear general flash messages exists
 
-      const response = await fetch("/api/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password, confirmation }),
-      });
+            // --- Get Input Values ---
+            const usernameInput = document.getElementById("username");
+            const emailInput = document.getElementById("email");
+            const passwordInput = document.getElementById("password");
+            const confirmationInput = document.getElementById("confirmation");
 
-      const data = await response.json();
+            const username = usernameInput.value.trim();
+            const email = emailInput.value.trim();
+            const password = passwordInput.value;
+            const confirmation = confirmationInput.value;
 
-      if (response.ok) {
-        localStorage.setItem("access_token", data.access_token);
-        localStorage.setItem("username", data.username);
+            // --- Frontend Validation (Basic Checks) ---
+            if (!username || !email || !password || !confirmation) {
+                 showFlashMessage("All fields (username, email, password, confirmation) are required.", "warning");
+                 return;
+            }
+            if (password !== confirmation) {
+                showFlashMessage("Passwords do not match.", "error");
+                return;
+            }
 
-        sessionStorage.setItem("flashMessage", `Welcome ${data.username}!`);
-        sessionStorage.setItem("flashType", "success");
+            // --- Frontend Validation (Password Complexity) ---
+            const complexityResult = validatePasswordComplexity(password);
+            if (!complexityResult.isValid) {
+                const errorList = document.createElement('ul');
+                errorList.className = 'list-disc list-inside text-red-600 text-sm mt-1';
+                complexityResult.errors.forEach(errorText => {
+                    const listItem = document.createElement('li');
+                    listItem.textContent = errorText;
+                    errorList.appendChild(listItem);
+                });
+                passwordErrorDiv.appendChild(errorList);
+                return;
+            }
 
-        window.location.href = "/";
-      }
+            // --- API Request ---
+            const submitButton = registerForm.querySelector('button[type="submit"]');
+            const originalButtonText = submitButton?.textContent;
+            if(submitButton) {
+                submitButton.disabled = true;
+                submitButton.textContent = 'Registering...';
+            }
 
-      if (!response.ok) {
-        showFlashMessage(data.error, "error");
-      }
-    });
-  });
+            try {
+                const response = await fetch("/api/auth/register", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Accept": "application/json"
+                    },
+                    body: JSON.stringify({ username, email, password, confirmation }),
+                });
+
+                // --- Response Handling ---
+                if (response.ok) {
+                    const data = await response.json();
+                    sessionStorage.setItem("flashMessage", `Welcome ${data.username || username}! Registration successful.`);
+                    sessionStorage.setItem("flashType", "success");
+                    window.location.href = "/login";
+                } else {
+                    let errorMessage = "Registration failed. Please try again.";
+                    let messageType = "error";
+
+                    if (response.status === 429) {
+                        console.warn('Rate limit exceeded for registration');
+                        errorMessage = 'Too many registration attempts. Please wait a while and try again.';
+                        try {
+                            const errorData = await response.json();
+                            errorMessage = errorData.message || errorData.error || errorMessage;
+                        } catch (e) { /* Ignore JSON parsing error */ }
+                    } else {
+                        try {
+                            const errorData = await response.json();
+                            errorMessage = errorData.error || `Registration failed (Status: ${response.status})`;
+
+                            if (errorData.type === "VALIDATION_ERROR" && errorData.details && Array.isArray(errorData.details)) {
+                                const errorList = document.createElement('ul');
+                                errorList.className = 'list-disc list-inside text-red-600 text-sm mt-1';
+                                errorData.details.forEach(errorText => {
+                                    const listItem = document.createElement('li');
+                                    listItem.textContent = errorText;
+                                    errorList.appendChild(listItem);
+                                });
+                                passwordErrorDiv.appendChild(errorList);
+                                errorMessage = "Please correct the password errors listed above.";
+                            } else if (errorData.type === "DUPLICATE_USERNAME") {
+                                console.warn("Duplicate username detected by backend");
+                            } else if (errorData.type === "DUPLICATE_EMAIL") {
+                                console.warn("Duplicate email detected by backend");
+                            }
+
+                        } catch (e) {
+                            errorMessage = `Registration failed (Status: ${response.status})`;
+                            console.warn("Could not parse error response JSON for status:", response.status);
+                        }
+                    }
+                    showFlashMessage(errorMessage, messageType);
+                }
+            } catch (error) {
+                console.error("Network error during registration:", error);
+                showFlashMessage("Network error. Please check connection and try again.", "error");
+            } finally {
+                 // --- Final Cleanup ---
+                 if(submitButton) {
+                    submitButton.disabled = false;
+                    submitButton.textContent = originalButtonText;
+                }
+            }
+        });
+    } else {
+        if (!registerForm) console.warn("Register form not found on this page.");
+        if (!passwordErrorDiv) console.warn("Password error display div (#password-errors) not found on this page.");
+    }
+});

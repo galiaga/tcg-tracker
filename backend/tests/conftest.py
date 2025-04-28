@@ -116,7 +116,7 @@ def test_user(app, db): # Depend on the function-scoped db fixture
 
         # Create the test user for this function's scope
         hashed_password = bcrypt.generate_password_hash(password).decode("utf-8")
-        user = User(username=username, hash=hashed_password)
+        user = User(username=username, password_hash=hashed_password)
         db.session.add(user)
         db.session.commit() # Commit the user so it's available for login
         db.session.refresh(user) # Get the user ID
