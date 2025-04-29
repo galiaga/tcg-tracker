@@ -41,14 +41,47 @@ document.addEventListener("DOMContentLoaded", function () {
             const complexityResult = validatePasswordComplexity(password);
             if (!complexityResult.isValid) {
                 const errorList = document.createElement('ul');
-                errorList.className = 'list-disc list-inside text-red-600 text-sm mt-1';
+                // Remove list-disc/list-inside, add spacing between items
+                errorList.className = 'space-y-1.5'; // Adjust spacing as needed (e.g., space-y-1, space-y-2)
+            
                 complexityResult.errors.forEach(errorText => {
                     const listItem = document.createElement('li');
-                    listItem.textContent = errorText;
+                    // Use flexbox to align icon and text
+                    listItem.className = 'flex items-start text-sm'; 
+            
+                    // Create the icon wrapper (adjust color and size here)
+                    const iconWrapper = document.createElement('span');
+                    iconWrapper.className = 'flex-shrink-0 mr-1.5 mt-0.5'; 
+            
+                    // --- Icon Color Choice ---
+                    iconWrapper.classList.add('text-red-500');
+            
+                    iconWrapper.innerHTML = `
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    `; 
+            
+                    // Create the text span (use a softer red or keep the original red)
+                    const textSpan = document.createElement('span');
+                    textSpan.className = 'text-red-600';
+                    textSpan.textContent = errorText;
+            
+                    // Append icon and text to the list item
+                    listItem.appendChild(iconWrapper);
+                    listItem.appendChild(textSpan);
+            
+                    // Append the list item to the list
                     errorList.appendChild(listItem);
                 });
+            
+                // Clear previous errors and append the new list
+                passwordErrorDiv.innerHTML = ''; // Clear previous content
                 passwordErrorDiv.appendChild(errorList);
                 return;
+            } else {
+                // Clear errors if valid
+                passwordErrorDiv.innerHTML = '';
             }
 
             // --- API Request ---
