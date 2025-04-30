@@ -397,3 +397,192 @@ def profile():
         "username": user.username # Include username if it's still used/relevant
         # DO NOT return password_hash or other sensitive info
     }), 200
+
+# --- NEW: Update Profile Info Route ---
+@auth_bp.route("/profile/update", methods=["PUT"]) # Using PUT for update
+@limiter.limit("10 per minute")
+@login_required
+def update_profile():
+    """Updates the user's basic profile information (names, username)."""
+    user_id = session.get('user_id')
+    user = db.session.get(User, user_id)
+
+    if not user or not user.is_active:
+        return jsonify({"error": "User not found or inactive"}), 404
+
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "Invalid JSON payload"}), 400
+
+    # --- Get and Validate Input ---
+    first_name = data.get('first_name', '').strip()
+    last_name = data.get('last_name', '').strip()
+    username = data.get('username', '').strip()
+
+    name_errors = {} # Use a separate dict for name errors initially
+    if not first_name:
+        name_errors['first_name'] = "First name cannot be empty."
+    if not last_name:
+        name_errors['last_name'] = "Last name cannot be empty."
+
+    new_username = username if username else None
+
+    # --- Check username uniqueness FIRST and return 409 if duplicate ---
+    if new_username and new_username != user.username:
+        existing_user = User.query.filter(
+            User.username == new_username,
+            User.id != user_id
+        ).first()
+        if existing_user:
+            # --- CORRECTED: Return 409 directly ---
+            return jsonify({"error": "Username is already taken.", "type": "DUPLICATE_USERNAME"}), 409
+            # --- END CORRECTION ---
+
+    # --- If username is okay, check for other validation errors (names) ---
+    if name_errors:
+        return jsonify({"error": "Validation failed", "details": name_errors}), 400
+
+    # --- Update User Object ---
+    try:
+        user.first_name = first_name
+        user.last_name = last_name
+        user.username = new_username # Assign None if it was empty
+
+        db.session.commit()
+        current_app.logger.info(f"User profile updated successfully for user ID: {user_id}")
+
+        # Return updated user data (excluding sensitive info)
+        return jsonify({
+            "message": "Profile updated successfully.",
+            "user": {
+                "id": user.id,
+                "first_name": user.first_name,
+                "last_name": user.last_name,
+                "email": user.email, # Email wasn't changed here
+                "username": user.username
+            }
+        }), 200
+
+    except IntegrityError as e:
+         # Fallback catch for race conditions or other DB constraints
+         db.session.rollback()
+         current_app.logger.error(f"IntegrityError during profile update for user ID {user_id}: {e}")
+         error_detail = str(e.orig).lower() if e.orig else ""
+         if 'users_username_key' in error_detail or 'users.username' in error_detail:
+              # Return 409 here too
+              return jsonify({"error": "Username is already taken (DB constraint).", "type": "DUPLICATE_USERNAME"}), 409
+         else:
+              return jsonify({"error": "Database error during update.", "type": "DB_ERROR"}), 500
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Unexpected error during profile update for user ID {user_id}: {e}", exc_info=True)
+        return jsonify({"error": "An unexpected error occurred.", "type": "UNKNOWN_ERROR"}), 500
+    
+# --- NEW: Change Password Route ---
+@auth_bp.route("/profile/change-password", methods=["PUT"])
+@limiter.limit("5 per 15 minute") # Stricter limit for password changes
+@login_required
+def change_password():
+    """Allows the logged-in user to change their password."""
+    user_id = session.get('user_id')
+    user = db.session.get(User, user_id)
+
+    if not user or not user.is_active:
+        return jsonify({"error": "User not found or inactive"}), 404
+
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "Invalid JSON payload"}), 400
+
+    current_password = data.get('current_password')
+    new_password = data.get('new_password')
+    confirmation = data.get('confirmation')
+
+    # --- Validation ---
+    if not all([current_password, new_password, confirmation]):
+        return jsonify({"error": "Current password, new password, and confirmation are required."}), 400
+
+    # 1. Verify Current Password
+    if not bcrypt.check_password_hash(user.password_hash, current_password):
+        current_app.logger.warning(f"Incorrect current password attempt for user ID: {user_id}")
+        # Return 400 or 401 - 400 is common for validation-like failures within an authenticated context
+        return jsonify({"error": "Incorrect current password.", "type": "INVALID_CURRENT_PASSWORD"}), 400
+
+    # 2. Verify New Password Confirmation
+    if new_password != confirmation:
+        return jsonify({"error": "New passwords do not match.", "type": "PASSWORD_MISMATCH"}), 400
+
+    # 3. Verify New Password Strength
+    is_valid, errors = validate_password_strength_backend(new_password)
+    if not is_valid:
+        return jsonify({
+            "error": "New password does not meet security requirements.",
+            "type": "WEAK_PASSWORD",
+            "details": errors
+        }), 400
+
+    # 4. (Optional but recommended) Check if new password is same as old
+    if bcrypt.check_password_hash(user.password_hash, new_password):
+         return jsonify({"error": "New password cannot be the same as the current password.", "type": "PASSWORD_SAME_AS_OLD"}), 400
+
+    # --- Update Password ---
+    try:
+        new_hashed_password = bcrypt.generate_password_hash(new_password).decode("utf-8")
+        user.password_hash = new_hashed_password
+        db.session.commit()
+        current_app.logger.info(f"Password changed successfully for user ID: {user_id}")
+
+        # Optionally: Log out other sessions? More complex, skip for now.
+
+        return jsonify({"message": "Password changed successfully."}), 200
+
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Error changing password for user ID {user_id}: {e}", exc_info=True)
+        return jsonify({"error": "An unexpected error occurred while changing password.", "type": "DB_ERROR"}), 500
+    
+# --- NEW: Delete Account Route ---
+@auth_bp.route("/profile/delete", methods=["DELETE"])
+@limiter.limit("3 per hour") # Very strict limit for account deletion
+@login_required
+def delete_account():
+    """Deactivates (soft deletes) the logged-in user's account after password verification."""
+    user_id = session.get('user_id')
+    user = db.session.get(User, user_id)
+
+    if not user or not user.is_active:
+        # Should be caught by @login_required, but good practice
+        return jsonify({"error": "User not found or inactive"}), 404
+
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "Invalid JSON payload"}), 400
+
+    password = data.get('password') # Expect current password for confirmation
+
+    if not password:
+        return jsonify({"error": "Password confirmation is required."}), 400
+
+    # --- Verify Current Password ---
+    if not bcrypt.check_password_hash(user.password_hash, password):
+        current_app.logger.warning(f"Incorrect password during account deletion attempt for user ID: {user_id}")
+        # Use 403 Forbidden or 400 Bad Request for incorrect password during delete confirmation
+        return jsonify({"error": "Incorrect password provided.", "type": "INVALID_PASSWORD"}), 403
+
+    # --- Perform Soft Delete ---
+    try:
+        current_app.logger.info(f"Initiating account soft delete for user ID: {user_id}, Email: {user.email}")
+        user.soft_delete() # Calls the method on the User model
+        db.session.commit()
+
+        # --- CRITICAL: Clear the user's session ---
+        session.clear()
+        current_app.logger.info(f"Session cleared for deleted user ID: {user_id}")
+
+        # Return 200 OK or 204 No Content on successful deletion
+        return jsonify({"message": "Account deactivated successfully."}), 200
+
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Error during account deletion for user ID {user_id}: {e}", exc_info=True)
+        return jsonify({"error": "An unexpected error occurred while deactivating the account.", "type": "DB_ERROR"}), 500

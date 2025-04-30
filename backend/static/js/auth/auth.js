@@ -111,23 +111,32 @@ export async function handleLogout() {
 // --- Initial Load Logic ---
 
 window.addEventListener('load', async function() {
-    const logoutLink = document.querySelector('#nav-logout');
-    if (logoutLink) {
-        if (logoutLink.hasAttribute('onclick')) { logoutLink.removeAttribute('onclick'); }
-        logoutLink.addEventListener('click', (event) => {
-            event.preventDefault();
-            handleLogout();
-        });
-    }
-    const mobileLogoutButton = document.querySelector('#mobile-navbar button[aria-label="Logout"]');
-    if (mobileLogoutButton) {
-        if (mobileLogoutButton.hasAttribute('onclick')) { mobileLogoutButton.removeAttribute('onclick'); }
-        mobileLogoutButton.addEventListener('click', (event) => {
-            event.preventDefault();
-            handleLogout();
-        });
-    }
+    // --- Select ALL logout triggers ---
+    const logoutTriggers = document.querySelectorAll(
+        '#nav-logout, #mobile-nav-logout, #profile-logout-button' // Added #profile-logout-button
+    );
+    // --- End Select ---
 
+    // --- Attach listener to all found triggers ---
+    logoutTriggers.forEach(trigger => {
+        if (trigger) { // Check if element exists
+            // Remove potential old inline handlers if necessary
+            if (trigger.hasAttribute('onclick')) {
+                trigger.removeAttribute('onclick');
+                console.log(`Removed onclick from ${trigger.id || trigger.tagName}`);
+            }
+            // Add the event listener
+            trigger.addEventListener('click', (event) => {
+                event.preventDefault(); // Prevent default button/link action
+                console.log(`Logout triggered by: ${trigger.id || trigger.tagName}`);
+                handleLogout(); // Call the existing logout handler
+            });
+            console.log(`Attached logout listener to ${trigger.id || trigger.tagName}`);
+        }
+    });
+    // --- End Attach Listener ---
+
+    // --- CSRF Fetch Logic (keep as is) ---
     const publicAuthPaths = ['/login', '/register', '/forgot-password', '/reset-password'];
     const isPublicAuthPage = publicAuthPaths.some(path => window.location.pathname.startsWith(path));
 

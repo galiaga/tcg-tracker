@@ -4,16 +4,200 @@
     My Profile
 {% endblock %}
 
-{% block main %}
-<div class="space-y-6 w-full">
-    <div class="flex items-center mb-4">
+{% block page_header %}
+{# This block remains the same #}
+<div class="flex justify-between items-center mb-4">
+    <div class="flex items-center">
         <img src="{{ url_for('static', filename='img/logo.png') }}"
-        alt="Logo TCG Tracker"
-        class="h-10 w-10 mr-3">
+             alt="Logo TCG Tracker"
+             class="h-10 w-10 mr-3">
         <h1 class="text-2xl font-bold text-violet-900">My Profile</h1>
     </div>
+    {% if is_logged_in %}
+    <a href="{{ url_for('frontend.profile_page') }}"
+       aria-label="User Profile"
+       class="md:hidden bg-violet-100 text-violet-700 rounded-full p-2 shadow hover:bg-violet-200 transition-colors">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6">
+          <path fill-rule="evenodd" d="M7.5 6a4.5 4.5 0 1 1 9 0 4.5 4.5 0 0 1-9 0ZM3.751 20.105a8.25 8.25 0 0 1 16.498 0 .75.75 0 0 1-.437.695A18.683 18.683 0 0 1 12 22.5c-2.786 0-5.433-.608-7.812-1.7a.75.75 0 0 1-.437-.695Z" clip-rule="evenodd" />
+        </svg>
+    </a>
+    {% endif %}
 </div>
 {% endblock %}
+{# --- END page_header block --- #}
+
+
+{% block main %}
+
+    {# --- Combined Profile Information Form --- #}
+    <div class="bg-white p-4 rounded-xl shadow-md">
+        <h2 class="text-lg font-semibold text-gray-800 mb-3">Profile Information</h2>
+        <form id="update-profile-form">
+
+             {# First Name Input - Updated readonly styles #}
+             <div class="mb-4">
+                 <label for="first_name" class="block text-sm font-medium text-gray-700 mb-1">First Name</label>
+                 <input type="text" id="first_name" name="first_name" value="{{ user.first_name }}" required readonly
+                        class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm sm:text-sm
+                               text-gray-900 focus:outline-none focus:ring-violet-500 focus:border-violet-500
+                               read-only:bg-gray-100 read-only:border-transparent read-only:shadow-none read-only:cursor-not-allowed read-only:text-gray-600 read-only:ring-0 read-only:focus:ring-0 read-only:focus:border-transparent"> {# Enhanced readonly styles #}
+                 <p class="mt-1 text-xs text-red-600" id="error-first_name"></p>
+             </div>
+
+             {# Last Name Input - Updated readonly styles #}
+             <div class="mb-4">
+                 <label for="last_name" class="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
+                 <input type="text" id="last_name" name="last_name" value="{{ user.last_name }}" required readonly
+                        class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm sm:text-sm
+                               text-gray-900 focus:outline-none focus:ring-violet-500 focus:border-violet-500
+                               read-only:bg-gray-100 read-only:border-transparent read-only:shadow-none read-only:cursor-not-allowed read-only:text-gray-600 read-only:ring-0 read-only:focus:ring-0 read-only:focus:border-transparent"> {# Enhanced readonly styles #}
+                 <p class="mt-1 text-xs text-red-600" id="error-last_name"></p>
+             </div>
+
+             {# Email Display (Static) #}
+             <div class="py-2 mb-4">
+                 <label class="block text-sm font-medium text-gray-500">Email Address</label>
+                 <p class="mt-1 text-sm text-gray-900">{{ user.email }}</p>
+             </div>
+
+             {# Username Input - Updated readonly styles #}
+             <div class="mb-4">
+                 <label for="username" class="block text-sm font-medium text-gray-700 mb-1">Username <span class="text-gray-500 font-normal">(Optional)</span></label>
+                 <input type="text" id="username" name="username" value="{{ user.username or '' }}" readonly
+                        class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm sm:text-sm
+                               text-gray-900 focus:outline-none focus:ring-violet-500 focus:border-violet-500
+                               read-only:bg-gray-100 read-only:border-transparent read-only:shadow-none read-only:cursor-not-allowed read-only:text-gray-600 read-only:ring-0 read-only:focus:ring-0 read-only:focus:border-transparent" aria-describedby="username-description"> {# Enhanced readonly styles #}
+                 <p class="mt-1 text-xs text-gray-500" id="username-description">Leave blank to remove username. Must be unique if set.</p>
+                 <p class="mt-1 text-xs text-red-600" id="error-username"></p>
+             </div>
+
+             {# Action Buttons Container #}
+            <div class="pt-2 flex items-center space-x-3">
+                {# Edit Button - Starts visible with inline-flex #}
+                <button type="button" id="edit-profile-button"
+                        class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-violet-600 hover:bg-violet-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-violet-500">
+                    Edit Profile
+                </button>
+                {# Save Button - Starts hidden, REMOVE inline-flex initially #}
+                <button type="submit" id="save-profile-button"
+                        class="hidden justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                    Save Changes
+                </button>
+                {# Cancel Button - Starts hidden, REMOVE inline-flex initially #}
+                <button type="button" id="cancel-profile-button"
+                        class="hidden justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                    Cancel
+                </button>
+            </div>
+        </form>
+    </div>
+
+    {# --- Change Password Form --- #}
+    {# This section remains the same #}
+    <div class="bg-white p-4 rounded-xl shadow-md">
+        <h2 class="text-lg font-semibold text-gray-800 mb-3">Change Password</h2>
+        <form id="change-password-form" class="space-y-3">
+            <div>
+                <label for="current_password" class="block text-sm font-medium text-gray-700 mb-1">Current Password</label>
+                <input type="password" id="current_password" name="current_password" required autocomplete="current-password" class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-violet-500 focus:border-violet-500 sm:text-sm">
+                <p class="mt-1 text-xs text-red-600" id="error-current_password"></p>
+            </div>
+            <div>
+                <label for="new_password" class="block text-sm font-medium text-gray-700 mb-1">New Password</label>
+                <input type="password" id="new_password" name="new_password" required autocomplete="new-password" class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-violet-500 focus:border-violet-500 sm:text-sm">
+                <div id="new-password-errors" class="text-xs space-y-1 mt-1 text-red-600" aria-live="assertive"></div>
+            </div>
+            <div>
+                <label for="confirm_new_password" class="block text-sm font-medium text-gray-700 mb-1">Confirm New Password</label>
+                <input type="password" id="confirm_new_password" name="confirm_new_password" required autocomplete="new-password" class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-violet-500 focus:border-violet-500 sm:text-sm">
+                <p class="mt-1 text-xs text-red-600" id="error-confirm_new_password"></p>
+            </div>
+            <div class="pt-2">
+                <button type="submit" class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-orange-600 hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500">Change Password</button>
+            </div>
+        </form>
+    </div>
+
+    {# --- Actions Section --- #}
+    {# This section remains the same #}
+     <div class="bg-white p-4 rounded-xl shadow-md">
+         <h2 class="text-lg font-semibold text-gray-800 mb-3">Actions</h2>
+         <div class="space-y-3">
+             <div>
+                 <button type="button" id="profile-logout-button"
+                         class="inline-flex items-center justify-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 w-full sm:w-auto">
+                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 mr-2 -ml-1"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15M12 9l-3 3m0 0 3 3m-3-3h12.75" /></svg>
+                     Logout
+                 </button>
+             </div>
+             <div class="pt-3 border-t border-gray-200">
+                 <h3 class="text-base font-medium text-red-700">Delete Account</h3>
+                 <p class="mt-1 text-sm text-gray-600">
+                     This action is permanent and cannot be undone.
+                 </p>
+                 <button type="button" id="open-delete-modal-button"
+                         class="mt-2 inline-flex items-center justify-center px-4 py-2 border border-red-300 shadow-sm text-sm font-medium rounded-md text-red-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 w-full sm:w-auto">
+                     Delete My Account
+                 </button>
+             </div>
+         </div>
+     </div>
+
+{% endblock %}
+
+{# --- Delete Account Confirmation Modal (Keep outside main block) --- #}
+{# Modal remains the same #}
+<div id="delete-account-modal" class="fixed inset-0 z-50 hidden overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+    <div class="flex items-end justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+        <div id="delete-modal-overlay" class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
+        <span class="hidden sm:inline-block sm:h-screen sm:align-middle" aria-hidden="true">​</span>
+        <div class="inline-block transform overflow-hidden rounded-lg bg-white text-left align-bottom shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg sm:align-middle">
+            <div class="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
+                <div class="sm:flex sm:items-start">
+                    <div class="mx-auto flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
+                        <svg class="h-6 w-6 text-red-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 10.5v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                        </svg>
+                    </div>
+                    <div class="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left">
+                        <h3 class="text-lg font-semibold leading-6 text-gray-900" id="modal-title">Delete Account Confirmation</h3>
+                        <div class="mt-2 space-y-3">
+                            <p class="text-sm text-gray-600">
+                                Are you absolutely sure? This action is <strong class="font-medium text-red-700">permanent and cannot be undone</strong>.
+                            </p>
+                             <div>
+                                <label for="delete-confirm-password" class="block text-sm font-medium text-gray-700">Enter Current Password</label>
+                                <input type="password" id="delete-confirm-password" name="delete-confirm-password" required autocomplete="current-password"
+                                       class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500 sm:text-sm">
+                                <p class="mt-1 text-xs text-red-600" id="error-delete-confirm-password"></p>
+                            </div>
+                             <div>
+                                <label for="delete-confirm-text" class="block text-sm font-medium text-gray-700">Type <code class="font-mono text-red-700 bg-red-100 px-1 rounded">DELETE</code> to confirm</label>
+                                <input type="text" id="delete-confirm-text" name="delete-confirm-text" required autocomplete="off"
+                                       class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500 sm:text-sm font-mono uppercase">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
+                <button type="button" id="confirm-delete-button" disabled
+                        class="inline-flex w-full justify-center rounded-md border border-transparent bg-red-600 px-4 py-2 text-base font-medium text-white shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed">
+                    Permanently Delete Account
+                </button>
+                <button type="button" id="cancel-delete-button"
+                        class="mt-3 inline-flex w-full justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-base font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 sm:mt-0 sm:w-auto sm:text-sm">
+                    Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{# --- End Delete Modal --- #}
 
 {% block scripts %}
+    {# Scripts remain the same - load the updated JS #}
+    <script type="module" src="{{ url_for('static', filename='js/profile/update_profile.js') }}"></script>
+    <script type="module" src="{{ url_for('static', filename='js/profile/change_password.js') }}"></script>
+    <script type="module" src="{{ url_for('static', filename='js/profile/delete_account.js') }}"></script>
 {% endblock %}
