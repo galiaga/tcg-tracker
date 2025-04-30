@@ -179,8 +179,17 @@ def create_app(config_name=None):
     @app.errorhandler(429)
     def ratelimit_handler(e):
         """Custom handler for rate limit exceeded errors."""
-        message = str(e.description) if hasattr(e, 'description') and e.description else "Rate limit exceeded"
-        return jsonify(error="ratelimit exceeded", message=message), 429
+        # --- CUSTOMIZE MESSAGE ---
+        limiter_message = str(e.description) if hasattr(e, 'description') and e.description else ""
+        user_message = "Too many requests. Please wait a short while before trying again."
+
+        # --- Use app.logger instead of current_app.logger ---
+        app.logger.warning(f"Rate limit hit: {limiter_message}") # Log the technical limit
+        # --- End Change ---
+
+        # Return the user-friendly message
+        return jsonify(error="ratelimit exceeded", message=user_message), 429
+        # --- END CUSTOMIZE MESSAGE ---
 
     # --- Template Context Processors ---
     @app.context_processor

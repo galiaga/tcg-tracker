@@ -3,6 +3,7 @@
 
     {# === HEAD SECTION === #}
     <head>
+        {# ... head content remains the same ... #}
         <meta charset="utf-8">
         <meta name="viewport" content="initial-scale=1, width=device-width">
         <title>TCG Tracker: {% block title %}{% endblock %}</title>
@@ -21,20 +22,16 @@
         {# === CONDITIONAL NAVIGATION & ELEMENTS (LOGGED IN) === #}
         {% if is_logged_in %}
 
+            {# --- DELETE THIS BLOCK --- #}
             {# === Mobile Profile Icon (Top Right) === #}
-            {# Added text-violet-700 to set the SVG fill color via currentColor #}
-            <a href="{{ url_for('frontend.profile_page') }}"
-               aria-label="User Profile"
-               class="fixed top-3 right-4 z-50 md:hidden bg-violet-100 text-violet-700 rounded-full p-2 shadow hover:bg-violet-200 transition-colors">
-                {# === NEW: Solid User Icon SVG === #}
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6">
-                  <path fill-rule="evenodd" d="M7.5 6a4.5 4.5 0 1 1 9 0 4.5 4.5 0 0 1-9 0ZM3.751 20.105a8.25 8.25 0 0 1 16.498 0 .75.75 0 0 1-.437.695A18.683 18.683 0 0 1 12 22.5c-2.786 0-5.433-.608-7.812-1.7a.75.75 0 0 1-.437-.695Z" clip-rule="evenodd" />
-                </svg>
-            </a>
+            {# <a href="{{ url_for('frontend.profile_page') }}" ...> ... </a> #}
+            {# --- END DELETE --- #}
+
 
             {# === Desktop Navigation (Top Bar) === #}
             <nav id="main-navbar" class="bg-violet-800 shadow-md hidden md:block sticky top-0 z-50">
-                <div class="container mx-auto px-4">
+                {# ... desktop nav content ... #}
+                 <div class="container mx-auto px-4">
                     <ul class="flex justify-between items-center h-16 space-x-6 text-white">
                         <div class="flex items-center space-x-6">
                              <li><a href="{{ url_for('frontend.my_decks_page') }}" data-path="/my-decks" class="desktop-nav-link hover:text-violet-200 p-2 transition-colors duration-200">Decks</a></li>
@@ -47,8 +44,6 @@
                                     data-path="/profile"
                                     class="desktop-nav-link hover:text-violet-200 p-2 transition-colors duration-200 flex items-center gap-1.5"
                                     aria-label="User Profile">
-                                     {# === NEW: Solid User Icon SVG for Desktop === #}
-                                     {# Set fill directly for better contrast on dark nav, e.g., violet-400 #}
                                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#A78BFA" class="w-5 h-5">
                                        <path fill-rule="evenodd" d="M7.5 6a4.5 4.5 0 1 1 9 0 4.5 4.5 0 0 1-9 0ZM3.751 20.105a8.25 8.25 0 0 1 16.498 0 .75.75 0 0 1-.437.695A18.683 18.683 0 0 1 12 22.5c-2.786 0-5.433-.608-7.812-1.7a.75.75 0 0 1-.437-.695Z" clip-rule="evenodd" />
                                      </svg>
@@ -63,7 +58,8 @@
 
             {# === Mobile Navigation (Bottom Bar) === #}
             <nav id="mobile-navbar" class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg md:hidden z-50">
-                <ul class="flex justify-around items-center h-16 text-violet-700">
+                {# ... mobile nav content ... #}
+                 <ul class="flex justify-around items-center h-16 text-violet-700">
                     <li>
                         <a href="{{ url_for('frontend.my_decks_page') }}" data-path="/my-decks" class="mobile-nav-link relative flex flex-col items-center justify-center p-2 rounded-md transition-colors duration-200 hover:bg-violet-100" aria-label="Decks">
                              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" /></svg>
@@ -90,13 +86,40 @@
         {% endif %}
 
         {# === MAIN CONTENT AREA === #}
-        <main class="flex flex-grow {% if is_logged_in %}items-start{% else %}items-center justify-center{% endif %} container max-w-6xl mx-auto px-4 {% if is_logged_in %}py-3 md:pt-6 pb-16 md:pb-6{% else %}py-3{% endif %}">
-             {% block main %}{% endblock %}
+        <main class="flex-grow container max-w-6xl mx-auto px-4
+                {% if is_logged_in %}
+                    pt-3 md:pt-6 pb-16 md:pb-6 {# Padding for logged-in state #}
+                {% else %}
+                    py-3 flex items-center justify-center {# Padding and Flex Centering for logged-out state #}
+                {% endif %}">
+
+            {# --- Conditionally add header and wrapper for logged-in state --- #}
+            {% if is_logged_in %}
+                {% block page_header %}
+                    {# Child templates fill this #}
+                {% endblock %}
+                {# Start the wrapper div ONLY if logged in #}
+                <div class="w-full space-y-6">
+            {% endif %}
+
+            {# --- Define the main content block ONCE --- #}
+            {# This is where child template content (login form, profile cards, etc.) will be inserted #}
+            {% block main %}
+            {% endblock %}
+
+            {# --- Conditionally close the wrapper div --- #}
+            {% if is_logged_in %}
+                {# Close the wrapper div ONLY if logged in #}
+                </div>
+            {% endif %}
+            {# --- End Conditional Wrapper --- #}
+
         </main>
 
         {# === FOOTER AREA === #}
         <footer class="w-full text-center py-4 mt-auto">
-            <div class="container mx-auto px-4 text-xs text-gray-500">
+             {# ... footer content ... #}
+             <div class="container mx-auto px-4 text-xs text-gray-500">
                 © {% block copyright_year %}{{ current_year }}{% endblock %} TCG Tracker
                 <span class="mx-1">|</span>
                 Version: {{ app_version }}
@@ -104,8 +127,8 @@
         </footer>
 
         {# === OVERLAYS / MODALS / FIXED UI ELEMENTS === #}
-        {# ... (rest of your modals, flash messages, scroll to top button etc. remain unchanged) ... #}
-        <div id="flash-message-container" class="fixed inset-x-0 z-[60] flex justify-center pointer-events-none top-5 md:top-auto md:bottom-5">
+        {# ... modals, flash messages, scroll button etc. remain unchanged ... #}
+         <div id="flash-message-container" class="fixed inset-x-0 z-[60] flex justify-center pointer-events-none top-5 md:top-auto md:bottom-5">
              <div id="flash-message" class="hidden transform transition-all duration-300 ease-out opacity-0 translate-y-[-20px] md:translate-y-[20px] inline-flex items-center gap-2 px-4 py-3 text-sm text-white rounded-full shadow-lg pointer-events-auto max-w-[90%] md:max-w-md bg-red-500">
                 <span id="flash-message-text" class="break-words"></span>
                 <button type="button" id="flash-message-close" aria-label="Close message" class="ml-2 text-white opacity-80 hover:opacity-100 text-xl font-bold leading-none focus:outline-none">×</button>
@@ -118,7 +141,8 @@
             </svg>
         </button>
 
-        <div id="quickAddTagModal" class="fixed inset-0 bg-black bg-opacity-50 z-[70] flex items-center justify-center px-4 hidden" aria-labelledby="quickAddTagModalTitle" role="dialog" aria-modal="true">
+        {# ... other modals (quickAddTagModal, logMatchModal) ... #}
+         <div id="quickAddTagModal" class="fixed inset-0 bg-black bg-opacity-50 z-[70] flex items-center justify-center px-4 hidden" aria-labelledby="quickAddTagModalTitle" role="dialog" aria-modal="true">
              <div class="bg-white rounded-xl shadow-xl w-full max-w-sm p-5 space-y-4 transform transition-all scale-95 opacity-0">
                 <div class="flex items-center justify-between">
                     <h2 id="quickAddTagModalTitle" class="text-lg font-semibold text-gray-800">Add Tag to Item</h2>
@@ -195,12 +219,12 @@
         <script type="module" src="{{ url_for('static', filename='js/auth/auth.js') }}"></script>
         <script src="{{ url_for('static', filename='js/ui/menu.js') }}"></script>
         <script src="{{ url_for('static', filename='js/ui/flashMessages.js') }}"></script>
-
         <script>
+            // ScrollToTop script remains the same
             const scrollToTopBtn = document.getElementById('scrollToTopBtn');
             const scrollThreshold = 200;
-
-            if (scrollToTopBtn) {
+            // ... rest of scroll script
+             if (scrollToTopBtn) {
                 const toggleVisibility = () => {
                     if (window.scrollY > scrollThreshold) {
                         scrollToTopBtn.classList.remove('hidden');
