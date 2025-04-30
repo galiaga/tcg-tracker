@@ -1,3 +1,6 @@
+# backend/tests/matches/test_match_tags_api.py
+
+# --- Imports ---
 import pytest
 from flask_bcrypt import Bcrypt
 from sqlalchemy import select
@@ -6,51 +9,96 @@ from sqlalchemy.orm import selectinload
 from backend import db as _db
 from backend.models import User, Tag, Deck, UserDeck, DeckType, Match
 
+# --- Fixtures ---
+
+bcrypt = Bcrypt()
 
 @pytest.fixture(scope='function')
 def test_user(app, db):
-    bcrypt = Bcrypt(app)
+    email = "match_tags_testuser@example.com"
+    first_name = "MatchTag"
+    last_name = "User1"
     username = "match_tags_testuser_session"
     password = "password123"
     with app.app_context():
-        stmt = select(User).where(User.username == username)
-        user = _db.session.scalar(stmt)
+        user = _db.session.scalar(select(User).where(User.email == email.lower()))
+        if not user: user = _db.session.scalar(select(User).where(User.username == username))
+
         if not user:
             hashed_password = bcrypt.generate_password_hash(password).decode("utf-8")
-            user = User(username=username, password_hash=hashed_password)
+            user = User(
+                first_name=first_name,
+                last_name=last_name,
+                email=email.lower(),
+                username=username,
+                password_hash=hashed_password
+            )
             _db.session.add(user)
             _db.session.commit()
             _db.session.refresh(user)
+        else:
+            needs_update = False
+            if not user.first_name: user.first_name = first_name; needs_update = True
+            if not user.last_name: user.last_name = last_name; needs_update = True
+            if not user.email: user.email = email.lower(); needs_update = True # Ensure email exists
+            if not bcrypt.check_password_hash(user.password_hash, password):
+                 user.password_hash = bcrypt.generate_password_hash(password).decode("utf-8")
+                 needs_update = True
+            if needs_update:
+                 _db.session.commit()
+                 _db.session.refresh(user)
+
         yield {"user_obj": user, "password": password}
 
 
 @pytest.fixture(scope='function')
 def test_user_2(app, db):
-    bcrypt = Bcrypt(app)
+    email = "match_tags_testuser_2@example.com"
+    first_name = "MatchTag"
+    last_name = "User2"
     username = "match_tags_testuser_2_session"
     password = "password456"
     with app.app_context():
-        stmt = select(User).where(User.username == username)
-        user = _db.session.scalar(stmt)
+        user = _db.session.scalar(select(User).where(User.email == email.lower()))
+        if not user: user = _db.session.scalar(select(User).where(User.username == username))
+
         if not user:
             hashed_password = bcrypt.generate_password_hash(password).decode("utf-8")
-            user = User(username=username, password_hash=hashed_password)
+            user = User(
+                first_name=first_name,
+                last_name=last_name,
+                email=email.lower(),
+                username=username,
+                password_hash=hashed_password
+            )
             _db.session.add(user)
             _db.session.commit()
             _db.session.refresh(user)
+        else:
+            needs_update = False
+            if not user.first_name: user.first_name = first_name; needs_update = True
+            if not user.last_name: user.last_name = last_name; needs_update = True
+            if not user.email: user.email = email.lower(); needs_update = True
+            if not bcrypt.check_password_hash(user.password_hash, password):
+                 user.password_hash = bcrypt.generate_password_hash(password).decode("utf-8")
+                 needs_update = True
+            if needs_update:
+                 _db.session.commit()
+                 _db.session.refresh(user)
+
         yield {"user_obj": user, "password": password}
 
 
 @pytest.fixture(scope='function')
 def logged_in_client(client, test_user):
     login_resp = client.post('/api/auth/login', json={
-        'username': test_user["user_obj"].username,
+        'email': test_user["user_obj"].email, # Login via email
         'password': test_user["password"]
     })
     assert login_resp.status_code == 200
     csrf_resp = client.get('/api/auth/csrf_token')
     assert csrf_resp.status_code == 200
-    csrf_token = csrf_resp.get_json()['csrf_token']
+    csrf_token = csrf_resp.get_json().get('csrf_token')
     assert csrf_token is not None
     yield client, csrf_token
 
@@ -58,13 +106,13 @@ def logged_in_client(client, test_user):
 @pytest.fixture(scope='function')
 def logged_in_client_user_2(client, test_user_2):
     login_resp = client.post('/api/auth/login', json={
-        'username': test_user_2["user_obj"].username,
+        'email': test_user_2["user_obj"].email, # Login via email
         'password': test_user_2["password"]
     })
     assert login_resp.status_code == 200
     csrf_resp = client.get('/api/auth/csrf_token')
     assert csrf_resp.status_code == 200
-    csrf_token = csrf_resp.get_json()['csrf_token']
+    csrf_token = csrf_resp.get_json().get('csrf_token')
     assert csrf_token is not None
     yield client, csrf_token
 
@@ -96,10 +144,8 @@ def sample_deck_data_for_match(app, test_user):
         user_deck = None
 
         if not deck:
-            deck_type = _db.session.get(DeckType, 1)
-            if not deck_type:
-                deck_type = DeckType(id=1, name='Standard Sesh')
-                _db.session.add(deck_type)
+            deck_type = _db.session.get(DeckType, 1) or DeckType(id=1, name='Standard Sesh')
+            _db.session.merge(deck_type)
 
             deck = Deck(name=deck_name, deck_type_id=deck_type.id, user_id=user_id)
             _db.session.add(deck)
@@ -149,21 +195,19 @@ def match_with_tag_data(app, db, sample_match_data, sample_tags_data):
     with app.app_context():
         match_id = sample_match_data["id"]
         tag_id = sample_tags_data["match_comp_s"]
-        match = _db.session.get(Match, match_id)
+        match = _db.session.get(Match, match_id, options=[selectinload(Match.tags)])
         tag = _db.session.get(Tag, tag_id)
 
-        if match and tag:
-            _db.session.refresh(match)
-            if tag not in match.tags:
-                 match.tags.append(tag)
-                 _db.session.commit()
-        elif not match:
-            pytest.fail(f"Match with id {match_id} not found in fixture setup.")
-        elif not tag:
-             pytest.fail(f"Tag with id {tag_id} not found in fixture setup.")
+        if not match: pytest.fail(f"Match with id {match_id} not found in fixture setup.")
+        if not tag: pytest.fail(f"Tag with id {tag_id} not found in fixture setup.")
+
+        if tag not in match.tags:
+             match.tags.append(tag)
+             _db.session.commit()
 
         yield {"match_id": match_id, "tag_id": tag_id}
 
+# --- Test Cases: Add Tag ---
 
 def test_add_tag_to_match_success(app, db, logged_in_client, sample_match_data, sample_tags_data):
     client, csrf_token = logged_in_client
@@ -286,6 +330,7 @@ def test_add_tag_to_match_unauthenticated(client, sample_match_data, sample_tags
     response = client.post(f"/api/matches/{match_id}/tags", json=payload)
     assert response.status_code == 401
 
+# --- Test Cases: Remove Tag ---
 
 def test_remove_tag_from_match_success(app, db, logged_in_client, match_with_tag_data):
     client, csrf_token = logged_in_client
