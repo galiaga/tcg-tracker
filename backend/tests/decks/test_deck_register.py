@@ -6,34 +6,75 @@ from sqlalchemy import select
 
 @pytest.fixture(scope='function')
 def test_user(app):
-    bcrypt = Bcrypt(app)
+    """Creates or retrieves a test user required for deck registration tests."""
+    bcrypt = Bcrypt(app) # Initialize Bcrypt within the fixture scope if needed
     username = "decktestuser_session"
+    email = "decktestuser@example.com" # Add a default email
+    first_name = "DeckTest" # Add first name
+    last_name = "User" # Add last name
     password = "password123"
+
     with app.app_context():
-        user = _db.session.scalar(select(User).where(User.username == username))
+        # Try finding by email first, as it's the primary identifier now
+        user = _db.session.scalar(select(User).where(User.email == email.lower()))
         if not user:
+            # If not found by email, check by username (in case it exists from old tests)
+            user = _db.session.scalar(select(User).where(User.username == username))
+
+        if not user:
+            # User doesn't exist, create a new one
+            print(f"\nDEBUG: Creating user for deck tests: {email}")
             hashed_password = bcrypt.generate_password_hash(password).decode("utf-8")
-            user = User(username=username, password_hash=hashed_password)
+            user = User(
+                first_name=first_name, # Provide first_name
+                last_name=last_name,   # Provide last_name
+                email=email.lower(),   # Provide email
+                username=username,     # Provide optional username
+                password_hash=hashed_password
+            )
             _db.session.add(user)
             _db.session.commit()
-            _db.session.refresh(user)
+            _db.session.refresh(user) # Ensure the user object has its ID etc.
+        else:
+            # User exists, ensure names are set (might be needed if migrating tests)
+            print(f"\nDEBUG: Found existing user for deck tests: {user.email}")
+            needs_update = False
+            if not user.first_name:
+                user.first_name = first_name
+                needs_update = True
+            if not user.last_name:
+                user.last_name = last_name
+                needs_update = True
+            # Ensure password is known for login (update if necessary)
+            if not bcrypt.check_password_hash(user.password_hash, password):
+                 print(f"\nWARN: Updating password for existing test user {user.email}")
+                 user.password_hash = bcrypt.generate_password_hash(password).decode("utf-8")
+                 needs_update = True
+
+            if needs_update:
+                 _db.session.commit()
+                 _db.session.refresh(user)
+
+        # Yield user object and password for login
         yield {"user_obj": user, "password": password}
 
 @pytest.fixture(scope='function')
 def logged_in_client(client, test_user):
-
+    """Logs in the test user and provides the client and CSRF token."""
+    # --- Login using EMAIL now ---
     login_resp = client.post('/api/auth/login', json={
-        'username': test_user["user_obj"].username,
+        'email': test_user["user_obj"].email, # Use email for login
         'password': test_user["password"]
     })
-    assert login_resp.status_code == 200
+    # --- End Change ---
+    assert login_resp.status_code == 200, f"Login failed: {login_resp.get_data(as_text=True)}"
 
     csrf_resp = client.get('/api/auth/csrf_token')
-    assert csrf_resp.status_code == 200
-    csrf_token = csrf_resp.get_json()['csrf_token']
-    assert csrf_token is not None
+    assert csrf_resp.status_code == 200, f"CSRF token fetch failed: {csrf_resp.get_data(as_text=True)}"
+    csrf_token = csrf_resp.get_json().get('csrf_token') # Use .get() for safety
+    assert csrf_token is not None, "CSRF token was not found in response."
 
-    yield client, csrf_token 
+    yield client, csrf_token # Return client and token
 
 
 @pytest.fixture(scope='function')

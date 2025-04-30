@@ -18,20 +18,50 @@
     {# === BODY SECTION === #}
     <body class="bg-gray-100 min-h-screen flex flex-col">
 
-        {# === CONDITIONAL NAVIGATION (LOGGED IN) === #}
+        {# === CONDITIONAL NAVIGATION & ELEMENTS (LOGGED IN) === #}
         {% if is_logged_in %}
+
+            {# === Mobile Profile Icon (Top Right) === #}
+            {# Added text-violet-700 to set the SVG fill color via currentColor #}
+            <a href="{{ url_for('frontend.profile_page') }}"
+               aria-label="User Profile"
+               class="fixed top-3 right-4 z-50 md:hidden bg-violet-100 text-violet-700 rounded-full p-2 shadow hover:bg-violet-200 transition-colors">
+                {# === NEW: Solid User Icon SVG === #}
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6">
+                  <path fill-rule="evenodd" d="M7.5 6a4.5 4.5 0 1 1 9 0 4.5 4.5 0 0 1-9 0ZM3.751 20.105a8.25 8.25 0 0 1 16.498 0 .75.75 0 0 1-.437.695A18.683 18.683 0 0 1 12 22.5c-2.786 0-5.433-.608-7.812-1.7a.75.75 0 0 1-.437-.695Z" clip-rule="evenodd" />
+                </svg>
+            </a>
+
+            {# === Desktop Navigation (Top Bar) === #}
             <nav id="main-navbar" class="bg-violet-800 shadow-md hidden md:block sticky top-0 z-50">
                 <div class="container mx-auto px-4">
                     <ul class="flex justify-between items-center h-16 space-x-6 text-white">
-                        <li id="nav-username" class="text-lg font-semibold">Hey, {{ user.username }}!</li>
-                        <li><a href="{{ url_for('frontend.my_decks_page') }}" data-path="/my-decks" class="desktop-nav-link hover:text-violet-200 p-2 transition-colors duration-200">Decks</a></li>
-                        <li><a href="{{ url_for('frontend.matches_history') }}" data-path="/matches-history" class="desktop-nav-link hover:text-violet-200 p-2 transition-colors duration-200">Matches</a></li>
-                        <li><a href="{{ url_for('frontend.my_tags_page') }}" data-path="/my-tags" class="desktop-nav-link hover:text-violet-200 p-2 transition-colors duration-200">Tags</a></li>
-                        <li><a href="#" id="nav-logout" class="desktop-nav-link hover:text-violet-200 p-2 transition-colors duration-200">Logout</a></li>
+                        <div class="flex items-center space-x-6">
+                             <li><a href="{{ url_for('frontend.my_decks_page') }}" data-path="/my-decks" class="desktop-nav-link hover:text-violet-200 p-2 transition-colors duration-200">Decks</a></li>
+                             <li><a href="{{ url_for('frontend.matches_history') }}" data-path="/matches-history" class="desktop-nav-link hover:text-violet-200 p-2 transition-colors duration-200">Matches</a></li>
+                             <li><a href="{{ url_for('frontend.my_tags_page') }}" data-path="/my-tags" class="desktop-nav-link hover:text-violet-200 p-2 transition-colors duration-200">Tags</a></li>
+                        </div>
+                        <div class="flex items-center space-x-6">
+                             <li>
+                                 <a href="{{ url_for('frontend.profile_page') }}"
+                                    data-path="/profile"
+                                    class="desktop-nav-link hover:text-violet-200 p-2 transition-colors duration-200 flex items-center gap-1.5"
+                                    aria-label="User Profile">
+                                     {# === NEW: Solid User Icon SVG for Desktop === #}
+                                     {# Set fill directly for better contrast on dark nav, e.g., violet-400 #}
+                                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#A78BFA" class="w-5 h-5">
+                                       <path fill-rule="evenodd" d="M7.5 6a4.5 4.5 0 1 1 9 0 4.5 4.5 0 0 1-9 0ZM3.751 20.105a8.25 8.25 0 0 1 16.498 0 .75.75 0 0 1-.437.695A18.683 18.683 0 0 1 12 22.5c-2.786 0-5.433-.608-7.812-1.7a.75.75 0 0 1-.437-.695Z" clip-rule="evenodd" />
+                                     </svg>
+                                     <span>{{ user.first_name }}</span>
+                                 </a>
+                             </li>
+                             <li><a href="#" id="nav-logout" class="desktop-nav-link hover:text-violet-200 p-2 transition-colors duration-200">Logout</a></li>
+                        </div>
                     </ul>
                 </div>
             </nav>
 
+            {# === Mobile Navigation (Bottom Bar) === #}
             <nav id="mobile-navbar" class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg md:hidden z-50">
                 <ul class="flex justify-around items-center h-16 text-violet-700">
                     <li>
@@ -55,25 +85,18 @@
                             <span class="text-xs font-medium">Tags</span>
                         </a>
                     </li>
-                    <li>
-                        <button type="button" id="mobile-nav-logout" class="flex flex-col items-center justify-center p-2 text-red-600 rounded-md transition-colors duration-200 hover:bg-red-100" aria-label="Logout">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
-                            <span class="text-xs font-medium">Logout</span>
-                        </button>
-                    </li>
                 </ul>
             </nav>
         {% endif %}
 
         {# === MAIN CONTENT AREA === #}
-        <main class="flex flex-grow {% if is_logged_in %}items-start{% else %}items-center justify-center{% endif %} container max-w-6xl mx-auto px-4 py-6 {% if is_logged_in %}md:pt-6 pb-16 md:pb-6{% endif %}">
+        <main class="flex flex-grow {% if is_logged_in %}items-start{% else %}items-center justify-center{% endif %} container max-w-6xl mx-auto px-4 {% if is_logged_in %}py-3 md:pt-6 pb-16 md:pb-6{% else %}py-3{% endif %}">
              {% block main %}{% endblock %}
         </main>
 
         {# === FOOTER AREA === #}
         <footer class="w-full text-center py-4 mt-auto">
             <div class="container mx-auto px-4 text-xs text-gray-500">
-                 {# Use the dynamic year from the context processor #}
                 © {% block copyright_year %}{{ current_year }}{% endblock %} TCG Tracker
                 <span class="mx-1">|</span>
                 Version: {{ app_version }}
@@ -81,6 +104,7 @@
         </footer>
 
         {# === OVERLAYS / MODALS / FIXED UI ELEMENTS === #}
+        {# ... (rest of your modals, flash messages, scroll to top button etc. remain unchanged) ... #}
         <div id="flash-message-container" class="fixed inset-x-0 z-[60] flex justify-center pointer-events-none top-5 md:top-auto md:bottom-5">
              <div id="flash-message" class="hidden transform transition-all duration-300 ease-out opacity-0 translate-y-[-20px] md:translate-y-[20px] inline-flex items-center gap-2 px-4 py-3 text-sm text-white rounded-full shadow-lg pointer-events-auto max-w-[90%] md:max-w-md bg-red-500">
                 <span id="flash-message-text" class="break-words"></span>

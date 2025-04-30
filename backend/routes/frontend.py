@@ -33,6 +33,13 @@ def get_current_user_for_page_load():
 
 # --- Protected Routes ---
 
+@frontend_bp.route("/decks/<deck_id_slug>", methods=["GET"])
+def deck_details_page(deck_id_slug):
+    current_user, is_logged_in = get_current_user_for_page_load()
+    if not is_logged_in:
+        return redirect(url_for("frontend.login_page"))
+    return render_template("decks/deck_details.html", is_logged_in=is_logged_in, user=current_user, deck_id_slug=deck_id_slug)
+
 @frontend_bp.route("/", methods=["GET"])
 def index_page():
     current_user, is_logged_in = get_current_user_for_page_load()
@@ -47,12 +54,19 @@ def matches_history():
         return redirect(url_for("frontend.login_page"))
     return render_template("matches-history.html", is_logged_in=is_logged_in, user=current_user)
 
-@frontend_bp.route("/decks/<deck_id_slug>", methods=["GET"])
-def deck_details_page(deck_id_slug):
+@frontend_bp.route("/my-decks", methods=["GET"])
+def my_decks_page():
     current_user, is_logged_in = get_current_user_for_page_load()
     if not is_logged_in:
         return redirect(url_for("frontend.login_page"))
-    return render_template("decks/deck_details.html", is_logged_in=is_logged_in, user=current_user, deck_id_slug=deck_id_slug)
+    return render_template("my-decks.html", is_logged_in=is_logged_in, user=current_user)
+
+@frontend_bp.route("/my-profile", methods=["GET"])
+def profile_page():
+    current_user, is_logged_in = get_current_user_for_page_load()
+    if not is_logged_in:
+        return redirect(url_for("frontend.login_page"))
+    return render_template("my-profile.html", is_logged_in=is_logged_in, user=current_user)
 
 @frontend_bp.route("/my-tags", methods=["GET"])
 def my_tags_page():
@@ -60,13 +74,6 @@ def my_tags_page():
     if not is_logged_in:
         return redirect(url_for("frontend.login_page"))
     return render_template("my-tags.html", is_logged_in=is_logged_in, user=current_user)
-
-@frontend_bp.route("/my-decks", methods=["GET"])
-def my_decks_page():
-    current_user, is_logged_in = get_current_user_for_page_load()
-    if not is_logged_in:
-        return redirect(url_for("frontend.login_page"))
-    return render_template("my-decks.html", is_logged_in=is_logged_in, user=current_user)
 
 # --- Public Routes ---
 

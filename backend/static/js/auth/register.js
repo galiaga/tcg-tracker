@@ -2,6 +2,8 @@
 
 // --- Import Shared Utilities ---
 import { validatePasswordComplexity } from '../utils/validation-utils.js';
+// Assuming showFlashMessage is globally available (e.g., defined in flashMessages.js loaded in layout.html)
+// If not, you might need to import it if it's modularized.
 
 // --- DOM Ready Event Listener ---
 document.addEventListener("DOMContentLoaded", function () {
@@ -14,22 +16,25 @@ document.addEventListener("DOMContentLoaded", function () {
             event.preventDefault();
 
             passwordErrorDiv.innerHTML = '';
-            // clearFlashMessages(); // Assumes a function to clear general flash messages exists
+            // clearFlashMessages(); // Call your function to clear general flash messages if needed
 
             // --- Get Input Values ---
-            const usernameInput = document.getElementById("username");
+            const firstNameInput = document.getElementById("first_name"); // New
+            const lastNameInput = document.getElementById("last_name");   // New
             const emailInput = document.getElementById("email");
             const passwordInput = document.getElementById("password");
             const confirmationInput = document.getElementById("confirmation");
 
-            const username = usernameInput.value.trim();
+            const firstName = firstNameInput.value.trim(); // New
+            const lastName = lastNameInput.value.trim();   // New
             const email = emailInput.value.trim();
             const password = passwordInput.value;
             const confirmation = confirmationInput.value;
 
             // --- Frontend Validation (Basic Checks) ---
-            if (!username || !email || !password || !confirmation) {
-                 showFlashMessage("All fields (username, email, password, confirmation) are required.", "warning");
+            // Updated required fields check
+            if (!firstName || !lastName || !email || !password || !confirmation) {
+                 showFlashMessage("All fields (first name, last name, email, password, confirmation) are required.", "warning");
                  return;
             }
             if (password !== confirmation) {
@@ -40,47 +45,30 @@ document.addEventListener("DOMContentLoaded", function () {
             // --- Frontend Validation (Password Complexity) ---
             const complexityResult = validatePasswordComplexity(password);
             if (!complexityResult.isValid) {
+                // (Keep existing password complexity display logic)
                 const errorList = document.createElement('ul');
-                // Remove list-disc/list-inside, add spacing between items
-                errorList.className = 'space-y-1.5'; // Adjust spacing as needed (e.g., space-y-1, space-y-2)
-            
+                errorList.className = 'space-y-1.5';
                 complexityResult.errors.forEach(errorText => {
                     const listItem = document.createElement('li');
-                    // Use flexbox to align icon and text
-                    listItem.className = 'flex items-start text-sm'; 
-            
-                    // Create the icon wrapper (adjust color and size here)
+                    listItem.className = 'flex items-start text-sm';
                     const iconWrapper = document.createElement('span');
-                    iconWrapper.className = 'flex-shrink-0 mr-1.5 mt-0.5'; 
-            
-                    // --- Icon Color Choice ---
-                    iconWrapper.classList.add('text-red-500');
-            
+                    iconWrapper.className = 'flex-shrink-0 mr-1.5 mt-0.5 text-red-500';
                     iconWrapper.innerHTML = `
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
                           <path stroke-linecap="round" stroke-linejoin="round" d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
-                    `; 
-            
-                    // Create the text span (use a softer red or keep the original red)
+                    `;
                     const textSpan = document.createElement('span');
                     textSpan.className = 'text-red-600';
                     textSpan.textContent = errorText;
-            
-                    // Append icon and text to the list item
                     listItem.appendChild(iconWrapper);
                     listItem.appendChild(textSpan);
-            
-                    // Append the list item to the list
                     errorList.appendChild(listItem);
                 });
-            
-                // Clear previous errors and append the new list
-                passwordErrorDiv.innerHTML = ''; // Clear previous content
+                passwordErrorDiv.innerHTML = '';
                 passwordErrorDiv.appendChild(errorList);
                 return;
             } else {
-                // Clear errors if valid
                 passwordErrorDiv.innerHTML = '';
             }
 
@@ -98,35 +86,46 @@ document.addEventListener("DOMContentLoaded", function () {
                     headers: {
                         "Content-Type": "application/json",
                         "Accept": "application/json"
+                        // Include CSRF token if your setup requires it for POST
+                        // 'X-CSRFToken': getCsrfToken() // Assuming a function to get it
                     },
-                    body: JSON.stringify({ username, email, password, confirmation }),
+                    // Updated request body
+                    body: JSON.stringify({
+                        first_name: firstName, // Use snake_case for backend
+                        last_name: lastName,   // Use snake_case for backend
+                        email,
+                        password,
+                        confirmation
+                        // No username sent here
+                    }),
                 });
 
                 // --- Response Handling ---
                 if (response.ok) {
                     const data = await response.json();
-                    sessionStorage.setItem("flashMessage", `Welcome ${data.username || username}! Registration successful.`);
+                    // Updated success message using first name from response
+                    sessionStorage.setItem("flashMessage", `Welcome ${data.user?.first_name || firstName}! Registration successful.`);
                     sessionStorage.setItem("flashType", "success");
-                    window.location.href = "/login";
+                    // Redirect to login or dashboard? Login seems appropriate after register.
+                    window.location.href = "/login"; // Or use url_for('frontend.login_page') if passing via template
                 } else {
+                    // (Keep existing error handling logic, but remove username specific parts if any)
                     let errorMessage = "Registration failed. Please try again.";
                     let messageType = "error";
 
                     if (response.status === 429) {
                         console.warn('Rate limit exceeded for registration');
                         errorMessage = 'Too many registration attempts. Please wait a while and try again.';
-                        try {
-                            const errorData = await response.json();
-                            errorMessage = errorData.message || errorData.error || errorMessage;
-                        } catch (e) { /* Ignore JSON parsing error */ }
+                        try { const errorData = await response.json(); errorMessage = errorData.message || errorData.error || errorMessage; } catch (e) { /* Ignore */ }
                     } else {
                         try {
                             const errorData = await response.json();
                             errorMessage = errorData.error || `Registration failed (Status: ${response.status})`;
 
                             if (errorData.type === "VALIDATION_ERROR" && errorData.details && Array.isArray(errorData.details)) {
+                                // (Keep password error display logic)
                                 const errorList = document.createElement('ul');
-                                errorList.className = 'list-disc list-inside text-red-600 text-sm mt-1';
+                                errorList.className = 'list-disc list-inside text-red-600 text-sm mt-1'; // Adjust styling if needed
                                 errorData.details.forEach(errorText => {
                                     const listItem = document.createElement('li');
                                     listItem.textContent = errorText;
@@ -134,11 +133,11 @@ document.addEventListener("DOMContentLoaded", function () {
                                 });
                                 passwordErrorDiv.appendChild(errorList);
                                 errorMessage = "Please correct the password errors listed above.";
-                            } else if (errorData.type === "DUPLICATE_USERNAME") {
-                                console.warn("Duplicate username detected by backend");
                             } else if (errorData.type === "DUPLICATE_EMAIL") {
                                 console.warn("Duplicate email detected by backend");
+                                // You might want to highlight the email field or show a specific message
                             }
+                            // No need to specifically handle DUPLICATE_USERNAME here anymore
 
                         } catch (e) {
                             errorMessage = `Registration failed (Status: ${response.status})`;
