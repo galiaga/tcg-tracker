@@ -10,17 +10,8 @@ import sys
 # --- Ensure models are imported ---
 sys.path.insert(0, os.path.realpath(os.path.join(os.path.dirname(__file__), '..')))
 try:
-    # Import directly from the modules where models are defined
-    from backend.models import user # Assuming User is in user.py
-    from backend.models import deck # Assuming Deck is in deck.py
-    from backend.models import deck_type # Assuming DeckType is in deck_type.py
-    from backend.models import commanders # Assuming Commander is in commanders.py
-    from backend.models import commander_deck # Assuming CommanderDeck is in commander_deck.py
-    from backend.models import match # Assuming Match is in match.py
-    from backend.models import tag # Assuming Tag is in tag.py
-    from backend.models import user_deck # Assuming UserDeck is in user_deck.py
-    # Add any other model files if they exist
-    print("INFO: Model modules imported explicitly in env.py")
+    import backend.models # Or: from backend import models
+    print("INFO: backend.models package imported in env.py")
 except ImportError as e:
     print(f"ERROR: Failed to import models: {e}")
     sys.exit(1)
