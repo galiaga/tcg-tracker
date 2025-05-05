@@ -7,12 +7,12 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from datetime import timedelta, date
 from flask_session import Session
-import secrets
 from werkzeug.middleware.proxy_fix import ProxyFix
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from flask_bcrypt import Bcrypt
 from itsdangerous import URLSafeTimedSerializer
+from flask_wtf.csrf import CSRFProtect
 from dotenv import load_dotenv
 import sys
 import logging
@@ -23,6 +23,7 @@ migrate = Migrate()
 server_session = Session()
 limiter = Limiter(key_func=get_remote_address)
 bcrypt = Bcrypt()
+csrf = CSRFProtect()
 load_dotenv()
 
 # --- Helper Functions ---
@@ -175,6 +176,10 @@ def create_app(config_name=None):
         app.config['RATELIMIT_STORAGE_URL'] = limiter_storage_uri
         limiter.init_app(app) # Initialize Flask-Limiter
 
+     # ---> INITIALIZE CSRFProtect HERE <---
+    csrf.init_app(app)
+    print("INFO: CSRF Protection Initialized.") # Log confirmation
+    
     # --- Error Handlers ---
     @app.errorhandler(429)
     def ratelimit_handler(e):
@@ -199,13 +204,6 @@ def create_app(config_name=None):
             app_version=app.config.get('APP_VERSION', 'unknown'),
             current_year=date.today().year
         )
-
-    # --- Request Hooks ---
-    @app.before_request
-    def generate_csrf_token():
-        """Generate CSRF token if not present in session."""
-        if 'csrf_token' not in session:
-            session['csrf_token'] = secrets.token_hex(16)
 
     # --- Blueprint Registration ---
     try:

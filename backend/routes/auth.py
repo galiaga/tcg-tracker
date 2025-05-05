@@ -4,24 +4,24 @@
 from flask import Blueprint, request, jsonify, current_app, session, url_for, render_template
 from flask_bcrypt import Bcrypt
 from sqlalchemy.exc import IntegrityError
-from backend import db, limiter
+from backend import db, limiter, csrf
 from backend.models.user import User # User model now has first_name, last_name, etc.
 from backend.utils.decorators import login_required
 from backend.utils.validation import validate_password_strength_backend
 from email_validator import validate_email, EmailNotValidError
-import secrets
 from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadTimeSignature
+from flask_wtf.csrf import generate_csrf
 import smtplib
 from email.message import EmailMessage
 from email import policy
 
 # --- Blueprint and Bcrypt Setup ---
 auth_bp = Blueprint("auth", __name__, url_prefix="/api/auth")
-bcrypt = Bcrypt() # Assuming Bcrypt is initialized in your app factory (__init__.py)
+bcrypt = Bcrypt()
+csrf.exempt(auth_bp)
 
 # --- Helper Functions ---
 def send_password_reset_email_manual(user):
-    # (Keep this function as is - it already uses email)
     try:
         s = current_app.password_reset_serializer
         if not s:
@@ -196,9 +196,6 @@ def register():
     session.clear()
     session['user_id'] = new_user.id
     # Store full name or first name for potential greeting? Optional.
-    # session['user_full_name'] = new_user.full_name
-    if 'csrf_token' not in session:
-        session['csrf_token'] = secrets.token_hex(16)
     session.permanent = True # Make session persistent
 
     current_app.logger.info(f"User {new_user.full_name} (ID: {new_user.id}) registered and logged in successfully.")
@@ -237,9 +234,6 @@ def login():
         # --- Login Success ---
         session.clear()
         session['user_id'] = user.id
-        # session['user_full_name'] = user.full_name # Optional: store name if needed often
-        if 'csrf_token' not in session:
-            session['csrf_token'] = secrets.token_hex(16)
         session.permanent = True
         current_app.logger.info(f"User {user.full_name} (ID: {user.id}) logged in successfully via email.")
         # Return relevant user info
@@ -362,14 +356,10 @@ def logout():
 # --- CSRF Token Route ---
 # (No changes needed - uses user_id)
 @auth_bp.route("/csrf_token", methods=["GET"])
+@login_required
 def get_csrf_token():
-    if not session.get("user_id"):
-        return jsonify({"error": "Not authenticated"}), 401
-    token = session.get("csrf_token")
-    if not token:
-        token = secrets.token_hex(16)
-        session['csrf_token'] = token
-        current_app.logger.warning(f"CSRF token requested by user {session.get('user_id')} but none found in session; generated new one.")
+    token = generate_csrf()
+    current_app.logger.debug(f"Generated/Retrieved CSRF token for user {session.get('user_id')}")
     return jsonify({"csrf_token": token}), 200
 
 

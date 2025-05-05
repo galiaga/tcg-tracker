@@ -103,7 +103,7 @@ async function handleLogMatchSubmit(event) {
 
     const payload = {
         deck_id: parseInt(deckId, 10),
-        match_result: parseInt(resultValue, 10)
+        result: parseInt(resultValue, 10)
     };
 
     const resultMapping = { "0": "Victory", "1": "Defeat", "2": "Draw" };

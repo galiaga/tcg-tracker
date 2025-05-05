@@ -1,9 +1,11 @@
 # backend/models/tag.py
 
 from backend import db
-from sqlalchemy.sql import func, text # Import text
-from sqlalchemy import UniqueConstraint, Boolean, DateTime, Index # Import Boolean, DateTime, Index
+from sqlalchemy.sql import func, text
+from sqlalchemy.orm import relationship
+from sqlalchemy import UniqueConstraint, Boolean, DateTime, Index
 from datetime import datetime, timezone
+from .logged_match import match_tags
 
 # --- Association Tables (No changes needed here) ---
 deck_tags = db.Table('deck_tags',
@@ -11,10 +13,6 @@ deck_tags = db.Table('deck_tags',
     db.Column('tag_id', db.Integer, db.ForeignKey('tags.id', ondelete='CASCADE'), primary_key=True)  # Consider CASCADE if Tag is hard-deleted
 )
 
-match_tags = db.Table('match_tags',
-    db.Column('match_id', db.Integer, db.ForeignKey('matches.id', ondelete='CASCADE'), primary_key=True), # Consider CASCADE if Tag is hard-deleted
-    db.Column('tag_id', db.Integer, db.ForeignKey('tags.id', ondelete='CASCADE'), primary_key=True)   # Consider CASCADE if Tag is hard-deleted
-)
 # NOTE: ON DELETE CASCADE on association tables is good practice even with soft delete on the Tag model,
 # in case you ever *do* decide to hard delete a Tag later (e.g., for GDPR compliance or cleanup).
 # It ensures the links are removed if the Tag row disappears.
@@ -50,10 +48,10 @@ class Tag(db.Model):
         secondary=deck_tags,
         back_populates="tags"
     )
-    matches = db.relationship(
-        "Match",
-        secondary=match_tags,
-        back_populates="tags"
+    logged_matches = relationship(
+        "LoggedMatch", # Use the new class name
+        secondary=match_tags, # Use the imported table definition
+        back_populates="tags" # Point back to the 'tags' attribute in LoggedMatch
     )
 
     # --- Table Arguments ---

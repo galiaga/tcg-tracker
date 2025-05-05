@@ -3,7 +3,7 @@
 from backend.database import db
 from .user import User
 from .deck import Deck
-from .match import Match
+from .logged_match import LoggedMatch, LoggedMatchResult, match_tags
 from .user_deck import UserDeck
 from .commanders import Commander
 from .commander_deck import CommanderDeck
@@ -18,8 +18,10 @@ __all__ = [
     'Commander',
     'CommanderDeck',
     'Tag',
+    'LoggedMatch',
+    'LoggedMatchResult',
     'UserDeck',
-    'Match',
     'Tournament',
     'TournamentParticipant',
+
 ]
