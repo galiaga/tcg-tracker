@@ -30,7 +30,7 @@ async function getCsrfToken() {
 function updatePageTitle(newTitle) { document.title = `TCG Tracker: ${newTitle}`; }
 
 async function quickLogMatch(deckId, resultValue) {
-    const payload = { deck_id: parseInt(deckId, 10), match_result: parseInt(resultValue, 10) };
+    const payload = { deck_id: parseInt(deckId, 10), result: parseInt(resultValue, 10) };
     const resultMapping = { "0": "Win", "1": "Loss", "2": "Draw" };
     const resultText = resultMapping[resultValue] ?? 'Result';
 

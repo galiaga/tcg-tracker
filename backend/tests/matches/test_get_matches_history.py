@@ -1,230 +1,177 @@
-# backend/tests/matches/test_get_matches_history.py
+# backend/tests/matches/test_match_tags_api.py
 
 # --- Imports ---
 import pytest
 from flask_bcrypt import Bcrypt
-from sqlalchemy import select
+from sqlalchemy import select, delete
 from sqlalchemy.orm import selectinload
+from datetime import datetime, timezone
+import logging
 
 from backend import db as _db
-from backend.models import User, Tag, Deck, UserDeck, DeckType, Match
+from backend.models import User, Tag, Deck, DeckType, LoggedMatch, Commander
 
 # --- Fixtures ---
 
-bcrypt = Bcrypt() # Initialize Bcrypt globally for fixtures
+bcrypt = Bcrypt()
+logger = logging.getLogger(__name__)
+
+# NOTE: Assuming test_user, test_user_2, logged_in_client, logged_in_client_user_2
+#       are correctly defined in conftest.py now.
 
 @pytest.fixture(scope='function')
-def test_user(app, db):
-    """Creates or retrieves the primary test user."""
-    email = "match_tags_testuser@example.com" # Use email
-    first_name = "MatchTag"
-    last_name = "User1"
-    username = "match_tags_testuser_session" # Keep for fallback/completeness
-    password = "password123"
-    with app.app_context():
-        user = _db.session.scalar(select(User).where(User.email == email.lower()))
-        if not user: user = _db.session.scalar(select(User).where(User.username == username)) # Fallback
-
-        if not user:
-            print(f"\nDEBUG: Creating user for match_tags tests: {email}")
-            hashed_password = bcrypt.generate_password_hash(password).decode("utf-8")
-            user = User(
-                first_name=first_name,
-                last_name=last_name,
-                email=email.lower(),
-                username=username,
-                password_hash=hashed_password
-            )
-            _db.session.add(user)
-            _db.session.commit()
-            _db.session.refresh(user)
-        else:
-            print(f"\nDEBUG: Found existing user for match_tags tests: {user.email}")
-            needs_update = False
-            if not user.first_name: user.first_name = first_name; needs_update = True
-            if not user.last_name: user.last_name = last_name; needs_update = True
-            if not bcrypt.check_password_hash(user.password_hash, password):
-                 print(f"\nWARN: Updating password for existing test user {user.email}")
-                 user.password_hash = bcrypt.generate_password_hash(password).decode("utf-8")
-                 needs_update = True
-            if needs_update:
-                 _db.session.commit()
-                 _db.session.refresh(user)
-
-        yield {"user_obj": user, "password": password}
-
-
-@pytest.fixture(scope='function')
-def test_user_2(app, db):
-    """Creates or retrieves the secondary test user."""
-    email = "match_tags_testuser_2@example.com" # Use email
-    first_name = "MatchTag"
-    last_name = "User2"
-    username = "match_tags_testuser_2_session" # Keep for fallback/completeness
-    password = "password456"
-    with app.app_context():
-        user = _db.session.scalar(select(User).where(User.email == email.lower()))
-        if not user: user = _db.session.scalar(select(User).where(User.username == username)) # Fallback
-
-        if not user:
-            print(f"\nDEBUG: Creating user 2 for match_tags tests: {email}")
-            hashed_password = bcrypt.generate_password_hash(password).decode("utf-8")
-            user = User(
-                first_name=first_name,
-                last_name=last_name,
-                email=email.lower(),
-                username=username,
-                password_hash=hashed_password
-            )
-            _db.session.add(user)
-            _db.session.commit()
-            _db.session.refresh(user)
-        else:
-            print(f"\nDEBUG: Found existing user 2 for match_tags tests: {user.email}")
-            needs_update = False
-            if not user.first_name: user.first_name = first_name; needs_update = True
-            if not user.last_name: user.last_name = last_name; needs_update = True
-            if not bcrypt.check_password_hash(user.password_hash, password):
-                 print(f"\nWARN: Updating password for existing test user 2 {user.email}")
-                 user.password_hash = bcrypt.generate_password_hash(password).decode("utf-8")
-                 needs_update = True
-            if needs_update:
-                 _db.session.commit()
-                 _db.session.refresh(user)
-
-        yield {"user_obj": user, "password": password}
-
-
-@pytest.fixture(scope='function')
-def logged_in_client(client, test_user):
-    """Logs in the primary test user."""
-    login_resp = client.post('/api/auth/login', json={
-        'email': test_user["user_obj"].email, # Login via email
-        'password': test_user["password"]
-    })
-    assert login_resp.status_code == 200, f"Login failed for user 1: {login_resp.get_data(as_text=True)}"
-    csrf_resp = client.get('/api/auth/csrf_token')
-    assert csrf_resp.status_code == 200, "CSRF token fetch failed for user 1"
-    csrf_token = csrf_resp.get_json().get('csrf_token')
-    assert csrf_token is not None, "CSRF token missing for user 1"
-    yield client, csrf_token
-
-
-@pytest.fixture(scope='function')
-def logged_in_client_user_2(client, test_user_2):
-    """Logs in the secondary test user."""
-    login_resp = client.post('/api/auth/login', json={
-        'email': test_user_2["user_obj"].email, # Login via email
-        'password': test_user_2["password"]
-    })
-    assert login_resp.status_code == 200, f"Login failed for user 2: {login_resp.get_data(as_text=True)}"
-    csrf_resp = client.get('/api/auth/csrf_token')
-    assert csrf_resp.status_code == 200, "CSRF token fetch failed for user 2"
-    csrf_token = csrf_resp.get_json().get('csrf_token')
-    assert csrf_token is not None, "CSRF token missing for user 2"
-    yield client, csrf_token
-
-
-@pytest.fixture(scope='function')
-def sample_tags_data(app, test_user):
+def sample_tags_data(app, db, test_user):
     """Sets up sample tags for the primary test user."""
     user_id = test_user["user_obj"].id
     with app.app_context():
         tags = {}
-        tag_names = ["match_comp_s", "match_budget_s", "match_test_s", "user2matchtag_s"]
+        tag_names = ["mt_api_comp", "mt_api_budget", "mt_api_test", "mt_api_user2tag"]
+        needs_commit = False
         for name in tag_names:
              stmt = select(Tag).where(Tag.user_id == user_id, Tag.name == name)
-             tag = _db.session.scalars(stmt).first()
+             tag = db.session.scalars(stmt).first()
              if not tag:
                   tag = Tag(user_id=user_id, name=name)
-                  _db.session.add(tag)
+                  db.session.add(tag)
+                  needs_commit = True
              tags[name] = tag
-        _db.session.commit()
-        yield {key: tag.id for key, tag in tags.items()}
+
+        if needs_commit:
+            try:
+                db.session.commit()
+            except Exception as e:
+                 db.session.rollback()
+                 logger.error(f"Error committing tags in fixture: {e}")
+                 pytest.fail("Failed to commit sample tags.")
+
+        tag_ids = {}
+        for key, tag_obj in tags.items():
+             if tag_obj.id is None: db.session.refresh(tag_obj)
+             if tag_obj.id is None: pytest.fail(f"Tag '{key}' failed to get ID.")
+             tag_ids[key] = tag_obj.id
+        yield tag_ids
 
 
 @pytest.fixture(scope='function')
-def sample_deck_data_for_match(app, test_user):
+def sample_deck_data_for_match(app, db, test_user):
     """Sets up a sample deck for the primary test user."""
     user_id = test_user["user_obj"].id
-    deck_name = "Match Tag Test Deck Session"
+    deck_name = "Match Tag API Test Deck"
+    deck_type_id = 1
     with app.app_context():
+        deck_type = db.session.get(DeckType, deck_type_id)
+        if not deck_type:
+            deck_type = DeckType(id=deck_type_id, name='Standard API Test')
+            db.session.add(deck_type)
+            try:
+                db.session.commit()
+            except Exception:
+                db.session.rollback()
+                deck_type = db.session.get(DeckType, deck_type_id)
+                if not deck_type: pytest.fail("Failed to create/get DeckType.")
+
         stmt_deck = select(Deck).where(Deck.name == deck_name, Deck.user_id == user_id)
-        deck = _db.session.scalars(stmt_deck).first()
-        user_deck = None
+        deck = db.session.scalars(stmt_deck).first()
 
         if not deck:
-            deck_type = _db.session.get(DeckType, 1) or DeckType(id=1, name='Standard Sesh')
-            _db.session.merge(deck_type) # Use merge to add if not exists
-
             deck = Deck(name=deck_name, deck_type_id=deck_type.id, user_id=user_id)
-            _db.session.add(deck)
-            _db.session.flush()
-            user_deck = UserDeck(user_id=user_id, deck_id=deck.id)
-            _db.session.add(user_deck)
-            _db.session.commit()
-        else:
-            stmt_ud = select(UserDeck).where(UserDeck.user_id == user_id, UserDeck.deck_id == deck.id)
-            user_deck = _db.session.scalars(stmt_ud).first()
-            if not user_deck:
-                 user_deck = UserDeck(user_id=user_id, deck_id=deck.id)
-                 _db.session.add(user_deck)
-                 _db.session.commit()
+            db.session.add(deck)
+            try:
+                db.session.commit()
+                db.session.refresh(deck)
+            except Exception as e:
+                 db.session.rollback()
+                 logger.error(f"Error committing deck in fixture: {e}")
+                 pytest.fail("Failed to commit sample deck.")
+        elif deck.id is None:
+             db.session.refresh(deck)
 
-        if not user_deck: pytest.fail("Failed to create or find UserDeck")
-
-        yield {"id": deck.id, "user_id": user_id, "user_deck_id": user_deck.id }
+        if deck.id is None: pytest.fail("Failed to get deck ID.")
+        yield {"id": deck.id, "user_id": user_id}
 
 
 @pytest.fixture(scope='function')
-def sample_match_data(app, db, test_user, sample_deck_data_for_match):
-    """Sets up a sample match for the primary test user's deck."""
+def sample_logged_match_data(app, db, test_user, sample_deck_data_for_match):
+    """Sets up a sample LoggedMatch for the primary test user's deck."""
     user_id = test_user["user_obj"].id
+    deck_id = sample_deck_data_for_match["id"]
     with app.app_context():
-        user_deck_id = sample_deck_data_for_match["user_deck_id"]
-        stmt = select(Match)\
-            .where(Match.user_deck_id == user_deck_id, Match.result == 0)\
-            .order_by(Match.timestamp.desc())
-        match = _db.session.scalars(stmt).first()
+        stmt = (select(LoggedMatch)
+            .where(LoggedMatch.logger_user_id == user_id,
+                   LoggedMatch.deck_id == deck_id,
+                   LoggedMatch.result == 0) # Using result 0 (Loss)
+            .order_by(LoggedMatch.timestamp.desc())
+        )
+        match = db.session.scalars(stmt).first()
 
+        needs_commit = False
         if not match:
-            match = Match(user_deck_id=user_deck_id, result=0) # Default result to 0 (Win)
-            _db.session.add(match)
-            _db.session.commit()
-            _db.session.refresh(match)
+            logger.info("Creating new LoggedMatch in fixture (sample_logged_match_data)")
+            match = LoggedMatch(
+                logger_user_id=user_id,
+                deck_id=deck_id,
+                result=0,
+                timestamp=datetime.now(timezone.utc)
+            )
+            db.session.add(match)
+            needs_commit = True
         else:
-             # Clear tags from existing match for clean test state
-             match.tags.clear()
-             _db.session.commit()
+             logger.info(f"Reusing existing LoggedMatch {match.id} in fixture, clearing tags.")
+             match_with_tags = db.session.get(LoggedMatch, match.id, options=[selectinload(LoggedMatch.tags)])
+             if match_with_tags and match_with_tags.tags:
+                 logger.info(f"Tags found on reused match {match.id}: {[t.id for t in match_with_tags.tags]}")
+                 match_with_tags.tags.clear()
+                 needs_commit = True
+             else:
+                 logger.info(f"No tags found on reused match {match.id} or relationship not loaded.")
+
+        if needs_commit:
+            try:
+                db.session.commit()
+            except Exception as e:
+                 db.session.rollback()
+                 logger.error(f"Error committing LoggedMatch in fixture: {e}")
+                 pytest.fail("Failed to commit sample LoggedMatch.")
+
+        if match.id is None: db.session.refresh(match)
+        if match.id is None: pytest.fail("Failed to get LoggedMatch ID.")
 
         yield {"id": match.id, "user_id": user_id}
 
 
 @pytest.fixture(scope='function')
-def match_with_tag_data(app, db, sample_match_data, sample_tags_data):
-    """Ensures a specific tag is associated with the sample match."""
+def logged_match_with_tag_data(app, db, sample_logged_match_data, sample_tags_data):
+    """Ensures a specific tag is associated with the sample LoggedMatch."""
     with app.app_context():
-        match_id = sample_match_data["id"]
-        tag_id = sample_tags_data["match_comp_s"]
-        match = _db.session.get(Match, match_id, options=[selectinload(Match.tags)]) # Eager load tags
-        tag = _db.session.get(Tag, tag_id)
+        match_id = sample_logged_match_data["id"]
+        tag_id = sample_tags_data["mt_api_comp"]
+        match = db.session.get(LoggedMatch, match_id, options=[selectinload(LoggedMatch.tags)])
+        tag = db.session.get(Tag, tag_id)
 
-        if not match: pytest.fail(f"Match with id {match_id} not found in fixture setup.")
+        if not match: pytest.fail(f"LoggedMatch with id {match_id} not found in fixture setup.")
         if not tag: pytest.fail(f"Tag with id {tag_id} not found in fixture setup.")
 
         if tag not in match.tags:
+             logger.info(f"Associating tag {tag_id} with LoggedMatch {match_id} in fixture.")
              match.tags.append(tag)
-             _db.session.commit()
+             try:
+                 db.session.commit()
+             except Exception as e:
+                  db.session.rollback()
+                  logger.error(f"Error committing tag association in fixture: {e}")
+                  pytest.fail("Failed to commit tag association.")
+        else:
+             logger.info(f"Tag {tag_id} already associated with LoggedMatch {match_id} in fixture.")
 
         yield {"match_id": match_id, "tag_id": tag_id}
 
 
-# --- Test Cases ---
+# --- Test Cases: Add Tag ---
 
-def test_add_tag_to_match_success(app, db, logged_in_client, sample_match_data, sample_tags_data):
+def test_add_tag_to_match_success(app, db, logged_in_client, sample_logged_match_data, sample_tags_data):
     client, csrf_token = logged_in_client
-    match_id = sample_match_data["id"]
-    tag_id = sample_tags_data["match_budget_s"]
+    match_id = sample_logged_match_data["id"]
+    tag_id = sample_tags_data["mt_api_budget"]
     payload = {"tag_id": tag_id}
 
     response = client.post(
@@ -232,20 +179,21 @@ def test_add_tag_to_match_success(app, db, logged_in_client, sample_match_data, 
         json=payload,
         headers={"X-CSRF-TOKEN": csrf_token}
     )
-    assert response.status_code == 201
+    # *** CORRECTED ASSERTION ***
+    assert response.status_code == 201 # Route should return 201
     assert "Tag associated successfully" in response.get_json().get("message", "")
 
     with app.app_context():
-        reloaded_match = _db.session.get(Match, match_id, options=[selectinload(Match.tags)])
+        reloaded_match = db.session.get(LoggedMatch, match_id, options=[selectinload(LoggedMatch.tags)])
         assert reloaded_match is not None
         tag_ids_on_match = {tag.id for tag in reloaded_match.tags}
         assert tag_id in tag_ids_on_match
 
 
-def test_add_tag_to_match_already_associated(logged_in_client, match_with_tag_data):
+def test_add_tag_to_match_already_associated(logged_in_client, logged_match_with_tag_data):
     client, csrf_token = logged_in_client
-    match_id = match_with_tag_data["match_id"]
-    tag_id = match_with_tag_data["tag_id"]
+    match_id = logged_match_with_tag_data["match_id"]
+    tag_id = logged_match_with_tag_data["tag_id"]
     payload = {"tag_id": tag_id}
 
     response = client.post(
@@ -260,7 +208,7 @@ def test_add_tag_to_match_already_associated(logged_in_client, match_with_tag_da
 def test_add_tag_to_match_match_not_found(logged_in_client, sample_tags_data):
     client, csrf_token = logged_in_client
     invalid_match_id = 99999
-    tag_id = sample_tags_data["match_budget_s"]
+    tag_id = sample_tags_data["mt_api_budget"]
     payload = {"tag_id": tag_id}
     response = client.post(
         f"/api/matches/{invalid_match_id}/tags",
@@ -270,9 +218,9 @@ def test_add_tag_to_match_match_not_found(logged_in_client, sample_tags_data):
     assert response.status_code == 404
 
 
-def test_add_tag_to_match_tag_not_found(logged_in_client, sample_match_data):
+def test_add_tag_to_match_tag_not_found(logged_in_client, sample_logged_match_data):
     client, csrf_token = logged_in_client
-    match_id = sample_match_data["id"]
+    match_id = sample_logged_match_data["id"]
     invalid_tag_id = 99999
     payload = {"tag_id": invalid_tag_id}
     response = client.post(
@@ -283,34 +231,37 @@ def test_add_tag_to_match_tag_not_found(logged_in_client, sample_match_data):
     assert response.status_code == 404
 
 
-def test_add_tag_to_match_match_not_owned(logged_in_client_user_2, sample_match_data, sample_tags_data):
+def test_add_tag_to_match_match_not_owned(logged_in_client_user_2, sample_logged_match_data, sample_tags_data):
     client, csrf_token = logged_in_client_user_2
-    match_id = sample_match_data["id"] # Match owned by user 1
-    tag_id = sample_tags_data["match_budget_s"] # Tag owned by user 1, but irrelevant here
+    match_id = sample_logged_match_data["id"]
+    tag_id = sample_tags_data["mt_api_budget"]
     payload = {"tag_id": tag_id}
     response = client.post(
         f"/api/matches/{match_id}/tags",
         json=payload,
         headers={"X-CSRF-TOKEN": csrf_token}
     )
-    assert response.status_code == 404 # Should fail because match isn't owned by user 2
+    assert response.status_code == 404
 
 
-def test_add_tag_to_match_tag_not_owned(app, db, logged_in_client, sample_match_data, test_user_2):
+def test_add_tag_to_match_tag_not_owned(app, db, logged_in_client, sample_logged_match_data, test_user_2):
     client, csrf_token = logged_in_client
-    match_id = sample_match_data["id"] # Match owned by user 1
-
-    # Create a tag owned by user 2
+    match_id = sample_logged_match_data["id"]
     user_2_id = test_user_2["user_obj"].id
-    tag_name_user_2 = "user2_matchtag_owned_s"
+    tag_name_user_2 = "user2_matchtag_owned_api_test"
     with app.app_context():
         stmt = select(Tag).where(Tag.user_id == user_2_id, Tag.name == tag_name_user_2)
-        tag_user_2 = _db.session.scalars(stmt).first()
+        tag_user_2 = db.session.scalars(stmt).first()
         if not tag_user_2:
             tag_user_2 = Tag(user_id=user_2_id, name=tag_name_user_2)
-            _db.session.add(tag_user_2)
-            _db.session.commit()
-            _db.session.refresh(tag_user_2)
+            db.session.add(tag_user_2)
+            try:
+                db.session.commit()
+                db.session.refresh(tag_user_2)
+            except Exception as e:
+                 db.session.rollback()
+                 pytest.fail(f"Failed to create tag for user 2: {e}")
+        if tag_user_2.id is None: pytest.fail("Failed to get ID for user 2 tag.")
         tag_id_user_2 = tag_user_2.id
 
     payload = {"tag_id": tag_id_user_2}
@@ -319,13 +270,13 @@ def test_add_tag_to_match_tag_not_owned(app, db, logged_in_client, sample_match_
         json=payload,
         headers={"X-CSRF-TOKEN": csrf_token}
     )
-    assert response.status_code == 404 # Should fail because tag isn't owned by user 1
+    assert response.status_code == 404
 
 
-def test_add_tag_to_match_missing_tag_id(logged_in_client, sample_match_data):
+def test_add_tag_to_match_missing_tag_id(logged_in_client, sample_logged_match_data):
     client, csrf_token = logged_in_client
-    match_id = sample_match_data["id"]
-    payload = {} # Missing tag_id
+    match_id = sample_logged_match_data["id"]
+    payload = {}
     response = client.post(
         f"/api/matches/{match_id}/tags",
         json=payload,
@@ -337,18 +288,23 @@ def test_add_tag_to_match_missing_tag_id(logged_in_client, sample_match_data):
     assert "Missing 'tag_id'" in json_response.get("error", "")
 
 
-def test_add_tag_to_match_unauthenticated(client, sample_match_data, sample_tags_data):
-    match_id = sample_match_data["id"]
-    tag_id = sample_tags_data["match_budget_s"]
+def test_add_tag_to_match_unauthenticated(client, sample_logged_match_data, sample_tags_data):
+    # *** CORRECTED TEST ***
+    with client.session_transaction() as sess:
+        sess.clear() # Ensure session is clear
+    match_id = sample_logged_match_data["id"]
+    tag_id = sample_tags_data["mt_api_budget"]
     payload = {"tag_id": tag_id}
     response = client.post(f"/api/matches/{match_id}/tags", json=payload)
-    assert response.status_code == 401
+    assert response.status_code == 401 # Expect 401
 
 
-def test_remove_tag_from_match_success(app, db, logged_in_client, match_with_tag_data):
+# --- Test Cases: Remove Tag ---
+
+def test_remove_tag_from_match_success(app, db, logged_in_client, logged_match_with_tag_data):
     client, csrf_token = logged_in_client
-    match_id = match_with_tag_data["match_id"]
-    tag_id = match_with_tag_data["tag_id"]
+    match_id = logged_match_with_tag_data["match_id"]
+    tag_id = logged_match_with_tag_data["tag_id"]
 
     response = client.delete(
         f"/api/matches/{match_id}/tags/{tag_id}",
@@ -357,22 +313,23 @@ def test_remove_tag_from_match_success(app, db, logged_in_client, match_with_tag
     assert response.status_code == 204
 
     with app.app_context():
-        reloaded_match = _db.session.get(Match, match_id, options=[selectinload(Match.tags)])
+        reloaded_match = db.session.get(LoggedMatch, match_id, options=[selectinload(LoggedMatch.tags)])
         assert reloaded_match is not None
         tag_ids_on_match = {tag.id for tag in reloaded_match.tags}
         assert tag_id not in tag_ids_on_match
 
 
-def test_remove_tag_from_match_not_associated(logged_in_client, match_with_tag_data, sample_tags_data):
+def test_remove_tag_from_match_not_associated(logged_in_client, logged_match_with_tag_data, sample_tags_data):
     client, csrf_token = logged_in_client
-    match_id = match_with_tag_data["match_id"]
-    tag_id_not_associated = sample_tags_data["match_budget_s"] # A tag not added in match_with_tag_data
+    match_id = logged_match_with_tag_data["match_id"]
+    tag_id_not_associated = sample_tags_data["mt_api_budget"] # This tag is NOT added by logged_match_with_tag_data
 
     response = client.delete(
         f"/api/matches/{match_id}/tags/{tag_id_not_associated}",
         headers={"X-CSRF-TOKEN": csrf_token}
     )
-    assert response.status_code == 404
+    # *** CORRECTED ASSERTION ***
+    assert response.status_code == 404 # Route logic now returns 404
     json_response = response.get_json()
     if json_response:
         assert "Tag is not associated" in json_response.get("error", "")
@@ -381,7 +338,7 @@ def test_remove_tag_from_match_not_associated(logged_in_client, match_with_tag_d
 def test_remove_tag_from_match_match_not_found(logged_in_client, sample_tags_data):
     client, csrf_token = logged_in_client
     invalid_match_id = 99999
-    tag_id = sample_tags_data["match_comp_s"]
+    tag_id = sample_tags_data["mt_api_comp"]
     response = client.delete(
         f"/api/matches/{invalid_match_id}/tags/{tag_id}",
         headers={"X-CSRF-TOKEN": csrf_token}
@@ -389,30 +346,33 @@ def test_remove_tag_from_match_match_not_found(logged_in_client, sample_tags_dat
     assert response.status_code == 404
 
 
-def test_remove_tag_from_match_tag_not_found(logged_in_client, sample_match_data):
+def test_remove_tag_from_match_tag_not_found(logged_in_client, sample_logged_match_data):
     client, csrf_token = logged_in_client
-    match_id = sample_match_data["id"]
+    match_id = sample_logged_match_data["id"]
     invalid_tag_id = 99999
     response = client.delete(
         f"/api/matches/{match_id}/tags/{invalid_tag_id}",
         headers={"X-CSRF-TOKEN": csrf_token}
     )
-    assert response.status_code == 404
+    assert response.status_code == 404 # Route checks association first, then tag existence implicitly
 
 
-def test_remove_tag_from_match_match_not_owned(logged_in_client_user_2, match_with_tag_data):
+def test_remove_tag_from_match_match_not_owned(logged_in_client_user_2, logged_match_with_tag_data):
     client, csrf_token = logged_in_client_user_2
-    match_id = match_with_tag_data["match_id"] # Match owned by user 1
-    tag_id = match_with_tag_data["tag_id"] # Tag owned by user 1
+    match_id = logged_match_with_tag_data["match_id"]
+    tag_id = logged_match_with_tag_data["tag_id"]
     response = client.delete(
         f"/api/matches/{match_id}/tags/{tag_id}",
         headers={"X-CSRF-TOKEN": csrf_token}
     )
-    assert response.status_code == 404 # Should fail because match isn't owned by user 2
+    assert response.status_code == 404
 
 
-def test_remove_tag_from_match_unauthenticated(client, match_with_tag_data):
-    match_id = match_with_tag_data["match_id"]
-    tag_id = match_with_tag_data["tag_id"]
+def test_remove_tag_from_match_unauthenticated(client, logged_match_with_tag_data):
+    # *** CORRECTED TEST ***
+    with client.session_transaction() as sess:
+        sess.clear() # Ensure session is clear
+    match_id = logged_match_with_tag_data["match_id"]
+    tag_id = logged_match_with_tag_data["tag_id"]
     response = client.delete(f"/api/matches/{match_id}/tags/{tag_id}")
-    assert response.status_code == 401
+    assert response.status_code == 401 # Expect 401
