@@ -1,0 +1,95 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    {{ tournament.name if tournament else "Tournament Details" }}
+{% endblock %}
+
+{% block page_header %}
+<div class="flex justify-between items-center mb-4">
+    {# Left side: Logo and Title #}
+    <div class="flex items-center">
+        <img src="{{ url_for('static', filename='img/logo.png') }}"
+             alt="Logo TCG Tracker"
+             class="h-10 w-10 mr-3">
+        <h1 class="text-2xl font-bold text-violet-900" title="{{ tournament.name if tournament else 'Tournament Details' }}">{{ tournament.name | truncate(40) if tournament else 'Tournament Details' }}</h1>
+    </div>
+
+    {# Right side: Mobile Profile Icon (only visible on mobile if logged in) #}
+    {% if is_logged_in %}
+    <a href="{{ url_for('frontend.profile_page') }}"
+       aria-label="User Profile"
+       class="md:hidden bg-violet-100 text-violet-700 rounded-full p-2 shadow hover:bg-violet-200 transition-colors"> {# No fixed positioning classes #}
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6">
+          <path fill-rule="evenodd" d="M7.5 6a4.5 4.5 0 1 1 9 0 4.5 4.5 0 0 1-9 0ZM3.751 20.105a8.25 8.25 0 0 1 16.498 0 .75.75 0 0 1-.437.695A18.683 18.683 0 0 1 12 22.5c-2.786 0-5.433-.608-7.812-1.7a.75.75 0 0 1-.437-.695Z" clip-rule="evenodd" />
+        </svg>
+    </a>
+    {% endif %}
+</div>
+{% endblock %}
+{# --- END page_header block --- #}
+
+{% block main %}
+<div class="container mx-auto px-4 py-2">
+
+    {% if tournament %}
+    <div class="bg-white dark:bg-gray-800 shadow-xl rounded-xl border border-violet-200 dark:border-gray-700 p-6 md:p-8">
+        <div class="grid md:grid-cols-2 gap-x-8 gap-y-4 mb-6">
+            <div>
+                <p class="text-sm text-violet-700 dark:text-violet-400 font-medium">Event Date</p>
+                <p class="text-lg text-gray-800 dark:text-gray-200">{{ tournament.event_date.strftime('%A, %B %d, %Y at %I:%M %p %Z') if tournament.event_date else 'Not set' }}</p>
+            </div>
+            <div>
+                <p class="text-sm text-violet-700 dark:text-violet-400 font-medium">Status</p>
+                <p class="text-lg text-gray-800 dark:text-gray-200">{{ tournament.status }}</p>
+            </div>
+            <div>
+                <p class="text-sm text-violet-700 dark:text-violet-400 font-medium">Format</p>
+                <p class="text-lg text-gray-800 dark:text-gray-200">{{ tournament.format if tournament.format else 'N/A' }}</p>
+            </div>
+            <div>
+                <p class="text-sm text-violet-700 dark:text-violet-400 font-medium">Pairing System</p>
+                <p class="text-lg text-gray-800 dark:text-gray-200">{{ tournament.pairing_system }}</p>
+            </div>
+            <div>
+                <p class="text-sm text-violet-700 dark:text-violet-400 font-medium">Max Players</p>
+                <p class="text-lg text-gray-800 dark:text-gray-200">{{ tournament.max_players if tournament.max_players else 'Unlimited' }}</p>
+            </div>
+            <div>
+                <p class="text-sm text-violet-700 dark:text-violet-400 font-medium">Organizer ID</p> {# Consider showing organizer name if available #}
+                <p class="text-lg text-gray-800 dark:text-gray-200">{{ tournament.organizer_id }}</p>
+            </div>
+        </div>
+
+        {% if tournament.description %}
+            <div class="mt-6 pt-6 border-t border-violet-200 dark:border-gray-700">
+                <h2 class="text-xl font-semibold text-violet-900 dark:text-violet-300 mb-2">Description</h2>
+                <p class="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{{ tournament.description }}</p>
+            </div>
+        {% endif %}
+
+        {# Placeholder for future actions like 'Edit Tournament', 'Manage Participants', etc. #}
+        {# These would only be visible to the organizer #}
+        {% if session.get('user_id') == tournament.organizer_id %}
+        <div class="mt-8 pt-6 border-t border-violet-200 dark:border-gray-700">
+            <h2 class="text-xl font-semibold text-violet-900 dark:text-violet-300 mb-3">Organizer Actions</h2>
+            <div class="flex space-x-3">
+                <a href="#" class="bg-violet-600 hover:bg-violet-700 text-white font-medium py-2 px-4 rounded-lg shadow-sm transition">Edit Tournament</a>
+                <a href="#" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg shadow-sm transition">Manage Participants</a>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    {% else %}
+        <div class="bg-white dark:bg-gray-800 shadow-md rounded-xl border border-violet-200 dark:border-gray-700 p-6 text-center">
+            <p class="text-violet-700 dark:text-violet-300 text-lg">Tournament not found.</p>
+            <a href="{{ url_for('main.dashboard') }}" class="mt-4 inline-block bg-violet-600 hover:bg-violet-700 text-white font-medium py-2 px-4 rounded-lg shadow-sm transition">
+                Go to Dashboard
+            </a> {# Adjust 'main.dashboard' to your actual dashboard route #}
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+    {# Add any specific JS for this page here if needed #}
+{% endblock %}
