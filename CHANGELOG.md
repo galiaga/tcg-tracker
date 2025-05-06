@@ -1,6 +1,38 @@
 # Changelog
 
-## [2.0.0] - 2025-05-05 
+## [2.1.0] - YYYY-MM-DD 
+
+### Added
+- **Tournament Creation (Organizer View):**
+    - Implemented a new feature allowing logged-in users to create tournament events.
+    - Added a dedicated form (`TournamentCreationForm`) for capturing tournament details: name, description, event date, format, pairing system, and maximum players. Includes input validation.
+    - Created new Flask routes under the `/tournaments` prefix:
+        - `GET /tournaments/new`: Displays the tournament creation form.
+        - `POST /tournaments/new`: Processes the form submission, validates data, and creates a new `Tournament` record in the database, associating it with the logged-in user as the organizer. Sets default status to "Planned".
+    - Developed new Jinja2 templates for the tournament creation process:
+        - `create-tournaments.html`: Renders the tournament creation form, styled with Tailwind CSS, and displays validation errors.
+        - `view-tournaments.html`: A placeholder page to display details of a newly created tournament (will be expanded later).
+    - Integrated a client-side JavaScript date/time picker (Flatpickr) for the "Event Date" field on the creation form for improved user experience.
+    - Added `tournament_form.js` for client-side enhancements on the tournament creation form.
+    - Ensured the new tournament creation routes are protected by login requirements and include rate limiting.
+    - Updated `layout.html` to include Flatpickr CSS and JS.
+    - Registered the new `tournaments_bp` blueprint, ensuring correct URL prefixing for tournament-related HTML pages.
+
+### Changed
+- Refactored route handling for tournament creation to reside within a dedicated `tournaments_bp` blueprint (in `backend/routes/tournaments.py`) instead of `frontend_bp`, improving modularity.
+
+### Fixed
+- Resolved `jinja2.exceptions.UndefinedError: 'form' is undefined` by ensuring the correct Flask route (`tournaments.create_tournament`) was handling the `/tournaments/new` URL and passing the `TournamentCreationForm` instance to the template. This involved removing a conflicting route definition from `frontend.py`.
+- Corrected `werkzeug.routing.exceptions.BuildError` in templates by ensuring `url_for()` calls for tournament endpoints use underscores (e.g., `url_for('tournaments.create_tournament')`) consistent with Python function names.
+- Fixed `jinja2.exceptions.TemplateNotFound` for `view-tournaments.html` by updating the `render_template` call in the `view_tournament` route to use the correct hyphenated filename.
+- Ensured that `is_logged_in` and `user` context variables are passed to templates rendered by the `tournaments_bp` routes, allowing the shared `layout.html` (including the page header) to render correctly.
+
+## [2.0.1] - 2025-05-05
+
+### Fixed
+- Win, lose, draw values corrected.
+
+## [2.0.0] - 2025-05-05
 
 ### Added
 - **Tournament Structure (Phase 1):**
