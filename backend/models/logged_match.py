@@ -8,8 +8,8 @@ from backend import db
 
 # Define Enum for results
 class LoggedMatchResult(enum.Enum):
-    LOSS = 0
-    WIN = 1
+    WIN = 0
+    LOSS = 1
     DRAW = 2
 
 # Define the association table for tags (keep the name for now)
