@@ -60,6 +60,7 @@ def get_all_decks_stats(user_id):
 
     results = []
     for deck in decks_stats:
+        logger.info(f"RAW Query Data for Deck ID {deck.id}: total_matches={deck.total_matches}, total_wins={deck.total_wins}")
         total_matches = int(deck.total_matches or 0)
         total_wins = int(deck.total_wins or 0)
         logger.info(f"[get_all_decks_stats] Deck ID: {deck.id} ('{deck.name}') - total_matches = {total_matches}, total_wins = {total_wins}")
@@ -75,6 +76,7 @@ def get_all_decks_stats(user_id):
             "last_match": deck.last_match
         })
     logger.debug(f"Finished processing stats for user_id {user_id}. Returning {len(results)} deck stats.")
+    print(f"results: {results}")
     return results
 
 # --- Update get_deck_stats similarly ---
