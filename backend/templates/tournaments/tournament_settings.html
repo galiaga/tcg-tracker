@@ -1,0 +1,146 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Settings for {{ tournament.name | truncate(30) if tournament else "Tournament Settings" }}
+{% endblock %}
+
+{% block page_header %}
+<div class="flex flex-wrap justify-between items-center mb-6 md:mb-8">
+    <div class="flex items-center mb-4 sm:mb-0">
+        <img src="{{ url_for('static', filename='img/logo.png') }}"
+             alt="Logo TCG Tracker"
+             class="h-10 w-10 mr-3">
+        <h1 class="text-2xl sm:text-3xl font-bold text-violet-900">
+            Edit: <span class="text-violet-700">{{ tournament.name | truncate(35) }}</span>
+        </h1>
+    </div>
+    {% if is_logged_in %}
+    <a href="{{ url_for('frontend.profile_page') }}"
+       aria-label="User Profile"
+       class="md:hidden bg-violet-100 text-violet-700 rounded-full p-2 shadow hover:bg-violet-200 transition-colors">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6">
+          <path fill-rule="evenodd" d="M7.5 6a4.5 4.5 0 1 1 9 0 4.5 4.5 0 0 1-9 0ZM3.751 20.105a8.25 8.25 0 0 1 16.498 0 .75.75 0 0 1-.437.695A18.683 18.683 0 0 1 12 22.5c-2.786 0-5.433-.608-7.812-1.7a.75.75 0 0 1-.437-.695Z" clip-rule="evenodd" />
+        </svg>
+    </a>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block main %}
+<div class="container mx-auto px-4 py-2">
+
+    {# {% include "_flash_messages.html" %} #}
+
+    <form method="POST" action="{{ url_for('tournaments.tournament_settings', tournament_id=tournament.id) }}" novalidate class="bg-white shadow-xl rounded-lg border border-gray-200 px-6 sm:px-8 pt-6 pb-8 mb-4">
+        {{ form.hidden_tag() }}
+
+        {# --- Tournament Name --- #}
+        <div class="mb-5">
+            {{ form.name.label(class="block text-sm font-medium text-gray-700 mb-1") }}
+            {{ form.name(class="shadow-sm appearance-none border border-gray-300 rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500 " + ("border-red-500" if form.name.errors else "")) }}
+            {% if form.name.errors %}
+                {% for error in form.name.errors %}
+                    <p class="text-red-500 text-xs italic mt-1">{{ error }}</p>
+                {% endfor %}
+            {% endif %}
+        </div>
+
+        {# --- Description --- #}
+        <div class="mb-5">
+            {{ form.description.label(class="block text-sm font-medium text-gray-700 mb-1") }}
+            {{ form.description(rows=4, class="shadow-sm appearance-none border border-gray-300 rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500 " + ("border-red-500" if form.description.errors else "")) }}
+            {% if form.description.errors %}
+                {% for error in form.description.errors %}
+                    <p class="text-red-500 text-xs italic mt-1">{{ error }}</p>
+                {% endfor %}
+            {% endif %}
+        </div>
+
+        {# --- Event Date and Format (Side by Side) --- #}
+        <div class="grid md:grid-cols-2 md:gap-x-6 gap-y-5">
+            <div>
+                {{ form.event_date.label(class="block text-sm font-medium text-gray-700 mb-1") }}
+                {{ form.event_date(class="shadow-sm appearance-none border border-gray-300 rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500 " + ("border-red-500" if form.event_date.errors else ""), type="datetime-local") }}
+                {% if form.event_date.errors %}
+                    {% for error in form.event_date.errors %}
+                        <p class="text-red-500 text-xs italic mt-1">{{ error }}</p>
+                    {% endfor %}
+                {% else %}
+                     <p class="text-xs text-gray-500 mt-1">{{ form.event_date.description }}</p>
+                {% endif %}
+            </div>
+            <div>
+                {{ form.format_.label(text="Game Format", class="block text-sm font-medium text-gray-700 mb-1") }}
+                {{ form.format_(class="shadow-sm appearance-none border border-gray-300 rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500 " + ("border-red-500" if form.format_.errors else "")) }}
+                {% if form.format_.errors %}
+                    {% for error in form.format_.errors %}
+                        <p class="text-red-500 text-xs italic mt-1">{{ error }}</p>
+                    {% endfor %}
+                {% endif %}
+            </div>
+        </div>
+
+        {# --- Status and Pairing System (Side by Side) --- #}
+        <div class="grid md:grid-cols-2 md:gap-x-6 gap-y-5 mt-5">
+            <div>
+                {{ form.status.label(class="block text-sm font-medium text-gray-700 mb-1") }}
+                {{ form.status(class="shadow-sm appearance-none border border-gray-300 rounded w-full py-2 px-3 text-gray-700 bg-white leading-tight focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500 " + ("border-red-500" if form.status.errors else "")) }}
+                {% if form.status.errors %}
+                    {% for error in form.status.errors %}
+                        <p class="text-red-500 text-xs italic mt-1">{{ error }}</p>
+                    {% endfor %}
+                {% endif %}
+            </div>
+            <div>
+                {{ form.pairing_system.label(class="block text-sm font-medium text-gray-700 mb-1") }}
+                {{ form.pairing_system(class="shadow-sm appearance-none border border-gray-300 rounded w-full py-2 px-3 text-gray-700 bg-white leading-tight focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500 " + ("border-red-500" if form.pairing_system.errors else "")) }}
+                {% if form.pairing_system.errors %}
+                    {% for error in form.pairing_system.errors %}
+                        <p class="text-red-500 text-xs italic mt-1">{{ error }}</p>
+                    {% endfor %}
+                {% endif %}
+            </div>
+        </div>
+
+        {# --- Max Players --- #}
+        <div class="mt-5">
+            {{ form.max_players.label(class="block text-sm font-medium text-gray-700 mb-1") }}
+            {{ form.max_players(class="shadow-sm appearance-none border border-gray-300 rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500 " + ("border-red-500" if form.max_players.errors else "")) }}
+            {% if form.max_players.errors %}
+                {% for error in form.max_players.errors %}
+                    <p class="text-red-500 text-xs italic mt-1">{{ error }}</p>
+                {% endfor %}
+            {% else %}
+                 <p class="text-xs text-gray-500 mt-1">{{ form.max_players.description }}</p>
+            {% endif %}
+        </div>
+
+        {# --- Submit Button and Cancel Link --- #}
+        <div class="mt-8 pt-6 border-t border-gray-200 flex items-center justify-between">
+            {{ form.submit(class="bg-violet-600 hover:bg-violet-700 text-white font-semibold py-2.5 px-6 rounded-lg shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-violet-500 focus:ring-offset-2 transition duration-150 ease-in-out") }}
+            <a href="{{ url_for('tournaments.view_tournament', tournament_id=tournament.id) }}"
+               class="text-sm font-medium text-violet-600 hover:text-violet-800 hover:underline transition duration-150 ease-in-out">
+                Cancel
+            </a>
+        </div>
+
+        {# --- Timestamps --- #}
+        <div class="mt-6 pt-4 border-t border-gray-200 text-xs text-gray-500">
+            <p>Created: {{ tournament.created_at.strftime('%Y-%m-%d %H:%M %Z') if tournament.created_at else 'N/A' }}</p>
+            {% if tournament.updated_at and tournament.updated_at != tournament.created_at %}
+                 <p>Last Updated: {{ tournament.updated_at.strftime('%Y-%m-%d %H:%M %Z') }}</p>
+            {% endif %}
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+    {{ super() }}
+    {# Flatpickr Library CSS - Ideally in <head> of layout.html #}
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    {# Flatpickr Library JS - Must be loaded BEFORE tournament_form.js #}
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    {# Your custom script to initialize Flatpickr #}
+    <script type="module" src="{{ url_for('static', filename='js/ui/tournaments/tournament_form.js') }}"></script>
+{% endblock %}

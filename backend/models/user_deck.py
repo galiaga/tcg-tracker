@@ -1,4 +1,4 @@
-from backend import db
+from backend.database import db
 from sqlalchemy.orm import relationship
 
 class UserDeck(db.Model):

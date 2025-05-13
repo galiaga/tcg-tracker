@@ -1,13 +1,36 @@
 {% extends "layout.html" %}
 
 {% block title %}
-    Deck
+    Deck Details {# Will be dynamically updated by JS if deck name is fetched #}
+{% endblock %}
+
+{# NEW/UPDATED page_header block #}
+{% block page_header %}
+<div class="flex flex-wrap justify-between items-center mb-6 md:mb-8">
+    <div class="flex items-center mb-4 sm:mb-0">
+        <img src="{{ url_for('static', filename='img/logo.png') }}"
+             alt="Logo TCG Tracker"
+             class="h-10 w-10 mr-3">
+        {# The h1 title might be dynamically set by JS later based on fetched deck name #}
+        <h1 id="deck-page-title" class="text-2xl sm:text-3xl font-bold text-violet-900">Deck Details</h1>
+    </div>
+
+    {% if is_logged_in %}
+    <a href="{{ url_for('frontend.profile_page') }}"
+       aria-label="User Profile"
+       class="md:hidden bg-violet-100 text-violet-700 rounded-full p-2 shadow hover:bg-violet-200 transition-colors">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6">
+          <path fill-rule="evenodd" d="M7.5 6a4.5 4.5 0 1 1 9 0 4.5 4.5 0 0 1-9 0ZM3.751 20.105a8.25 8.25 0 0 1 16.498 0 .75.75 0 0 1-.437.695A18.683 18.683 0 0 1 12 22.5c-2.786 0-5.433-.608-7.812-1.7a.75.75 0 0 1-.437-.695Z" clip-rule="evenodd" />
+        </svg>
+    </a>
+    {% endif %}
+</div>
 {% endblock %}
 
 {% block main %}
 <div class="space-y-6 w-full">
 
-    <h1 class="text-2xl font-bold text-gray-900 mb-6">Deck Details</h1>
+    {# Removed the old h1 "Deck Details" from here as it's now in page_header #}
 
     <div class="max-w-2xl mx-auto space-y-6">
 
@@ -18,9 +41,10 @@
         <div class="rounded-2xl bg-white shadow-lg border border-gray-100 overflow-hidden">
             <div class="p-4 sm:p-6">
                 <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-lg font-semibold text-gray-800 mb-4">
+                    <h2 class="text-lg font-semibold text-gray-800"> {# Removed mb-4 from here #}
                         Last 5 Matches
                     </h2>
+                    {# Potentially add a "Log Match" button here if it's not elsewhere or in the deck-details card #}
                 </div>
                 <div class="overflow-x-auto">
                     <table id="matches-list" class="min-w-full divide-y divide-gray-200">
@@ -35,7 +59,7 @@
                             </tr>
                         </thead>
                         <tbody class="bg-white divide-y divide-gray-200">
-                            
+                            {# Rows will be populated by JS #}
                         </tbody>
                     </table>
                 </div>
@@ -50,6 +74,7 @@
 {% endblock %}
 
 {% block scripts %}
+    {{ super() }} {# Ensure super() is called if layout.html has scripts #}
     <script type="module" src="{{ url_for('static', filename='js/ui/decks/deck-details.js') }}"></script>
     <script type="module" src="{{ url_for('static', filename='js/ui/matches/deck-matches.js') }}"></script>
 

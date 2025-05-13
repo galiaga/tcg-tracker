@@ -9,4 +9,4 @@ app = create_app()
 
 if __name__ == '__main__':
     debug_mode = app.config.get('DEBUG', False)
-    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)), debug=debug_mode)
+    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5001)), debug=debug_mode)

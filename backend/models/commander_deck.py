@@ -1,4 +1,4 @@
-from backend import db
+from backend.database import db
 from sqlalchemy.orm import make_transient
 
 class CommanderDeck(db.Model):

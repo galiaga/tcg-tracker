@@ -25,12 +25,6 @@
         {# === CONDITIONAL NAVIGATION & ELEMENTS (LOGGED IN) === #}
         {% if is_logged_in %}
 
-            {# --- DELETE THIS BLOCK --- #}
-            {# === Mobile Profile Icon (Top Right) === #}
-            {# <a href="{{ url_for('frontend.profile_page') }}" ...> ... </a> #}
-            {# --- END DELETE --- #}
-
-
             {# === Desktop Navigation (Top Bar) === #}
             <nav id="main-navbar" class="bg-violet-800 shadow-md hidden md:block sticky top-0 z-50">
                 {# ... desktop nav content ... #}
@@ -40,6 +34,7 @@
                              <li><a href="{{ url_for('frontend.my_decks_page') }}" data-path="/my-decks" class="desktop-nav-link hover:text-violet-200 p-2 transition-colors duration-200">Decks</a></li>
                              <li><a href="{{ url_for('frontend.matches_history') }}" data-path="/matches-history" class="desktop-nav-link hover:text-violet-200 p-2 transition-colors duration-200">Matches</a></li>
                              <li><a href="{{ url_for('frontend.my_tags_page') }}" data-path="/my-tags" class="desktop-nav-link hover:text-violet-200 p-2 transition-colors duration-200">Tags</a></li>
+                             <li><a href="{{ url_for('tournaments.list_my_tournaments') }}" data-path="/tournaments" class="desktop-nav-link hover:text-violet-200 p-2 transition-colors duration-200">Tournaments</a></li>
                         </div>
                         <div class="flex items-center space-x-6">
                              <li>

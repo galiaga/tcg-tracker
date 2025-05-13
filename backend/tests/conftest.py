@@ -21,38 +21,46 @@ logger = logging.getLogger("conftest")
 @pytest.fixture(scope='session')
 def app():
     """Creates and configures a Flask app instance FOR TESTING."""
-    test_db_uri = 'sqlite:///:memory:'
+    test_db_uri = 'sqlite:///:memory:' # Use in-memory for speed and isolation
     logger.info(f"Setting DATABASE_URL for test session: {test_db_uri}")
     os.environ['DATABASE_URL'] = test_db_uri
     os.environ['FLASK_ENV'] = 'testing'
 
-    app = create_app()
-    logger.info(f"App DB URI after create_app: {app.config.get('SQLALCHEMY_DATABASE_URI')}")
+    app_instance = create_app() # Get the app instance
 
-    logger.info("Forcing app.config['TESTING'] = True")
-    app.config['TESTING'] = True
-    app.config['WTF_CSRF_ENABLED'] = False
-    app.config['SECRET_KEY'] = 'test-secret-key'
-    # Disable rate limiting for tests unless specifically testing it
-    app.config['RATELIMIT_ENABLED'] = False
+    # Configure specifically for testing AFTER app creation
+    app_instance.config.update(
+        TESTING=True,
+        WTF_CSRF_ENABLED=False,
+        SECRET_KEY='test-secret-key',
+        RATELIMIT_ENABLED=False,
+        SQLALCHEMY_DATABASE_URI=test_db_uri, # Ensure test URI is used
+        SQLALCHEMY_ECHO=True  # <--- SET IT HERE on the created app instance
+    )
+    logger.info(f"App DB URI after create_app and config update: {app_instance.config.get('SQLALCHEMY_DATABASE_URI')}")
+    logger.info(f"SQLALCHEMY_ECHO set to: {app_instance.config.get('SQLALCHEMY_ECHO')}")
 
-    with app.app_context():
+
+    with app_instance.app_context():
         logger.info("Dropping and Creating all tables in test database...")
-        _db.drop_all()
+        _db.drop_all() # _db here is from backend.database, initialized with app_instance
         _db.create_all()
         logger.info("Tables created in test database.")
 
+        # Flask-Session table creation (if needed)
         try:
-            from flask import current_app
-            if hasattr(current_app, 'session_interface') and \
-               hasattr(current_app.session_interface, 'db') and \
-               current_app.session_interface.db:
-                current_app.session_interface.db.create_all()
-                logger.info("Flask-Session table creation attempted.")
+            if hasattr(app_instance, 'session_interface') and \
+               hasattr(app_instance.session_interface, 'db') and \
+               app_instance.session_interface.db: # Check if Flask-Session uses SQLAlchemy
+                # This assumes Flask-Session is configured to use the same _db instance
+                # If it creates its own tables, this might not be needed or might need adjustment
+                # For now, let's assume _db.create_all() covers it if configured with same metadata
+                pass # _db.create_all() should handle the 'sessions' table if it's part of _db.metadata
+                logger.info("Flask-Session table should be covered by _db.create_all().")
         except Exception as e:
-            logger.warning(f"Could not attempt Flask-Session table creation: {e}")
+            logger.warning(f"Note on Flask-Session table creation: {e}")
 
-        yield app
+        yield app_instance # Yield the configured app instance
 
         logger.info("Test session finished. Restoring environment.")
         if ORIGINAL_DATABASE_URL is None:

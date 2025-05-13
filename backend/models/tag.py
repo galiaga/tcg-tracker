@@ -1,6 +1,6 @@
 # backend/models/tag.py
 
-from backend import db
+from backend.database import db
 from sqlalchemy.sql import func, text
 from sqlalchemy.orm import relationship
 from sqlalchemy import UniqueConstraint, Boolean, DateTime, Index

@@ -3,7 +3,7 @@
 # --- Imports ---
 import os
 from flask import Flask, session, jsonify
-from flask_sqlalchemy import SQLAlchemy
+from .database import db
 from flask_migrate import Migrate
 from datetime import timedelta, date
 from flask_session import Session
@@ -18,7 +18,6 @@ import sys
 import logging
 
 # --- Extension Initialization ---
-db = SQLAlchemy(session_options={"autocommit": False, "autoflush": False})
 migrate = Migrate()
 server_session = Session()
 limiter = Limiter(key_func=get_remote_address)

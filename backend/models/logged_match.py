@@ -2,7 +2,7 @@
 import enum
 from sqlalchemy import UniqueConstraint, Index, CheckConstraint, ForeignKey
 from sqlalchemy.orm import relationship # Ensure relationship is imported
-from backend import db
+from backend.database import db
 # Assuming SoftDeleteMixin and TimestampMixin exist and provide relevant columns/methods
 # from .base import SoftDeleteMixin, TimestampMixin
 

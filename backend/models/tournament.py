@@ -3,14 +3,7 @@
 from datetime import datetime
 from sqlalchemy.dialects.postgresql import ENUM as PgEnum # If using Enums later
 from sqlalchemy import UniqueConstraint, Index
-from backend import db
-# Assuming you have base model mixins like this:
-# from .base import BaseModel, TimestampMixin, SoftDeleteMixin
-# If not, you'll need to add the columns/methods directly or create the mixins.
-
-# Let's assume SoftDeleteMixin provides is_active, deleted_at, soft_delete(), query_active()
-# and TimestampMixin provides created_at, updated_at (though updated_at isn't strictly needed here yet)
-# If these mixins don't exist, add the columns manually as shown below.
+from backend.database import db
 
 class Tournament(db.Model):
     """Represents a tournament event."""

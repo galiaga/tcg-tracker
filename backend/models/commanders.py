@@ -1,4 +1,4 @@
-from backend import db
+from backend.database import db
 from sqlalchemy.sql import func
 from sqlalchemy.orm import class_mapper
 from backend.models.commander_deck import CommanderDeck 

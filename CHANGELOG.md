@@ -1,5 +1,42 @@
 # Changelog
 
+## [2.2.0] - 2025-05-13 
+
+### Added
+- **Tournament Settings Management (Organizer View):**
+    - Implemented a feature allowing tournament organizers to edit the settings of their existing tournaments.
+    - Added a dedicated form (`TournamentSettingsForm`) for updating tournament details: name, description, event date, format, status, pairing system, and maximum players. Includes input validation.
+    - Created new Flask route `GET, POST /tournaments/<tournament_id>/settings` to display and process the settings form.
+    - Developed `tournament_settings.html` template, styled for a light theme, with client-side enhancements (Flatpickr).
+    - Ensured authorization restricts settings access to the tournament organizer.
+- **"My Tournaments" Page Enhancements:**
+    - Created a dedicated page (`GET /tournaments/`) for users to view a list of tournaments they have organized.
+    - Implemented a **card-based layout** for displaying tournaments on the "My Tournaments" page, improving responsiveness and visual consistency with other app sections (e.g., "My Decks").
+    - Added server-side sorting functionality to the "My Tournaments" list, allowing users to sort by Name, Status, Event Date, and Creation Date (ASC/DESC) via query parameters.
+    - Included UI elements (select dropdown) for sort controls on `my-tournaments.html`, with basic JavaScript to trigger page reloads with sort parameters.
+    - Added a placeholder for status filtering on the "My Tournaments" page.
+    - Prominent "Create New Tournament" button added to the top of the "My Tournaments" page content.
+- **Tournament Model:**
+    - Enabled and ensured the `updated_at` timestamp field on the `Tournament` model to track when settings are last modified. (Requires database migration if not already applied).
+
+### Changed
+- **UI/UX - Tournament Pages:**
+    - Refined the `view-tournament.html` page to display tournament details in a card-style layout for better visual organization and consistency.
+    - Standardized page headers (logo and title) across tournament-related pages (`my-tournaments.html`, `view-tournament.html`, `tournament_settings.html`, `create-tournament.html`).
+    - Ensured a consistent light theme across all tournament management pages by removing `dark:` mode specific styling and adjusting text/background colors for optimal readability.
+    - Updated button styling on `view-tournament.html` for "Edit Tournament" and "Manage Participants" to preferred style.
+- **Routing:**
+    - The primary page for listing a user's organized tournaments is now consistently `/tournaments/`, handled by `tournaments.list_my_tournaments`.
+    - Redirects after tournament creation and for not-found/archived tournaments now point to `/tournaments/`.
+
+### Fixed
+- **Client-Side Script Loading:** Resolved `ReferenceError: flatpickr is not defined` on tournament forms by ensuring the Flatpickr JavaScript library is correctly loaded before the custom `tournament_form.js` that initializes it. This involved adding Flatpickr script tags to `create-tournament.html` and `tournament_settings.html`.
+- **Route Conflicts:** Resolved issue where `/my-tournaments` (handled by `frontend_bp`) was intercepting requests intended for the new tournament listing page. The `frontend_bp` route was removed in favor of `/tournaments/` handled by `tournaments_bp`.
+- **Initial Data Display:** Addressed an issue where the "My Tournaments" page might not display tournaments on initial load by ensuring the correct route with data fetching logic is used.
+- **Table Readability:** Improved text contrast on the "My Tournaments" table (before refactoring to cards) for better readability.
+- **Database Initialization Errors:** Corrected SQLAlchemy `db` instance usage across the application (ensuring a single instance from `backend/database.py` is used by models and the app factory) to resolve "Table 'tournaments' is already defined" errors during startup.
+- **Import Errors:** Fixed `cannot import name 'limiter' from 'backend.database'` by ensuring `limiter` and other extensions are correctly instantiated and imported from their proper locations (primarily `backend/__init__.py`).
+
 ## [2.1.0] - YYYY-MM-DD 
 
 ### Added
@@ -10,8 +47,8 @@
         - `GET /tournaments/new`: Displays the tournament creation form.
         - `POST /tournaments/new`: Processes the form submission, validates data, and creates a new `Tournament` record in the database, associating it with the logged-in user as the organizer. Sets default status to "Planned".
     - Developed new Jinja2 templates for the tournament creation process:
-        - `create-tournaments.html`: Renders the tournament creation form, styled with Tailwind CSS, and displays validation errors.
-        - `view-tournaments.html`: A placeholder page to display details of a newly created tournament (will be expanded later).
+        - `create-tournament.html`: Renders the tournament creation form, styled with Tailwind CSS, and displays validation errors.
+        - `view-tournament.html`: A placeholder page to display details of a newly created tournament (will be expanded later).
     - Integrated a client-side JavaScript date/time picker (Flatpickr) for the "Event Date" field on the creation form for improved user experience.
     - Added `tournament_form.js` for client-side enhancements on the tournament creation form.
     - Ensured the new tournament creation routes are protected by login requirements and include rate limiting.

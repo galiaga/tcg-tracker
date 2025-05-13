@@ -1,7 +1,7 @@
 # backend/models/user.py
 
 # --- Necessary Imports ---
-from backend import db
+from backend.database import db
 from sqlalchemy import Boolean, DateTime, Index, String, Integer
 from sqlalchemy.sql import func, text
 from datetime import datetime, timezone

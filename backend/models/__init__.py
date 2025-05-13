@@ -1,6 +1,5 @@
 # backend/models/__init__.py
 
-from backend.database import db
 from .user import User
 from .deck import Deck
 from .logged_match import LoggedMatch, LoggedMatchResult, match_tags
