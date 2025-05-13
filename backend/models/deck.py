@@ -1,6 +1,6 @@
 # backend/models/deck.py
 
-from backend import db
+from backend.database import db
 from backend.models.deck_type import DeckType
 from backend.models.commander_deck import CommanderDeck
 from backend.models.tag import deck_tags

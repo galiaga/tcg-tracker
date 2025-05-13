@@ -15,7 +15,6 @@
     </div>
 
     {# Right side: Mobile Profile Icon (only visible on mobile if logged in) #}
-    {# Assuming 'is_logged_in' is available in the context, or adapt as needed #}
     {% if session.get('user_id') %} {# Or your specific check for login status #}
     <a href="{{ url_for('frontend.profile_page') }}" {# Adjust if your profile route is different #}
        aria-label="User Profile"
@@ -57,13 +56,13 @@
         <div class="grid md:grid-cols-2 md:gap-6">
             <div class="mb-5 md:mb-0">
                 {{ form.event_date.label(class="block text-violet-900 dark:text-violet-300 text-sm font-semibold mb-2") }}
-                {{ form.event_date(class="shadow-sm appearance-none border border-violet-300 dark:border-gray-600 rounded w-full py-2 px-3 text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500 " + ("border-red-500 dark:border-red-500" if form.event_date.errors else ""), placeholder="YYYY-MM-DD HH:MM:SS") }}
+                {{ form.event_date(class="shadow-sm appearance-none border border-violet-300 dark:border-gray-600 rounded w-full py-2 px-3 text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500 " + ("border-red-500 dark:border-red-500" if form.event_date.errors else ""), type="datetime-local") }}
                 {% if form.event_date.errors %}
                     {% for error in form.event_date.errors %}
                         <p class="text-red-500 text-xs italic mt-1">{{ error }}</p>
                     {% endfor %}
                 {% else %}
-                     <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ form.event_date.description }}</p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ form.event_date.description }}</p>
                 {% endif %}
             </div>
             <div class="mb-5 md:mb-0">
@@ -109,5 +108,12 @@
 
 {% block scripts %}
     {{ super() }} {# Optional: If layout.html has common scripts you want to include first #}
+
+    {# Flatpickr Library CSS - Ideally in <head> of layout.html, but can be here too #}
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    {# Flatpickr Library JS - Must be loaded BEFORE tournament_form.js #}
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+
+    {# Your custom script to initialize Flatpickr and other form enhancements #}
     <script type="module" src="{{ url_for('static', filename='js/ui/tournaments/tournament_form.js') }}"></script>
 {% endblock %}
