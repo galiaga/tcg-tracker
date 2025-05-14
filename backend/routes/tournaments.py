@@ -4,7 +4,7 @@ from flask import Blueprint, render_template, redirect, url_for, flash, request,
 from sqlalchemy import desc, asc # Import asc for ascending sort
 
 from backend import db, limiter 
-from backend.models.tournament import Tournament 
+from backend.models.tournament import Tournament, TournamentParticipant
 from backend.models.user import User 
 
 from backend.forms.tournament_forms import TournamentCreationForm, TournamentSettingsForm
@@ -94,16 +94,6 @@ def list_my_tournaments():
         current_sort_by = 'event_date' # Ensure these are passed to template
         current_sort_order = 'desc'
 
-    # --- Debug Print for SQL ---
-    try:
-        from sqlalchemy.dialects import sqlite # Or your primary dialect
-        compiled_query_sql = query.statement.compile(dialect=sqlite.dialect(), compile_kwargs={"literal_binds": True})
-        current_app.logger.info(f"FINAL SQL QUERY for list_my_tournaments: {compiled_query_sql}")
-        print(f"\nROUTE DEBUG FINAL SQL: {compiled_query_sql}\n") 
-    except Exception as e_compile:
-        current_app.logger.error(f"Error compiling query for debug printing: {e_compile}")
-    # --- End Debug Print ---
-
     organized_tournaments = query.all()
     
     user_for_layout, is_logged_in_for_layout = _get_page_context_for_session_user()
@@ -116,6 +106,36 @@ def list_my_tournaments():
         current_sort_by=current_sort_by,       
         current_sort_order=current_sort_order,
         current_status_filter=status_filter 
+    )
+
+@tournaments_bp.route('/explore', methods=['GET'])
+def public_tournament_list():
+    """Displays a list of publicly available tournaments."""
+    user_for_layout, is_logged_in_for_layout = _get_page_context_for_session_user()
+
+    # Fetch tournaments that are active and have a public-friendly status
+    # For V1, let's list 'Planned' and 'Active' tournaments
+    public_statuses = ['Planned', 'Active']
+    
+    # Default sorting: by event date, newest first (nulls last if ascending, first if descending)
+    # To ensure events without dates are listed consistently, handle NULLS
+    # For descending (newest first), we want non-NULL dates first.
+    query = Tournament.query_active().filter(
+        Tournament.status.in_(public_statuses)
+    ).order_by(
+        Tournament.event_date.is_(None).asc(), # False (dates exist) before True (dates are NULL)
+        desc(Tournament.event_date), 
+        Tournament.name.asc()
+    )
+    
+    tournaments_to_display = query.all()
+
+    return render_template(
+        'tournaments/public-tournament-list.html', # New template
+        title="Explore Tournaments",
+        tournaments=tournaments_to_display,
+        is_logged_in=is_logged_in_for_layout,
+        user=user_for_layout
     )
 
 @tournaments_bp.route('/new', methods=['GET', 'POST'])
@@ -157,21 +177,45 @@ def create_tournament():
     )
 
 @tournaments_bp.route('/<int:tournament_id>')
-@custom_login_required
 def view_tournament(tournament_id):
-    tournament = db.session.get(Tournament, tournament_id) 
+    tournament = db.session.get(Tournament, tournament_id)
+    user_for_layout, is_logged_in_for_layout = _get_page_context_for_session_user()
     
-    if not tournament or not tournament.is_active:
-        flash('Tournament not found or has been archived.', 'danger')
-        return redirect(url_for('tournaments.list_my_tournaments'))
+    is_organizer = False
+    if is_logged_in_for_layout and tournament and session.get('user_id') == tournament.organizer_id:
+        is_organizer = True
 
-    current_user_for_layout, is_logged_in_for_layout = _get_page_context_for_session_user()
+    # Check if tournament exists and is active (not soft-deleted)
+    if not tournament or not tournament.is_active:
+        current_app.logger.info(f"Public access: Tournament ID {tournament_id} not found or not active. Aborting with 404.")
+        abort(404)
+
+    # Define statuses that are publicly viewable for a detail page
+    publicly_viewable_statuses = ['Planned', 'Active', 'Completed', 'Cancelled']
+    
+    # If the user is not the organizer, only show tournaments with public statuses
+    if not is_organizer and tournament.status not in publicly_viewable_statuses:
+        current_app.logger.info(f"Public access: Tournament ID {tournament_id} status '{tournament.status}' is not public. User not organizer. Aborting with 404.")
+        abort(404)
+
+    # Fetch participants if the tournament status is one where participants are relevant and public
+    # Example: Show for Planned, Active, Completed. Not for Cancelled.
+    participants_list = []
+    if tournament.status in ['Planned', 'Active', 'Completed']:
+        participants_list = tournament.participants.join(TournamentParticipant.user)\
+                                .filter(TournamentParticipant.is_active == True, TournamentParticipant.dropped == False)\
+                                .order_by(User.first_name.asc(), User.last_name.asc(), User.username.asc())\
+                                .all()
+                                # .options(db.joinedload(TournamentParticipant.user)) # Eager load user
+
     return render_template(
         'tournaments/view-tournament.html',
         title=tournament.name,
         tournament=tournament,
         is_logged_in=is_logged_in_for_layout,
-        user=current_user_for_layout
+        user=user_for_layout,
+        is_organizer=is_organizer, # Pass this flag to the template
+        participants_list=participants_list # Pass the list of participants
     )
 
 @tournaments_bp.route('/<int:tournament_id>/settings', methods=['GET', 'POST'])
@@ -185,19 +229,22 @@ def tournament_settings(tournament_id):
 
     if tournament.organizer_id != current_user_id:
         flash("You are not authorized to edit this tournament's settings.", "danger")
-        abort(403)
+        # Return 403 Forbidden instead of redirecting to list_my_tournaments
+        # This makes it clearer why access is denied if they somehow got the URL
+        abort(403) 
 
     form = TournamentSettingsForm(obj=tournament if request.method == 'GET' else None)
 
     if request.method == 'GET':
+        # Ensure form.format_ (with underscore) is populated correctly
         if tournament.format:
-            form.format_.data = tournament.format
+            form.format_.data = tournament.format # Assuming form field is named format_
 
     if form.validate_on_submit():
         tournament.name = form.name.data
         tournament.description = form.description.data
         tournament.event_date = form.event_date.data
-        tournament.format = form.format_.data
+        tournament.format = form.format_.data # Assuming form field is named format_
         tournament.status = form.status.data
         tournament.pairing_system = form.pairing_system.data
         tournament.max_players = form.max_players.data
@@ -205,13 +252,16 @@ def tournament_settings(tournament_id):
         try:
             db.session.commit()
             flash('Tournament settings updated successfully!', 'success')
+            # Redirect back to settings page to see changes
             return redirect(url_for('tournaments.tournament_settings', tournament_id=tournament.id))
         except Exception as e:
             db.session.rollback()
             current_app.logger.error(f"Error updating tournament {tournament.id} settings for user {current_user_id}: {e}", exc_info=True)
             flash('Error updating tournament settings. Please try again.', 'danger')
     elif request.method == 'POST' and not form.validate_on_submit():
+        # This ensures that if validation fails on POST, errors are shown
         flash('Please correct the errors highlighted below.', 'warning')
+
 
     user_for_layout, is_logged_in_for_layout = _get_page_context_for_session_user()
 

@@ -1,5 +1,48 @@
 # Changelog
 
+## [2.3.0] - YYYY-MM-DD 
+
+### Added
+- **Public Tournament Discovery:**
+    - Implemented a new public "Explore Tournaments" page (`GET /tournaments/explore`) listing 'Planned' and 'Active' tournaments, accessible to all users (logged-in or not).
+    - Made the individual tournament detail page (`GET /tournaments/<tournament_id>`) publicly accessible for 'Planned', 'Active', 'Completed', and 'Cancelled' tournaments.
+    - Added navigation links to "Explore Tournaments" in the main desktop navigation (for logged-in users), mobile navigation (for logged-in users), and the site footer (for all users).
+- **Tournament Detail Page Enhancements (Public View):**
+    - Public tournament detail pages now display a list of registered (active, non-dropped) participants for 'Planned', 'Active', and 'Completed' tournaments.
+    - Organizer-specific actions (e.g., "Edit Tournament", "Manage Participants") on the tournament detail page are now correctly hidden from non-organizers and unauthenticated users.
+
+### Changed
+- **UI/UX - Dark Mode & Consistency:**
+    - Implemented comprehensive dark mode styling across most application pages, including:
+        - Login, Register, Forgot Password, Reset Password pages.
+        - My Decks, My Matches, My Tags, My Profile pages.
+        - Tournament List (My Tournaments & Explore), Tournament Detail, Create Tournament, and Tournament Settings pages.
+    - Standardized page headers (logo, title, mobile profile icon) for a consistent look and feel across all major sections.
+    - Improved styling of form elements (inputs, selects, buttons, labels, placeholders, error messages) for better readability and consistency in both light and dark modes.
+    - Enhanced modal styling (New Deck, Log Match, Delete Account) for better overlay coverage, dark mode appearance, and content scrollability.
+    - Refined button styles (primary, secondary, tertiary/link) for better visual hierarchy and dark mode compatibility.
+    - Improved layout and spacing on various pages for a cleaner mobile and desktop experience.
+- **Client-Side Navigation:**
+    - Refined JavaScript logic in `menu.js` for determining active navigation links (desktop and mobile) to correctly handle nested paths (e.g., `/tournaments` vs. `/tournaments/explore`), ensuring only the most specific link is highlighted.
+- **CSRF Token Handling:**
+    - Modified `auth.js` to make the initial CSRF token fetch conditional based on the user's logged-in status (passed from the backend via `window.TCGTRACKER_APP_CONFIG.isLoggedIn`). This prevents unnecessary and failing CSRF token requests on public, unauthenticated pages.
+- **API Call Consistency (`authFetch`):**
+    - Reverted `authFetch` to a simpler model where it does not automatically `JSON.stringify` the request body.
+    - Ensured all calling modules (`deck-api.js`, `log-match.js`, `tagInput.js`, etc.) are now explicitly responsible for `JSON.stringify`-ing their JSON payloads before passing them to `authFetch`. This resolved `415 Unsupported Media Type` errors.
+
+### Fixed
+- **CSRF Token Fetch on Public Pages:** Resolved console errors (`401 Unauthorized`) caused by `auth.js` attempting to fetch CSRF tokens on public pages where the user is not authenticated.
+- **API `415 Unsupported Media Type` Errors:** Corrected issues in `authFetch` and its callers (`deck-api.js`, `log-match.js`, `tagInput.js`) related to `Content-Type` headers and `JSON.stringify` for `POST` requests, ensuring backends receive correctly formatted JSON. This fixed errors when creating tags, registering decks, and logging matches.
+- **JavaScript TypeErrors:**
+    - Resolved `TypeError: window.associateTagWithDeck is not a function` in `registerDeck.js` by ensuring `associateTagWithDeck` is correctly imported from `deck-api.js` and called as a module function.
+- **Deck Registration Logic:**
+    - Fixed an issue in `registerDeck.js` where the `commander_id` was not being correctly read from the `dataset` attribute, preventing commander deck registration. Ensured consistency in `dataset` key usage (e.g., `dataset.commanderid`).
+    - Corrected the payload key for deck type in `registerDeck.js` from `deck_type_id` to `deck_type` to match backend expectations, resolving "Deck type is required" errors.
+- **Deck Sorting/Filtering Initialization:** Resolved "Cannot initialize deck sorting/filtering" error on `my-decks.html` by reverting sort and format filter controls to use standard `<select>` elements (as expected by the existing JS) while maintaining the new dark mode styling. The tag filter remains a custom button-based dropdown.
+- **Dark Mode Activation:** Configured Tailwind CSS `darkMode: 'class'` in `tailwind.config.js` to prevent automatic dark mode switching based on OS/browser preferences, allowing for more explicit control (though the app currently defaults to the theme based on whether the `dark` class is on `<html>`).
+- **Public Page Headers:** Ensured that public pages like "Explore Tournaments" and tournament detail views correctly display their page headers (logo, title) even when the user is not logged in, by adjusting `layout.html`.
+- **Login Page Centering:** Restored centering for the login form after changes to `layout.html`'s main content area padding for public pages.
+
 ## [2.2.0] - 2025-05-13 
 
 ### Added

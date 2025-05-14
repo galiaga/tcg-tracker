@@ -1,40 +1,31 @@
 <!DOCTYPE html>
-<html lang="en" class="scroll-smooth h-full">
+<html lang="en" class="scroll-smooth h-full"> {# Assume 'dark' class might be here if dark mode is active #}
 
-    {# === HEAD SECTION === #}
     <head>
-        {# ... head content remains the same ... #}
         <meta charset="utf-8">
         <meta name="viewport" content="initial-scale=1, width=device-width">
         <title>TCG Tracker: {% block title %}{% endblock %}</title>
         <link href="{{ url_for('static', filename='css/output.css') }}" rel="stylesheet">
-
-        {# Flatpickr CSS #}
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
-
         <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='img/favicon.ico') }}">
         <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='img/apple-touch-icon.png') }}">
         <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
-
         {% block head_extra %}{% endblock %}
     </head>
 
-    {# === BODY SECTION === #}
-    <body class="bg-gray-100 min-h-screen flex flex-col">
+    <body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 min-h-screen flex flex-col">
 
-        {# === CONDITIONAL NAVIGATION & ELEMENTS (LOGGED IN) === #}
         {% if is_logged_in %}
-
             {# === Desktop Navigation (Top Bar) === #}
-            <nav id="main-navbar" class="bg-violet-800 shadow-md hidden md:block sticky top-0 z-50">
-                {# ... desktop nav content ... #}
+            <nav id="main-navbar" class="bg-violet-800 dark:bg-violet-900 shadow-md hidden md:block sticky top-0 z-50">
                  <div class="container mx-auto px-4">
                     <ul class="flex justify-between items-center h-16 space-x-6 text-white">
                         <div class="flex items-center space-x-6">
                              <li><a href="{{ url_for('frontend.my_decks_page') }}" data-path="/my-decks" class="desktop-nav-link hover:text-violet-200 p-2 transition-colors duration-200">Decks</a></li>
                              <li><a href="{{ url_for('frontend.matches_history') }}" data-path="/matches-history" class="desktop-nav-link hover:text-violet-200 p-2 transition-colors duration-200">Matches</a></li>
                              <li><a href="{{ url_for('frontend.my_tags_page') }}" data-path="/my-tags" class="desktop-nav-link hover:text-violet-200 p-2 transition-colors duration-200">Tags</a></li>
-                             <li><a href="{{ url_for('tournaments.list_my_tournaments') }}" data-path="/tournaments" class="desktop-nav-link hover:text-violet-200 p-2 transition-colors duration-200">Tournaments</a></li>
+                             <li><a href="{{ url_for('tournaments.list_my_tournaments') }}" data-path="/tournaments" class="desktop-nav-link hover:text-violet-200 p-2 transition-colors duration-200">My Tournaments</a></li>
+                             <li><a href="{{ url_for('tournaments.public_tournament_list') }}" data-path="/tournaments/explore" class="desktop-nav-link hover:text-violet-200 p-2 transition-colors duration-200">Explore Tournaments</a></li>
                         </div>
                         <div class="flex items-center space-x-6">
                              <li>
@@ -55,23 +46,38 @@
             </nav>
 
             {# === Mobile Navigation (Bottom Bar) === #}
-            <nav id="mobile-navbar" class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg md:hidden z-50">
-                {# ... mobile nav content ... #}
-                 <ul class="flex justify-around items-center h-16 text-violet-700">
+            <nav id="mobile-navbar" class="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 shadow-lg md:hidden z-50">
+                 <ul class="flex justify-around items-center h-16 text-violet-700 dark:text-violet-300">
                     <li>
-                        <a href="{{ url_for('frontend.my_decks_page') }}" data-path="/my-decks" class="mobile-nav-link relative flex flex-col items-center justify-center p-2 rounded-md transition-colors duration-200 hover:bg-violet-100" aria-label="Decks">
+                        <a href="{{ url_for('frontend.my_decks_page') }}" data-path="/my-decks" class="mobile-nav-link relative flex flex-col items-center justify-center p-2 rounded-md transition-colors duration-200 hover:bg-violet-100 dark:hover:bg-violet-700" aria-label="Decks">
                              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" /></svg>
                             <span class="text-xs font-medium">Decks</span>
                         </a>
                     </li>
                     <li>
-                        <a href="{{ url_for('frontend.matches_history') }}" data-path="/matches-history" class="mobile-nav-link relative flex flex-col items-center justify-center p-2 rounded-md transition-colors duration-200 hover:bg-violet-100" aria-label="Matches">
+                        <a href="{{ url_for('frontend.matches_history') }}" data-path="/matches-history" class="mobile-nav-link relative flex flex-col items-center justify-center p-2 rounded-md transition-colors duration-200 hover:bg-violet-100 dark:hover:bg-violet-700" aria-label="Matches">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
                             <span class="text-xs font-medium">Matches</span>
                         </a>
                     </li>
                     <li>
-                        <a href="{{ url_for('frontend.my_tags_page') }}" data-path="/my-tags" class="mobile-nav-link relative flex flex-col items-center justify-center p-2 rounded-md transition-colors duration-200 hover:bg-violet-100" aria-label="Tags">
+                        <a href="{{ url_for('tournaments.list_my_tournaments') }}" data-path="/tournaments" class="mobile-nav-link relative flex flex-col items-center justify-center p-2 rounded-md transition-colors duration-200 hover:bg-violet-100 dark:hover:bg-violet-700" aria-label="My Tournaments">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6 mb-1">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 18.75h-9m9 0a3 3 0 0 1 3 3h-15a3 3 0 0 1 3-3m9 0v-4.5A3.375 3.375 0 0 0 12.75 9.75H11.25A3.375 3.375 0 0 0 7.5 13.125V18.75m9 0h-9" />
+                            </svg>
+                            <span class="text-xs font-medium">My Tourneys</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ url_for('tournaments.public_tournament_list') }}" data-path="/tournaments/explore" class="mobile-nav-link relative flex flex-col items-center justify-center p-2 rounded-md transition-colors duration-200 hover:bg-violet-100 dark:hover:bg-violet-700" aria-label="Explore Tournaments">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6 mb-1">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+                            </svg>
+                            <span class="text-xs font-medium">Explore</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ url_for('frontend.my_tags_page') }}" data-path="/my-tags" class="mobile-nav-link relative flex flex-col items-center justify-center p-2 rounded-md transition-colors duration-200 hover:bg-violet-100 dark:hover:bg-violet-700" aria-label="Tags">
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6 mb-1">
                               <path stroke-linecap="round" stroke-linejoin="round" d="M9.568 3H5.25A2.25 2.25 0 0 0 3 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 0 0 5.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 0 0 9.568 3Z" />
                               <path stroke-linecap="round" stroke-linejoin="round" d="M6 6h.008v.008H6V6Z" />
@@ -83,145 +89,143 @@
             </nav>
         {% endif %}
 
-        {# === MAIN CONTENT AREA === #}
         <main class="flex-grow container max-w-6xl mx-auto px-4
                 {% if is_logged_in %}
                     pt-3 md:pt-6 pb-16 md:pb-6 {# Padding for logged-in state #}
                 {% else %}
-                    py-3 flex items-center justify-center {# Padding and Flex Centering for logged-out state #}
+                    py-3 {# Basic padding for non-logged-in state. Centering handled by child or not. #}
                 {% endif %}">
 
-            {# --- Conditionally add header and wrapper for logged-in state --- #}
+            {# Page header block - always rendered if child template defines it #}
+            {% block page_header %}
+                {# Child templates will fill this (e.g., public_tournament_list.html) #}
+                {# If a child (like login.html) doesn't define it, nothing appears here #}
+            {% endblock %}
+
+            {# Wrapper for main content area - conditional for logged-in specific layouts #}
             {% if is_logged_in %}
-                {% block page_header %}
-                    {# Child templates fill this #}
-                {% endblock %}
-                {# Start the wrapper div ONLY if logged in #}
-                <div class="w-full space-y-6">
+                <div class="w-full space-y-4"> {# Consistent spacing for logged-in sections #}
             {% endif %}
 
-            {# --- Define the main content block ONCE --- #}
-            {# This is where child template content (login form, profile cards, etc.) will be inserted #}
+            {# Main content from child templates #}
             {% block main %}
             {% endblock %}
 
-            {# --- Conditionally close the wrapper div --- #}
             {% if is_logged_in %}
-                {# Close the wrapper div ONLY if logged in #}
-                </div>
+                </div> {# Close the wrapper div ONLY if logged in #}
             {% endif %}
-            {# --- End Conditional Wrapper --- #}
-
         </main>
 
-        {# === FOOTER AREA === #}
-        <footer class="w-full text-center py-4 mt-auto">
-             {# ... footer content ... #}
-             <div class="container mx-auto px-4 text-xs text-gray-500">
+        <footer class="w-full text-center py-4 mt-auto bg-gray-200 dark:bg-gray-800">
+             <div class="container mx-auto px-4 text-xs text-gray-500 dark:text-gray-400">
                 © {% block copyright_year %}{{ current_year }}{% endblock %} TCG Tracker
                 <span class="mx-1">|</span>
                 Version: {{ app_version }}
+                <span class="mx-1">|</span>
+                <a href="{{ url_for('tournaments.public_tournament_list') }}" class="hover:text-violet-700 dark:hover:text-violet-400 hover:underline">Explore Tournaments</a>
             </div>
         </footer>
 
-        {# === OVERLAYS / MODALS / FIXED UI ELEMENTS === #}
-        {# ... modals, flash messages, scroll button etc. remain unchanged ... #}
-         <div id="flash-message-container" class="fixed inset-x-0 z-[60] flex justify-center pointer-events-none top-5 md:top-auto md:bottom-5">
-             <div id="flash-message" class="hidden transform transition-all duration-300 ease-out opacity-0 translate-y-[-20px] md:translate-y-[20px] inline-flex items-center gap-2 px-4 py-3 text-sm text-white rounded-full shadow-lg pointer-events-auto max-w-[90%] md:max-w-md bg-red-500">
-                <span id="flash-message-text" class="break-words"></span>
-                <button type="button" id="flash-message-close" aria-label="Close message" class="ml-2 text-white opacity-80 hover:opacity-100 text-xl font-bold leading-none focus:outline-none">×</button>
-            </div>
-        </div>
+        {# Overlays / Modals / Fixed UI Elements #}
+        <div id="flash-message-container" class="fixed inset-x-0 z-[60] flex justify-center pointer-events-none top-5 md:top-auto md:bottom-5">
+            <div id="flash-message" class="hidden transform transition-all duration-300 ease-out opacity-0 translate-y-[-20px] md:translate-y-[20px] inline-flex items-center gap-2 px-4 py-3 text-sm text-white rounded-full shadow-lg pointer-events-auto max-w-[90%] md:max-w-md bg-red-500">
+               <span id="flash-message-text" class="break-words"></span>
+               <button type="button" id="flash-message-close" aria-label="Close message" class="ml-2 text-white opacity-80 hover:opacity-100 text-xl font-bold leading-none focus:outline-none">×</button>
+           </div>
+       </div>
 
-        <button type="button" id="scrollToTopBtn" aria-label="Scroll to top" title="Scroll to top" class="fixed bottom-20 md:bottom-5 right-5 z-40 hidden h-10 w-10 rounded-full bg-violet-700 text-white shadow-md transition-opacity duration-300 ease-in-out hover:bg-violet-600 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:ring-offset-2">
-             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M5 15l7-7 7 7" />
-            </svg>
-        </button>
+       <button type="button" id="scrollToTopBtn" aria-label="Scroll to top" title="Scroll to top" class="fixed bottom-20 md:bottom-5 right-5 z-40 hidden h-10 w-10 rounded-full bg-violet-700 text-white shadow-md transition-opacity duration-300 ease-in-out hover:bg-violet-600 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:ring-offset-2">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+               <path stroke-linecap="round" stroke-linejoin="round" d="M5 15l7-7 7 7" />
+           </svg>
+       </button>
 
-        {# ... other modals (quickAddTagModal, logMatchModal) ... #}
-         <div id="quickAddTagModal" class="fixed inset-0 bg-black bg-opacity-50 z-[70] flex items-center justify-center px-4 hidden" aria-labelledby="quickAddTagModalTitle" role="dialog" aria-modal="true">
-             <div class="bg-white rounded-xl shadow-xl w-full max-w-sm p-5 space-y-4 transform transition-all scale-95 opacity-0">
-                <div class="flex items-center justify-between">
-                    <h2 id="quickAddTagModalTitle" class="text-lg font-semibold text-gray-800">Add Tag to Item</h2>
-                    <button id="quickAddTagModalCloseButton" type="button" aria-label="Close modal" class="text-gray-400 hover:text-gray-600 text-xl font-bold leading-none">×</button>
-                </div>
-                <div class="mt-2">
-                    <label for="quick-add-tag-input" class="block text-sm font-medium text-gray-700">Tags</label>
-                    <div id="quick-add-tags-container" class="mb-2 flex flex-wrap gap-1 min-h-[28px] hidden">
-                    </div>
-                    <div class="relative">
-                        <input type="text" id="quick-add-tag-input" autocomplete="off" placeholder="Search or create tag..."
-                           class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-800 shadow-sm focus:border-violet-500 focus:ring focus:ring-violet-200 focus:ring-opacity-50" />
-                        <div id="quick-add-tags-suggestions" class="absolute z-20 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-40 overflow-y-auto hidden">
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div id="logMatchModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center px-4 hidden">
-             <div class="bg-white rounded-xl shadow-xl w-full max-w-md p-6 space-y-5 transform transition-all scale-95 opacity-0">
-              <div class="flex items-center justify-between border-b pb-3">
-                <h2 class="text-lg font-bold text-gray-800">Log New Match</h2>
-                <button id="logMatchModalCloseButton" type="button" aria-label="Close modal"
-                  class="text-gray-400 hover:text-gray-600 text-xl font-bold">
-                  ×
-                </button>
-              </div>
-              <form id="log-match-form" class="space-y-4">
-                  <div>
-                      <label for="deck-select" class="sr-only">Select Deck</label>
-                      <select id="deck-select" name="deck_id" required class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-violet-500 focus:border-violet-500 sm:text-sm rounded-md shadow-sm">
-                          <option disabled selected value="">Select Deck</option>
-                      </select>
-                  </div>
-                  <fieldset>
-                      <legend class="sr-only">Match Result</legend>
-                      <div class="flex flex-wrap justify-center gap-3 pt-2">
-                          <label class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-violet-500 cursor-pointer has-[:checked]:ring-2 has-[:checked]:ring-offset-1 has-[:checked]:ring-green-500 has-[:checked]:border-green-400 has-[:checked]:bg-green-50 has-[:checked]:text-green-900">
-                              <input type="radio" name="match_result" value="0" class="sr-only" checked>
-                              <span>Won</span>
-                          </label>
-                          <label class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-violet-500 cursor-pointer has-[:checked]:ring-2 has-[:checked]:ring-offset-1 has-[:checked]:ring-red-500 has-[:checked]:border-red-400 has-[:checked]:bg-red-50 has-[:checked]:text-red-900">
-                              <input type="radio" name="match_result" value="1" class="sr-only">
-                              <span>Loss</span>
-                          </label>
-                          <label class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-violet-500 cursor-pointer has-[:checked]:ring-2 has-[:checked]:ring-offset-1 has-[:checked]:ring-yellow-500 has-[:checked]:border-yellow-400 has-[:checked]:bg-yellow-50 has-[:checked]:text-yellow-900">
-                              <input type="radio" name="match_result" value="2" class="sr-only">
-                              <span>Draw</span>
-                          </label>
-                      </div>
-                  </fieldset>
-                  <div>
-                    <label for="match-tags-input" class="block text-sm font-medium text-gray-700">Tags (Optional)</label>
-                    <div id="match-tags-container" class="mb-2 flex flex-wrap gap-1 min-h-[28px]">
-                    </div>
-                     <div class="relative">
-                        <input type="text" id="match-tags-input" autocomplete="off" placeholder="Add tags..."
-                          class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-800 shadow-sm focus:border-violet-500 focus:ring focus:ring-violet-200 focus:ring-opacity-50" />
-                        <div id="match-tags-suggestions" class="absolute z-20 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-40 overflow-y-auto hidden">
-                        </div>
+       {% if is_logged_in %} {# Modals that are only relevant when logged in #}
+        <div id="quickAddTagModal" class="fixed inset-0 bg-black bg-opacity-50 z-[70] flex items-center justify-center px-4 hidden" aria-labelledby="quickAddTagModalTitle" role="dialog" aria-modal="true">
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-sm p-5 space-y-4 transform transition-all scale-95 opacity-0">
+               <div class="flex items-center justify-between">
+                   <h2 id="quickAddTagModalTitle" class="text-lg font-semibold text-gray-800 dark:text-gray-100">Add Tag to Item</h2>
+                   <button id="quickAddTagModalCloseButton" type="button" aria-label="Close modal" class="text-gray-400 hover:text-gray-600 dark:text-gray-300 dark:hover:text-gray-100 text-xl font-bold leading-none">×</button>
+               </div>
+               <div class="mt-2">
+                   <label for="quick-add-tag-input" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Tags</label>
+                   <div id="quick-add-tags-container" class="mb-2 flex flex-wrap gap-1 min-h-[28px] hidden">
+                   </div>
+                   <div class="relative">
+                       <input type="text" id="quick-add-tag-input" autocomplete="off" placeholder="Search or create tag..."
+                          class="w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm text-gray-800 dark:text-gray-100 bg-white dark:bg-gray-700 shadow-sm focus:border-violet-500 focus:ring focus:ring-violet-200 focus:ring-opacity-50" />
+                       <div id="quick-add-tags-suggestions" class="absolute z-20 mt-1 w-full bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-md shadow-lg max-h-40 overflow-y-auto hidden">
                        </div>
-                  </div>
-                  <div>
-                       <button type="submit" class="w-full bg-violet-700 hover:bg-violet-600 text-white text-sm font-medium py-2 px-4 rounded-lg shadow-sm transition border border-transparent">
-                          Log Match
-                       </button>
-                  </div>
-              </form>
-            </div>
-          </div>
+                   </div>
+               </div>
+           </div>
+       </div>
 
-        {# === CORE SCRIPTS === #}
+       <div id="logMatchModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center px-4 hidden">
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md p-6 space-y-5 transform transition-all scale-95 opacity-0">
+             <div class="flex items-center justify-between border-b dark:border-gray-700 pb-3">
+               <h2 class="text-lg font-bold text-gray-800 dark:text-gray-100">Log New Match</h2>
+               <button id="logMatchModalCloseButton" type="button" aria-label="Close modal"
+                 class="text-gray-400 hover:text-gray-600 dark:text-gray-300 dark:hover:text-gray-100 text-xl font-bold">
+                 ×
+               </button>
+             </div>
+             <form id="log-match-form" class="space-y-4">
+                 <div>
+                     <label for="deck-select" class="sr-only">Select Deck</label>
+                     <select id="deck-select" name="deck_id" required class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-violet-500 focus:border-violet-500 sm:text-sm rounded-md shadow-sm">
+                         <option disabled selected value="">Select Deck</option>
+                     </select>
+                 </div>
+                 <fieldset>
+                     <legend class="sr-only">Match Result</legend>
+                     <div class="flex flex-wrap justify-center gap-3 pt-2">
+                         <label class="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-violet-500 cursor-pointer has-[:checked]:ring-2 has-[:checked]:ring-offset-1 has-[:checked]:ring-green-500 has-[:checked]:border-green-400 has-[:checked]:bg-green-50 has-[:checked]:text-green-900 dark:has-[:checked]:bg-green-700 dark:has-[:checked]:text-green-100 dark:has-[:checked]:border-green-500">
+                             <input type="radio" name="match_result" value="0" class="sr-only" checked>
+                             <span>Won</span>
+                         </label>
+                         <label class="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-violet-500 cursor-pointer has-[:checked]:ring-2 has-[:checked]:ring-offset-1 has-[:checked]:ring-red-500 has-[:checked]:border-red-400 has-[:checked]:bg-red-50 has-[:checked]:text-red-900 dark:has-[:checked]:bg-red-700 dark:has-[:checked]:text-red-100 dark:has-[:checked]:border-red-500">
+                             <input type="radio" name="match_result" value="1" class="sr-only">
+                             <span>Loss</span>
+                         </label>
+                         <label class="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-violet-500 cursor-pointer has-[:checked]:ring-2 has-[:checked]:ring-offset-1 has-[:checked]:ring-yellow-500 has-[:checked]:border-yellow-400 has-[:checked]:bg-yellow-50 has-[:checked]:text-yellow-900 dark:has-[:checked]:bg-yellow-700 dark:has-[:checked]:text-yellow-100 dark:has-[:checked]:border-yellow-500">
+                             <input type="radio" name="match_result" value="2" class="sr-only">
+                             <span>Draw</span>
+                         </label>
+                     </div>
+                 </fieldset>
+                 <div>
+                   <label for="match-tags-input" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Tags (Optional)</label>
+                   <div id="match-tags-container" class="mb-2 flex flex-wrap gap-1 min-h-[28px]">
+                   </div>
+                    <div class="relative">
+                       <input type="text" id="match-tags-input" autocomplete="off" placeholder="Add tags..."
+                         class="w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm text-gray-800 dark:text-gray-100 bg-white dark:bg-gray-700 shadow-sm focus:border-violet-500 focus:ring focus:ring-violet-200 focus:ring-opacity-50" />
+                       <div id="match-tags-suggestions" class="absolute z-20 mt-1 w-full bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-md shadow-lg max-h-40 overflow-y-auto hidden">
+                       </div>
+                      </div>
+                 </div>
+                 <div>
+                      <button type="submit" class="w-full bg-violet-700 hover:bg-violet-600 text-white text-sm font-medium py-2 px-4 rounded-lg shadow-sm transition border border-transparent">
+                         Log Match
+                      </button>
+                 </div>
+             </form>
+           </div>
+         </div>
+       {% endif %} {# End of is_logged_in for modals #}
+
+        <script>
+            window.TCGTRACKER_APP_CONFIG = {
+                isLoggedIn: {{ is_logged_in | tojson }}
+            };
+        </script>
         <script type="module" src="{{ url_for('static', filename='js/auth/auth.js') }}"></script>
         <script src="{{ url_for('static', filename='js/ui/menu.js') }}"></script>
         <script src="{{ url_for('static', filename='js/ui/flashMessages.js') }}"></script>
         <script>
-            // ScrollToTop script remains the same
             const scrollToTopBtn = document.getElementById('scrollToTopBtn');
             const scrollThreshold = 200;
-            // ... rest of scroll script
              if (scrollToTopBtn) {
                 const toggleVisibility = () => {
                     if (window.scrollY > scrollThreshold) {
@@ -239,9 +243,6 @@
                 toggleVisibility();
             }
         </script>
-
-        {# === PAGE-SPECIFIC SCRIPTS BLOCK === #}
         {% block scripts %}{% endblock %}
-
     </body>
 </html>

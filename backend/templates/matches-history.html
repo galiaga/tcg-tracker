@@ -6,19 +6,16 @@
 
 {% block page_header %}
 <div class="flex justify-between items-center mb-4">
-    {# Left side: Logo and Title #}
     <div class="flex items-center">
         <img src="{{ url_for('static', filename='img/logo.png') }}"
              alt="Logo TCG Tracker"
              class="h-10 w-10 mr-3">
-        <h1 class="text-2xl font-bold text-violet-900">My Matches</h1>
+        <h1 class="text-2xl font-bold text-violet-900 dark:text-violet-200">My Matches</h1>
     </div>
-
-    {# Right side: Mobile Profile Icon (only visible on mobile if logged in) #}
     {% if is_logged_in %}
     <a href="{{ url_for('frontend.profile_page') }}"
        aria-label="User Profile"
-       class="md:hidden bg-violet-100 text-violet-700 rounded-full p-2 shadow hover:bg-violet-200 transition-colors"> {# No fixed positioning classes #}
+       class="md:hidden bg-violet-100 text-violet-700 dark:bg-violet-700 dark:text-violet-200 rounded-full p-2 shadow hover:bg-violet-200 dark:hover:bg-violet-600 transition-colors">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6">
           <path fill-rule="evenodd" d="M7.5 6a4.5 4.5 0 1 1 9 0 4.5 4.5 0 0 1-9 0ZM3.751 20.105a8.25 8.25 0 0 1 16.498 0 .75.75 0 0 1-.437.695A18.683 18.683 0 0 1 12 22.5c-2.786 0-5.433-.608-7.812-1.7a.75.75 0 0 1-.437-.695Z" clip-rule="evenodd" />
         </svg>
@@ -26,9 +23,9 @@
     {% endif %}
 </div>
 {% endblock %}
-{# --- END page_header block --- #}
 
 {% block main %}
+<div class="space-y-4"> {# Consistent main content wrapper #}
     <section aria-labelledby="match-controls-heading">
         <h2 id="match-controls-heading" class="sr-only">Match Controls</h2>
         <div class="space-y-4">
@@ -37,8 +34,8 @@
                     <button
                         id="toggle-match-filters-btn"
                         type="button"
-                        class="w-36 inline-flex items-center justify-center px-4 py-2 border border-violet-300 rounded-md shadow-sm text-sm font-medium text-violet-900 bg-violet-100 hover:bg-violet-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-violet-500">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 mr-2 text-violet-500">
+                        class="w-36 inline-flex items-center justify-center px-4 py-2 border border-violet-300 dark:border-violet-600 rounded-md shadow-sm text-sm font-medium text-violet-900 dark:text-violet-200 bg-violet-100 dark:bg-violet-700 hover:bg-violet-50 dark:hover:bg-violet-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-violet-500">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 mr-2 text-violet-500 dark:text-violet-400">
                            <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 1 1-3 0m3 0a1.5 1.5 0 1 0-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-9.75 0h9.75" />
                         </svg>
                         <span id="toggle-match-filters-text">Filter</span>
@@ -54,32 +51,42 @@
                 </div>
             </div>
 
-            <div id="match-filter-controls" class="hidden md:grid gap-4 bg-white shadow-md rounded-xl border border-violet-200 p-4">
-                 <div class="relative">
-                   <label for="match-tag-filter-button" class="block text-sm font-medium text-violet-900 mb-1">Filter by Tags</label>
+            <div id="match-filter-controls" class="hidden md:grid gap-4 bg-white dark:bg-gray-800 shadow-md rounded-xl border border-violet-200 dark:border-gray-700 p-4">
+                 {# md:grid-cols-1 or md:grid-cols-2 or md:grid-cols-3 depending on how many filters you add #}
+                 {# For now, assuming only tag filter, so md:grid-cols-1 might be enough, or make it span more if you add more filters #}
+                 <div class="relative md:col-span-1"> {/* Adjust col-span as needed */}
+                   <label for="match-tag-filter-button" class="block text-sm font-medium text-violet-900 dark:text-violet-300 mb-1">Filter by Tags</label>
                    <button type="button" id="match-tag-filter-button" aria-haspopup="listbox" aria-expanded="false"
-                     class="relative w-full cursor-default rounded-md border border-violet-300 bg-white py-2 pl-3 pr-10 text-left text-sm text-violet-900 shadow-sm focus:border-violet-500 focus:outline-none focus:ring-1 focus:ring-violet-500 hover:bg-violet-50">
+                     class="relative w-full cursor-default rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 py-2 pl-3 pr-10 text-left text-sm text-gray-900 dark:text-gray-100 shadow-sm focus:border-violet-500 focus:outline-none focus:ring-1 focus:ring-violet-500 hover:bg-gray-50 dark:hover:bg-gray-600">
                      <span id="match-tag-filter-button-text" class="block truncate">All Tags</span>
                      <span class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
-                       <svg class="h-5 w-5 text-violet-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                         <path fill-rule="evenodd" d="M10 3a.75.75 0 01.53.22l3.5 3.5a.75.75 0 01-1.06 1.06L10 4.81 7.03 7.78a.75.75 0 01-1.06-1.06l3.5-3.5A.75.75 0 0110 3z" clip-rule="evenodd" />
-                         <path fill-rule="evenodd" d="M10 17a.75.75 0 01-.53-.22l-3.5-3.5a.75.75 0 011.06-1.06L10 15.19l2.97-2.97a.75.75 0 011.06 1.06l-3.5 3.5A.75.75 0 0110 17z" clip-rule="evenodd" />
+                       <svg class="h-5 w-5 text-gray-400 dark:text-gray-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                         <path fill-rule="evenodd" d="M10 3a.75.75 0 01.53.22l3.5 3.5a.75.75 0 01-1.06 1.06L10 4.81 7.03 7.78a.75.75 0 01-1.06-1.06l3.5-3.5A.75.75 0 0110 3zM10 17a.75.75 0 01-.53-.22l-3.5-3.5a.75.75 0 011.06-1.06L10 15.19l2.97-2.97a.75.75 0 011.06 1.06l-3.5 3.5A.75.75 0 0110 17z" clip-rule="evenodd" />
                        </svg>
                      </span>
                    </button>
                    <div id="match-tag-filter-dropdown"
-                        class="absolute z-10 mt-1 w-full rounded-md bg-white shadow-lg border border-violet-200 hidden max-h-60 overflow-y-auto focus:outline-none ring-1 ring-black ring-opacity-5">
+                        class="absolute z-10 mt-1 w-full rounded-md bg-white dark:bg-gray-700 shadow-lg border border-gray-200 dark:border-gray-600 hidden max-h-60 overflow-y-auto focus:outline-none ring-1 ring-black dark:ring-white ring-opacity-5 dark:ring-opacity-10">
                       <div id="match-tag-filter-options" class="px-2 py-1 space-y-1" role="listbox">
-                         <div class="text-center text-xs text-violet-500 py-2">Loading tags...</div>
+                         <div class="text-center text-xs text-gray-500 dark:text-gray-400 py-2">Loading tags...</div>
                       </div>
-                      <div class="border-t border-violet-200 px-3 py-2">
-                         <button type="button" id="clear-match-tag-filter-button" class="w-full text-center text-xs font-medium text-violet-600 hover:text-violet-900 focus:outline-none">
+                      <div class="border-t border-gray-200 dark:border-gray-600 px-3 py-2">
+                         <button type="button" id="clear-match-tag-filter-button" class="w-full text-center text-xs font-medium text-violet-600 dark:text-violet-300 hover:text-violet-900 dark:hover:text-violet-100 focus:outline-none">
                            Clear selection
                          </button>
                       </div>
                    </div>
                  </div>
-                 <!-- Add other filters here if needed (e.g., Deck filter) -->
+                 <!-- Example: Deck Filter (if you add it) -->
+                 <!--
+                 <div class="relative md:col-span-1">
+                    <label for="match-deck-filter-select" class="block text-sm font-medium text-violet-900 dark:text-violet-300 mb-1">Filter by Deck</label>
+                    <select id="match-deck-filter-select" class="w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 shadow-sm focus:border-violet-500 focus:ring focus:ring-violet-500 focus:ring-opacity-50">
+                        <option value="">All Decks</option>
+                        {# Options populated by JS #}
+                    </select>
+                 </div>
+                 -->
             </div>
         </div>
     </section>
@@ -87,37 +94,25 @@
     <section aria-labelledby="match-history-container-heading">
          <h2 id="match-history-container-heading" class="sr-only">Match List</h2>
          <div id="matches-list-items" class="grid gap-4 md:grid-cols-2">
-             <!-- Loading message initially -->
-             <div class="bg-white shadow-md rounded-xl border border-violet-200 p-6 text-center text-violet-500 md:col-span-2">
+             <div class="bg-white dark:bg-gray-800 shadow-md rounded-xl border border-violet-200 dark:border-gray-700 p-6 text-center text-gray-500 dark:text-gray-400 md:col-span-2">
                  Loading match history...
              </div>
          </div>
-         <!-- Message shown when no matches are found -->
-         <div id="no-matches-message-history" class="w-full text-center text-violet-500 mt-8 p-4 text-base border border-dashed border-violet-300 rounded-lg hidden">
+         <div id="no-matches-message-history" class="w-full text-center text-gray-500 dark:text-gray-400 mt-8 p-4 text-base border border-dashed border-gray-300 dark:border-gray-600 rounded-lg hidden">
              No match history found. Try adjusting filters or log a new match!
          </div>
     </section>
-
 </div>
 {% endblock %}
 
 {% block scripts %}
-    {# Load dependencies first #}
+    {{ super() }} {# Ensure super() is called #}
     <script type="module" src="{{ url_for('static', filename='js/utils.js') }}"></script>
-    {# Ensure authFetch is available, assuming it's in auth.js or similar #}
     <script type="module" src="{{ url_for('static', filename='js/auth/auth.js') }}"></script>
-
-    {# Tag related scripts #}
     <script type="module" src="{{ url_for('static', filename='js/ui/tag-utils.js') }}"></script>
     <script type="module" src="{{ url_for('static', filename='js/ui/tagInput.js') }}"></script>
-
-    {# NEW Match Actions script (Handles menu toggle, delete logic, click outside) #}
     <script type="module" src="{{ url_for('static', filename='js/ui/matches/match-actions.js') }}"></script>
-
-    {# Match List Manager (Loads data, renders items including menu HTML, initializes actions, handles tag clicks) #}
     <script type="module" src="{{ url_for('static', filename='js/ui/matches/match-list-manager.js') }}"></script>
-
-    {# Other match related scripts #}
     <script type="module" src="{{ url_for('static', filename='js/ui/matches/filter-matches-by-tag.js') }}"></script>
     <script type="module" src="{{ url_for('static', filename='js/ui/matches/log-match.js') }}"></script>
     <script type="module" src="{{ url_for('static', filename='js/ui/matches/log-match-modal.js') }}"></script>

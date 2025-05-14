@@ -139,11 +139,6 @@ def create_app(config_name=None):
     )
 
     # --- Initialize Extensions with App ---
-    # Use print for early debug messages
-    print(f"DEBUG MAIL: Server={app.config.get('MAIL_SERVER')}, Port={app.config.get('MAIL_PORT')}")
-    print(f"DEBUG MAIL: Use TLS={app.config.get('MAIL_USE_TLS')}, Use SSL={app.config.get('MAIL_USE_SSL')}")
-    print(f"DEBUG MAIL: Username={app.config.get('MAIL_USERNAME')}")
-
     bcrypt.init_app(app)
 
     # --- Initialize DB ---
