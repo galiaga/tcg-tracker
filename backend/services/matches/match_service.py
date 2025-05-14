@@ -6,9 +6,6 @@ from backend.models.deck import Deck
 from sqlalchemy import func, case, Integer, and_, desc, select # Added select
 import logging
 
-# Add this print statement right at the top to be 100% sure this file is loaded
-print("!!! EXECUTING LATEST match_service.py CODE (v4 - Explicit Table) !!!", flush=True)
-
 logger = logging.getLogger(__name__)
 
 # Use Enum for results
@@ -17,8 +14,6 @@ RESULT_WIN_ID = LoggedMatchResult.WIN.value
 # Service Functions
 
 def get_all_decks_stats(user_id):
-    """Calculates statistics for all active decks owned by a user (active matches only)."""
-    print("!!! INSIDE get_all_decks_stats (v4 - Explicit Table) !!!", flush=True)
     logger.debug(f"Executing get_all_decks_stats for user_id: {user_id}")
 
     # Explicitly get the Table object for LoggedMatch
@@ -83,7 +78,6 @@ def get_all_decks_stats(user_id):
 
 def get_deck_stats(user_id, deck_id):
     """Calculates statistics for a specific active deck (active matches only)."""
-    print("!!! INSIDE get_deck_stats (v4 - Explicit Table) !!!", flush=True)
     logger.debug(f"Executing get_deck_stats for user_id: {user_id}, deck_id: {deck_id}")
 
     # Explicitly get the Table object for LoggedMatch

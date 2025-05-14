@@ -6,19 +6,16 @@
 
 {% block page_header %}
 <div class="flex justify-between items-center mb-4">
-    {# Left side: Logo and Title #}
     <div class="flex items-center">
         <img src="{{ url_for('static', filename='img/logo.png') }}"
              alt="Logo TCG Tracker"
              class="h-10 w-10 mr-3">
-        <h1 class="text-2xl font-bold text-violet-900">My Tags</h1>
+        <h1 class="text-2xl font-bold text-violet-900 dark:text-violet-200">My Tags</h1>
     </div>
-
-    {# Right side: Mobile Profile Icon (only visible on mobile if logged in) #}
     {% if is_logged_in %}
     <a href="{{ url_for('frontend.profile_page') }}"
        aria-label="User Profile"
-       class="md:hidden bg-violet-100 text-violet-700 rounded-full p-2 shadow hover:bg-violet-200 transition-colors">
+       class="md:hidden bg-violet-100 text-violet-700 dark:bg-violet-700 dark:text-violet-200 rounded-full p-2 shadow hover:bg-violet-200 dark:hover:bg-violet-600 transition-colors">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6">
           <path fill-rule="evenodd" d="M7.5 6a4.5 4.5 0 1 1 9 0 4.5 4.5 0 0 1-9 0ZM3.751 20.105a8.25 8.25 0 0 1 16.498 0 .75.75 0 0 1-.437.695A18.683 18.683 0 0 1 12 22.5c-2.786 0-5.433-.608-7.812-1.7a.75.75 0 0 1-.437-.695Z" clip-rule="evenodd" />
         </svg>
@@ -26,81 +23,73 @@
     {% endif %}
 </div>
 {% endblock %}
-{# --- END page_header block --- #}
 
 {% block main %}
-    <!-- Updated Tag Selection Area -->
-    <div id="tag-selection-area" class="space-y-4">
-
-        <!-- Section for displaying currently selected tags -->
-        <div id="selected-tags-row" class="flex items-center gap-x-2"> 
-            <div class="flex flex-col flex-shrink-0">
-                <h3 class="text-sm font-medium text-violet-900">Selected Tags:</h3>
-                <button type="button" id="clear-all-tags-button" class="hidden text-xs text-left text-violet-600 hover:text-violet-800 mt-1 focus:outline-none">
+<div class="space-y-6"> {# Increased top-level spacing a bit for this page #}
+    <div id="tag-selection-area" class="space-y-4 bg-white dark:bg-gray-800 shadow-md rounded-xl border border-violet-200 dark:border-gray-700 p-4 md:p-6">
+        <div id="selected-tags-row" class="flex flex-col sm:flex-row items-start sm:items-center gap-x-3 gap-y-2">
+            <div class="flex-shrink-0">
+                <h3 class="text-sm font-medium text-violet-900 dark:text-violet-300">Selected Tags:</h3>
+                <button type="button" id="clear-all-tags-button" class="hidden text-xs text-left text-violet-600 dark:text-violet-400 hover:text-violet-800 dark:hover:text-violet-200 mt-0.5 focus:outline-none hover:underline">
                     Clear All
                 </button>
             </div>
-
-            <div id="selected-tags-display" class="flex-grow bg-white border border-violet-200 rounded-md shadow-sm min-h-[2.5rem] p-2 flex flex-wrap gap-1 items-center">
-                <span id="no-tags-selected-text" class="text-sm text-gray-500 italic">No tags selected.</span>
-                <!-- Selected tag chips will be added here by JS -->
+            <div id="selected-tags-display" class="flex-grow bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm min-h-[2.75rem] p-2 flex flex-wrap gap-1.5 items-center">
+                <span id="no-tags-selected-text" class="text-sm text-gray-500 dark:text-gray-400 italic">No tags selected.</span>
             </div>
         </div>
 
-
-        <!-- Section for Quick Select / Recent Tags -->
         <div>
-            <h3 class="text-sm font-medium text-violet-900 mb-1">Quick Select (Recent Tags):</h3>
+            <h3 class="text-sm font-medium text-violet-900 dark:text-violet-300 mb-1.5">Quick Select (Recent Tags):</h3>
             <div id="recent-tags-container" class="flex flex-wrap gap-2">
-                <p class="text-sm text-gray-500 italic w-full">Loading recent tags...</p>
-                <!-- Recent tag chips will be added here by JS -->
+                <p class="text-sm text-gray-500 dark:text-gray-400 italic w-full">Loading recent tags...</p>
             </div>
         </div>
 
-        <!-- Section for Searching/Viewing All Tags (Label and Field Inline) -->
         <div>
-            <div class="flex items-center gap-x-2">
-                <label for="tag-search-input" class="block text-sm font-medium text-violet-900 flex-shrink-0">Find Tags:</label>
-                <div class="relative flex-grow">
+            <div class="flex flex-col sm:flex-row items-start sm:items-center gap-x-3 gap-y-1.5">
+                <label for="tag-search-input" class="block text-sm font-medium text-violet-900 dark:text-violet-300 flex-shrink-0 mb-1 sm:mb-0">Find Tags:</label>
+                <div class="relative flex-grow w-full">
                     <input type="search" id="tag-search-input" placeholder="Search all your tags..."
-                           class="w-full rounded-md border border-violet-300 bg-white py-2 pl-3 pr-10 text-sm text-violet-900 shadow-sm focus:border-violet-500 focus:outline-none focus:ring-1 focus:ring-violet-500 placeholder-gray-400">
-                    <div class="absolute inset-y-0 right-0 flex py-1.5 pr-1.5 pointer-events-none">
-                         <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                           class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 py-2 pl-3 pr-10 text-sm text-gray-900 dark:text-gray-100 shadow-sm focus:border-violet-500 focus:outline-none focus:ring-1 focus:ring-violet-500 placeholder-gray-400 dark:placeholder-gray-500">
+                    <div class="absolute inset-y-0 right-0 flex items-center py-1.5 pr-2.5 pointer-events-none">
+                         <svg class="h-5 w-5 text-gray-400 dark:text-gray-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                             <path fill-rule="evenodd" d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z" clip-rule="evenodd" />
                         </svg>
                     </div>
                 </div>
             </div>
-            <div id="tag-search-results" class="mt-2 space-y-1 max-h-48 overflow-y-auto">
-                <!-- Search results will appear here -->
-            </div>
-        </div>
-    </div>
-    <!-- End Updated Tag Selection Area -->
-
-
-    <!-- Associated Decks/Matches Section -->
-    <div class="mt-4 space-y-6">
-        <div>
-            <h2 class="text-xl font-semibold text-violet-900 mb-3">Associated Decks</h2>
-            <div id="associated-decks-list" class="space-y-2">
-                <p class="text-violet-800 italic text-sm">Select tags above to view associated decks.</p>
-                <!-- Deck cards will be rendered here -->
-            </div>
-        </div>
-        <div>
-            <h2 class="text-xl font-semibold text-violet-900 mb-3">Associated Matches</h2>
-            <div id="associated-matches-list" class="space-y-2">
-                <p class="text-violet-800 italic text-sm">Select tags above to view associated matches.</p>
-                <!-- Match cards will be rendered here -->
+            <div id="tag-search-results" class="mt-2 space-y-1 max-h-48 overflow-y-auto bg-white dark:bg-gray-750 p-1 rounded-md border border-gray-200 dark:border-gray-600 shadow-sm">
+                {# Search results will appear here, e.g., buttons or list items #}
+                <p class="text-xs text-center text-gray-400 dark:text-gray-500 p-2 italic">Start typing to search tags.</p>
             </div>
         </div>
     </div>
 
+    <div class="mt-6 space-y-6"> {# Increased margin-top #}
+        <div>
+            <h2 class="text-xl font-semibold text-violet-900 dark:text-violet-200 mb-3">Associated Decks</h2>
+            <div id="associated-decks-list" class="grid gap-4 md:grid-cols-2 xl:grid-cols-3"> {# Using grid for deck cards #}
+                <p class="text-gray-600 dark:text-gray-400 italic text-sm md:col-span-full">Select tags above to view associated decks.</p>
+            </div>
+        </div>
+        <div>
+            <h2 class="text-xl font-semibold text-violet-900 dark:text-violet-200 mb-3">Associated Matches</h2>
+            <div id="associated-matches-list" class="grid gap-4 md:grid-cols-2"> {# Using grid for match cards #}
+                <p class="text-gray-600 dark:text-gray-400 italic text-sm md:col-span-full">Select tags above to view associated matches.</p>
+            </div>
+        </div>
+    </div>
 </div>
 {% endblock %}
 
 {% block scripts %}
+    {{ super() }} {# Ensure super() is called #}
     <script type="module" src="{{ url_for('static', filename='js/ui/tags/user-tags.js') }}"></script>
-    <script type="module" src="{{ url_for('static', filename='js/ui/matches/match-list-manager.js') }}"></script>
+    {# match-list-manager might be needed if you render match cards here, or a deck-list-manager for deck cards #}
+    {# Assuming user-tags.js handles populating associated items or calls other managers #}
+    {# If deckCardComponent is used for associated decks, include it #}
+    <script type="module" src="{{ url_for('static', filename='js/ui/decks/deckCardComponent.js') }}"></script>
+    {# If a similar component exists for match items, include it #}
+    {# <script type="module" src="{{ url_for('static', filename='js/ui/matches/matchCardComponent.js') }}"></script> #}
 {% endblock %}

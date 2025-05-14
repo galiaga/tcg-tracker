@@ -8,7 +8,6 @@ from sqlalchemy import desc
 import logging # Import logging
 
 # Add print statement for debugging load issues
-print("!!! EXECUTING LATEST match_history_service.py CODE !!!", flush=True)
 logger = logging.getLogger(__name__)
 
 def get_matches_by_user(user_id, deck_id=None, limit=None, offset=None, tag_ids=None):

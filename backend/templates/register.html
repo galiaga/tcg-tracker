@@ -5,56 +5,64 @@
 {% endblock %}
 
 {% block main %}
-    <div class="w-full max-w-md bg-white p-8 rounded-2xl shadow-xl space-y-6">
-      <div class="flex justify-center">
-        <img src="{{ url_for('static', filename='img/logo.png') }}"
-             alt="TCG Tracker Logo" class="h-30 w-auto mb-2">
-      </div>
-      <form id="register-form" class="space-y-6">
-        <h2 class="text-2xl font-bold text-center text-violet-600">Create Account</h2>
-
-        <!-- First Name Input -->
-        <input id="first_name" type="text" placeholder="First Name" autocomplete="given-name" autofocus required
-               class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-violet-500" />
-
-        <!-- Last Name Input -->
-        <input id="last_name" type="text" placeholder="Last Name" autocomplete="family-name" required
-               class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-violet-500" />
-
-        <!-- Email Input -->
-        <input id="email" type="email" placeholder="Email Address" autocomplete="email" required
-               class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-violet-500" />
-
-        <!-- Password Input -->
-        <input id="password" type="password" placeholder="Password" autocomplete="new-password" required
-               class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-violet-500" />
-
-        <!-- Confirmation Input -->
-        <input id="confirmation" type="password" placeholder="Confirm Password" autocomplete="new-password" required
-               class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-violet-500" />
-
-        <!-- Div for Password Complexity Errors -->
-        <div id="password-errors" class="text-sm space-y-1" aria-live="assertive">
-              {# Errors will be injected here by JavaScript #}
+    {# Add flex centering for the register form card #}
+    <div class="flex flex-col items-center justify-center w-full">
+        <div class="w-full max-w-md bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-xl space-y-6">
+          <div class="flex justify-center">
+            <img src="{{ url_for('static', filename='img/logo.png') }}"
+                 alt="TCG Tracker Logo" class="h-20 w-auto mb-2"> {# Adjusted logo height #}
           </div>
-          <!-- End Error Div -->
+          <form id="register-form" class="space-y-6">
+            <h2 class="text-2xl font-bold text-center text-violet-600 dark:text-violet-300">Create Account</h2>
 
-       <!-- Submit Button -->
-        <button type="submit"
-                class="w-full bg-violet-700 hover:bg-violet-600 text-white font-semibold py-3 rounded-xl shadow-md transition duration-300">
-          Register
-        </button>
-      </form>
+            <input id="first_name" type="text" placeholder="First Name" autocomplete="given-name" autofocus required
+                   class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl 
+                          focus:outline-none focus:ring-2 focus:ring-violet-500 
+                          text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700 
+                          placeholder-gray-400 dark:placeholder-gray-500" />
 
-      <!-- Link to Login -->
-      <a href="{{ url_for('frontend.login_page') }}" {# <-- Use url_for for login link #}
-         class="block text-center w-full bg-neutral-50 hover:bg-violet-800 text-violet-600 font-semibold hover:text-white py-3 rounded-xl shadow-md transition duration-300">
-        Already have an account? Log in
-      </a>
+            <input id="last_name" type="text" placeholder="Last Name" autocomplete="family-name" required
+                   class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl 
+                          focus:outline-none focus:ring-2 focus:ring-violet-500 
+                          text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700 
+                          placeholder-gray-400 dark:placeholder-gray-500" />
+
+            <input id="email" type="email" placeholder="Email Address" autocomplete="email" required
+                   class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl 
+                          focus:outline-none focus:ring-2 focus:ring-violet-500 
+                          text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700 
+                          placeholder-gray-400 dark:placeholder-gray-500" />
+
+            <input id="password" type="password" placeholder="Password" autocomplete="new-password" required
+                   class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl 
+                          focus:outline-none focus:ring-2 focus:ring-violet-500 
+                          text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700 
+                          placeholder-gray-400 dark:placeholder-gray-500" />
+
+            <input id="confirmation" type="password" placeholder="Confirm Password" autocomplete="new-password" required
+                   class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl 
+                          focus:outline-none focus:ring-2 focus:ring-violet-500 
+                          text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700 
+                          placeholder-gray-400 dark:placeholder-gray-500" />
+
+            <div id="password-errors" class="text-sm space-y-1 text-red-600 dark:text-red-400" aria-live="assertive">
+              {# Errors will be injected here by JavaScript #}
+            </div>
+
+            <button type="submit"
+                    class="w-full bg-violet-700 hover:bg-violet-600 text-white font-semibold py-3 rounded-xl shadow-md transition duration-300">
+              Register
+            </button>
+          </form>
+
+          <a href="{{ url_for('frontend.login_page') }}"
+             class="block text-center w-full bg-neutral-50 dark:bg-gray-700 hover:bg-violet-100 dark:hover:bg-violet-600 text-violet-600 dark:text-violet-300 font-semibold hover:text-violet-700 dark:hover:text-violet-100 py-3 rounded-xl shadow-md transition duration-300 border border-gray-300 dark:border-gray-600">
+            Already have an account? Log in
+          </a>
+        </div>
     </div>
 {% endblock %}
 
 {% block scripts %}
-    {# Assuming showFlashMessage is globally available or imported in register.js #}
     <script type="module" src="{{ url_for('static', filename='js/auth/register.js') }}"></script>
 {% endblock %}
