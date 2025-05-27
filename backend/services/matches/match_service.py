@@ -14,8 +14,6 @@ RESULT_WIN_ID = LoggedMatchResult.WIN.value
 # Service Functions
 
 def get_all_decks_stats(user_id):
-    logger.debug(f"Executing get_all_decks_stats for user_id: {user_id}")
-
     # Explicitly get the Table object for LoggedMatch
     logged_matches_table = LoggedMatch.__table__
 
@@ -51,14 +49,11 @@ def get_all_decks_stats(user_id):
         .order_by(Deck.name) # Keep ordering by name
         .all()
     )
-    logger.debug(f"Query results count for user_id {user_id}: {len(decks_stats)}")
 
     results = []
     for deck in decks_stats:
-        logger.info(f"RAW Query Data for Deck ID {deck.id}: total_matches={deck.total_matches}, total_wins={deck.total_wins}")
         total_matches = int(deck.total_matches or 0)
         total_wins = int(deck.total_wins or 0)
-        logger.info(f"[get_all_decks_stats] Deck ID: {deck.id} ('{deck.name}') - total_matches = {total_matches}, total_wins = {total_wins}")
         win_rate = round((total_wins / total_matches) * 100, 2) if total_matches > 0 else 0
 
         results.append({
@@ -70,15 +65,12 @@ def get_all_decks_stats(user_id):
             "win_rate": win_rate,
             "last_match": deck.last_match
         })
-    logger.debug(f"Finished processing stats for user_id {user_id}. Returning {len(results)} deck stats.")
-    print(f"results: {results}")
     return results
 
 # --- Update get_deck_stats similarly ---
 
 def get_deck_stats(user_id, deck_id):
     """Calculates statistics for a specific active deck (active matches only)."""
-    logger.debug(f"Executing get_deck_stats for user_id: {user_id}, deck_id: {deck_id}")
 
     # Explicitly get the Table object for LoggedMatch
     logged_matches_table = LoggedMatch.__table__
@@ -121,7 +113,6 @@ def get_deck_stats(user_id, deck_id):
         if not target_deck:
              logger.warning(f"[get_deck_stats] Deck found but is inactive for user_id: {user_id}, deck_id: {deck_id}")
              return None
-        logger.info(f"[get_deck_stats] Active deck found but no active matches recorded for user_id: {user_id}, deck_id: {deck_id}")
         return {
             "id": target_deck.id,
             "name": target_deck.name,
@@ -132,7 +123,6 @@ def get_deck_stats(user_id, deck_id):
 
     total_matches = int(deck_stats.total_matches or 0)
     total_wins = int(deck_stats.total_wins or 0)
-    logger.info(f"[get_deck_stats] Deck ID: {deck_stats.id} ('{deck_stats.name}') - total_matches = {total_matches}, total_wins = {total_wins}")
     win_rate = round((total_wins / total_matches) * 100, 2) if total_matches > 0 else 0
 
     result_data = {
@@ -142,5 +132,4 @@ def get_deck_stats(user_id, deck_id):
             "total_wins": total_wins,
             "win_rate": win_rate,
         }
-    logger.debug(f"Finished processing stats for user_id {user_id}, deck_id {deck_id}. Returning stats.")
     return result_data

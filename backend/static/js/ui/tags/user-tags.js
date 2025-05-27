@@ -41,8 +41,8 @@ async function fetchAndDisplayAssociatedItems() {
 
     // Display message if no tags are selected
     if (currentSelectedIds.length === 0) {
-        decksContainer.innerHTML = '<p class="text-center text-violet-800 mt-4 p-4 text-base border border-dashed border-violet-300 rounded-lg md:col-span-2 xl:col-span-3">Select one or more tags above to view associated decks.</p>';
-        matchesContainer.innerHTML = '<p class="text-center text-violet-800 mt-4 p-4 text-base border border-dashed border-violet-300 rounded-lg md:col-span-2 xl:col-span-3">Select one or more tags above to view associated matches.</p>';
+        decksContainer.innerHTML = '<p class="text-center text-gray-900 dark:text-violet-300 mt-4 p-4 text-base border border-dashed border-violet-300 rounded-lg md:col-span-2 xl:col-span-3">Select one or more tags above to view associated decks.</p>';
+        matchesContainer.innerHTML = '<p class="text-center text-gray-900 dark:text-violet-300 mt-4 p-4 text-base border border-dashed border-violet-300 rounded-lg md:col-span-2 xl:col-span-3">Select one or more tags above to view associated matches.</p>';
         return;
     }
 

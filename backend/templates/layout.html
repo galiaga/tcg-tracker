@@ -24,8 +24,6 @@
                              <li><a href="{{ url_for('frontend.my_decks_page') }}" data-path="/my-decks" class="desktop-nav-link hover:text-violet-200 p-2 transition-colors duration-200">Decks</a></li>
                              <li><a href="{{ url_for('frontend.matches_history') }}" data-path="/matches-history" class="desktop-nav-link hover:text-violet-200 p-2 transition-colors duration-200">Matches</a></li>
                              <li><a href="{{ url_for('frontend.my_tags_page') }}" data-path="/my-tags" class="desktop-nav-link hover:text-violet-200 p-2 transition-colors duration-200">Tags</a></li>
-                             <li><a href="{{ url_for('tournaments.list_my_tournaments') }}" data-path="/tournaments" class="desktop-nav-link hover:text-violet-200 p-2 transition-colors duration-200">My Tournaments</a></li>
-                             <li><a href="{{ url_for('tournaments.public_tournament_list') }}" data-path="/tournaments/explore" class="desktop-nav-link hover:text-violet-200 p-2 transition-colors duration-200">Explore Tournaments</a></li>
                         </div>
                         <div class="flex items-center space-x-6">
                              <li>
@@ -61,22 +59,6 @@
                         </a>
                     </li>
                     <li>
-                        <a href="{{ url_for('tournaments.list_my_tournaments') }}" data-path="/tournaments" class="mobile-nav-link relative flex flex-col items-center justify-center p-2 rounded-md transition-colors duration-200 hover:bg-violet-100 dark:hover:bg-violet-700" aria-label="My Tournaments">
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6 mb-1">
-                              <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 18.75h-9m9 0a3 3 0 0 1 3 3h-15a3 3 0 0 1 3-3m9 0v-4.5A3.375 3.375 0 0 0 12.75 9.75H11.25A3.375 3.375 0 0 0 7.5 13.125V18.75m9 0h-9" />
-                            </svg>
-                            <span class="text-xs font-medium">My Tourneys</span>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="{{ url_for('tournaments.public_tournament_list') }}" data-path="/tournaments/explore" class="mobile-nav-link relative flex flex-col items-center justify-center p-2 rounded-md transition-colors duration-200 hover:bg-violet-100 dark:hover:bg-violet-700" aria-label="Explore Tournaments">
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6 mb-1">
-                              <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
-                            </svg>
-                            <span class="text-xs font-medium">Explore</span>
-                        </a>
-                    </li>
-                    <li>
                         <a href="{{ url_for('frontend.my_tags_page') }}" data-path="/my-tags" class="mobile-nav-link relative flex flex-col items-center justify-center p-2 rounded-md transition-colors duration-200 hover:bg-violet-100 dark:hover:bg-violet-700" aria-label="Tags">
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6 mb-1">
                               <path stroke-linecap="round" stroke-linejoin="round" d="M9.568 3H5.25A2.25 2.25 0 0 0 3 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 0 0 5.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 0 0 9.568 3Z" />
@@ -98,7 +80,7 @@
 
             {# Page header block - always rendered if child template defines it #}
             {% block page_header %}
-                {# Child templates will fill this (e.g., public_tournament_list.html) #}
+                {# Child templates will fill this #}
                 {# If a child (like login.html) doesn't define it, nothing appears here #}
             {% endblock %}
 
@@ -121,8 +103,6 @@
                 © {% block copyright_year %}{{ current_year }}{% endblock %} TCG Tracker
                 <span class="mx-1">|</span>
                 Version: {{ app_version }}
-                <span class="mx-1">|</span>
-                <a href="{{ url_for('tournaments.public_tournament_list') }}" class="hover:text-violet-700 dark:hover:text-violet-400 hover:underline">Explore Tournaments</a>
             </div>
         </footer>
 
