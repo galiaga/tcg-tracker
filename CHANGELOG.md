@@ -1,5 +1,25 @@
 # Changelog
 
+## [3.0.0] - 2025-05-27
+
+### Changed
+- **UI/UX - "My Decks" Page:**
+    - Ensured tag filter dropdown options (checkboxes and labels) are correctly styled and visible in dark mode.
+    - Updated the "Sort by" and "Format" select dropdowns to visually match the style of the "Tags" filter button for a consistent appearance.
+- **API Rate Limiting:** Investigated 429 "Too Many Requests" errors on the Deck Details page, identifying rapid "Quick Log Match" clicks as a primary cause due to multiple subsequent API calls. Current rate limits on relevant endpoints (e.g., `/api/matches_history`) were reviewed. (Further optimization of frontend request patterns for "Quick Log Match" is a potential future improvement).
+
+### Removed
+- **Tournament Management Feature:**
+    - Removed all tournament-related functionality from the application, as it is no longer required. This includes:
+        - Frontend: "My Tournaments" and "Explore Tournaments" navigation links and pages (`my-tournaments.html`, `explore-tournaments.html`, `view-tournament.html`, `create-tournament.html`, `tournament_settings.html`).
+        - Backend: The `tournaments_bp` Flask blueprint, all associated routes (e.g., `/tournaments/...`, `/api/tournaments/...`), and service logic.
+        - Database: The `Tournament` and `TournamentParticipant` SQLAlchemy models and their corresponding database tables (`tournaments`, `tournament_participants`) via a database migration (`9b20491f0678_remove_tournament_tables.py`).
+        - Tests: All unit and integration tests related to tournament functionality.
+
+### Fixed
+- **Database Migrations:** Corrected the order of operations in the `9b20491f0678_remove_tournament_tables.py` migration script for dropping and re-creating tables with foreign key dependencies to ensure `upgrade` and `downgrade` paths execute correctly.
+
+
 ## [2.3.0] - YYYY-MM-DD 
 
 ### Added

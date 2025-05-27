@@ -26,7 +26,6 @@ def get_matches_by_user(user_id, deck_id=None, limit=None, offset=None, tag_ids=
         List[Tuple[LoggedMatch, Deck, DeckType]]: A list of tuples containing the
                                             LoggedMatch, associated Deck, and DeckType objects.
     """
-    logger.debug(f"Executing get_matches_by_user for user_id: {user_id}, deck_id: {deck_id}, tags: {tag_ids}, limit: {limit}, offset: {offset}")
 
     # Start building the query, selecting the necessary objects
     query_builder = (
@@ -77,7 +76,6 @@ def get_matches_by_user(user_id, deck_id=None, limit=None, offset=None, tag_ids=
 
     # Execute the query and fetch all results
     results = query_builder.all()
-    logger.debug(f"Found {len(results)} matches for user_id: {user_id}")
 
     # The results are already in the desired [(LoggedMatch, Deck, DeckType), ...] format
     return results

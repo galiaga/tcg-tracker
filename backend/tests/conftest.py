@@ -7,8 +7,7 @@ from flask_bcrypt import Bcrypt
 from flask.testing import FlaskClient
 # Updated import: Replace Match with LoggedMatch
 from backend.models import (
-    User, Commander, DeckType, Deck, CommanderDeck, Tag, UserDeck, LoggedMatch,
-    Tournament, TournamentParticipant # Also import new models if tests will use them
+    User, Commander, DeckType, Deck, CommanderDeck, Tag, UserDeck, LoggedMatch
 )
 from sqlalchemy import select, delete
 from datetime import datetime, timezone
@@ -107,7 +106,6 @@ def test_user(app, db):
             db.session.execute(delete(LoggedMatch).where(LoggedMatch.logger_user_id == existing_user.id))
             db.session.execute(delete(Deck).where(Deck.user_id == existing_user.id)) # Cascades should handle CommanderDeck, UserDeck
             db.session.execute(delete(Tag).where(Tag.user_id == existing_user.id))
-            db.session.execute(delete(Tournament).where(Tournament.organizer_id == existing_user.id)) # Cascades handle participants
             # Add other direct user dependencies if necessary
             db.session.delete(existing_user)
             try:
@@ -184,7 +182,6 @@ def test_user_2(app, db):
             db.session.execute(delete(LoggedMatch).where(LoggedMatch.logger_user_id == existing_user.id))
             db.session.execute(delete(Deck).where(Deck.user_id == existing_user.id))
             db.session.execute(delete(Tag).where(Tag.user_id == existing_user.id))
-            db.session.execute(delete(Tournament).where(Tournament.organizer_id == existing_user.id))
             db.session.delete(existing_user)
             try:
                 db.session.commit()

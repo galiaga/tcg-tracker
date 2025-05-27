@@ -52,32 +52,46 @@
           </div>
         </div>
 
-        {# Filter Controls - Reverted to <select> elements from your PROD version, but with updated styling #}
+                {# Filter Controls - Reverted to <select> elements from your PROD version, but with updated styling #}
         <div id="filter-controls" class="hidden md:grid md:grid-cols-3 gap-4 bg-white dark:bg-gray-800 shadow-md rounded-xl border border-violet-200 dark:border-gray-700 p-4">
           <div>
             <label for="sort_decks" class="block text-sm font-medium text-violet-900 dark:text-violet-300 mb-1">Sort by</label>
-            <select id="sort_decks"
-              class="w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 shadow-sm focus:border-violet-500 focus:ring focus:ring-violet-500 focus:ring-opacity-50">
-              <option value="last_match" selected>Last Played</option>
-              <option value="name">Deck Name</option>
-              <option value="winrate">Win Rate</option>
-              <option value="matches">Matches Played</option>
-              <option value="creation_date">Date Added</option>
-            </select>
+            <div class="relative">
+              <select id="sort_decks"
+                class="appearance-none w-full cursor-default rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 py-2 pl-3 pr-10 text-sm text-gray-900 dark:text-gray-100 shadow-sm focus:border-violet-500 focus:outline-none focus:ring-1 focus:ring-violet-500 hover:bg-gray-50 dark:hover:bg-gray-600">
+                <option value="last_match" selected>Last Played</option>
+                <option value="name">Deck Name</option>
+                <option value="winrate">Win Rate</option>
+                <option value="matches">Matches Played</option>
+                <option value="creation_date">Date Added</option>
+              </select>
+              <span class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
+                <svg class="h-5 w-5 text-gray-400 dark:text-gray-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                  <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.25 4.25a.75.75 0 01-1.06 0L5.23 8.29a.75.75 0 010-1.06z" clip-rule="evenodd" />
+                </svg>
+              </span>
+            </div>
           </div>
           <div>
             <label for="filter_decks" class="block text-sm font-medium text-violet-900 dark:text-violet-300 mb-1">Format</label>
-            <select id="filter_decks"
-              class="w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 shadow-sm focus:border-violet-500 focus:ring focus:ring-violet-500 focus:ring-opacity-50">
-              <option value="0" selected>All Formats</option> {# Changed "All" to "All Formats" for clarity #}
-              <option value="1">Standard</option>
-              <option value="2">Pioneer</option>
-              <option value="3">Modern</option>
-              <option value="4">Legacy</option>
-              <option value="5">Vintage</option>
-              <option value="6">Pauper</option>
-              <option value="7">Commander / EDH</option>
-            </select>
+            <div class="relative">
+              <select id="filter_decks"
+                class="appearance-none w-full cursor-default rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 py-2 pl-3 pr-10 text-sm text-gray-900 dark:text-gray-100 shadow-sm focus:border-violet-500 focus:outline-none focus:ring-1 focus:ring-violet-500 hover:bg-gray-50 dark:hover:bg-gray-600">
+                <option value="0" selected>All Formats</option> {# Changed "All" to "All Formats" for clarity #}
+                <option value="1">Standard</option>
+                <option value="2">Pioneer</option>
+                <option value="3">Modern</option>
+                <option value="4">Legacy</option>
+                <option value="5">Vintage</option>
+                <option value="6">Pauper</option>
+                <option value="7">Commander / EDH</option>
+              </select>
+              <span class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
+                <svg class="h-5 w-5 text-gray-400 dark:text-gray-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                  <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.25 4.25a.75.75 0 01-1.06 0L5.23 8.29a.75.75 0 010-1.06z" clip-rule="evenodd" />
+                </svg>
+              </span>
+            </div>
           </div>
           {# Tag filter remains a button-based dropdown as it's more complex than a simple select #}
           <div class="relative">
@@ -86,6 +100,7 @@
               class="relative w-full cursor-default rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 py-2 pl-3 pr-10 text-left text-sm text-gray-900 dark:text-gray-100 shadow-sm focus:border-violet-500 focus:outline-none focus:ring-1 focus:ring-violet-500 hover:bg-gray-50 dark:hover:bg-gray-600">
               <span id="tag-filter-button-text" class="block truncate">All Tags</span>
               <span class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
+                {# This is the original up/down chevron, which is fine for a multi-select or filter button #}
                 <svg class="h-5 w-5 text-gray-400 dark:text-gray-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                   <path fill-rule="evenodd" d="M10 3a.75.75 0 01.53.22l3.5 3.5a.75.75 0 01-1.06 1.06L10 4.81 7.03 7.78a.75.75 0 01-1.06-1.06l3.5-3.5A.75.75 0 0110 3zM10 17a.75.75 0 01-.53-.22l-3.5-3.5a.75.75 0 011.06-1.06L10 15.19l2.97-2.97a.75.75 0 011.06 1.06l-3.5 3.5A.75.75 0 0110 17z" clip-rule="evenodd" />
                 </svg>
