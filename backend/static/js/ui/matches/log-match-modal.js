@@ -1,136 +1,169 @@
-import { TagInputManager } from '../tagInput.js'; 
-import { fetchUserTags } from '../tag-utils.js'; 
+// backend/static/js/ui/matches/log-match-modal.js
+import { TagInputManager } from '../tagInput.js';
+// fetchUserTags is now handled internally by TagInputManager or via its fetchSuggestions option
 
-const modal = document.getElementById("logMatchModal");
-const modalContent = modal?.querySelector(".bg-white");
-const closeBtn = document.getElementById("logMatchModalCloseButton");
-const form = document.getElementById('log-match-form');
-const deckSelect = document.getElementById("deck-select");
+// --- DOM Elements ---
+let modalElement = null;
+let modalContentElement = null;
+let closeButtonElement = null;
+let formElement = null;
+let deckSelectElement = null;
 
-if (!modal || !modalContent || !closeBtn || !form || !deckSelect) {
-    console.error("Log Match Modal critical elements not found. Modal functionality might be broken.");
-}
-
-let preselectedDeckInfo = null;
+// --- State ---
+let preselectedInfo = null;
 let matchTagInputInstance = null;
 
+// --- Form Management ---
 function resetLogMatchForm() {
-    if (form) {
-        form.reset();
+    if (formElement) {
+        formElement.reset();
     }
     if (matchTagInputInstance) {
-        matchTagInputInstance.clearTags(); 
-    } else {
-        console.warn("[log-match-modal] Cannot clear match tags: instance not found.");
+        matchTagInputInstance.clearTags();
     }
-
-    if (deckSelect) {
-        deckSelect.value = "";
-        deckSelect.disabled = false;
+    if (deckSelectElement && deckSelectElement.options.length > 0) {
+        deckSelectElement.value = "";
+        deckSelectElement.disabled = false;
     }
-    const defaultRadio = form?.querySelector('input[name="match_result"][value="0"]');
-    if (defaultRadio) {
-        defaultRadio.checked = true;
+    const defaultResultRadio = formElement?.querySelector('input[name="match_result"][value="0"]');
+    if (defaultResultRadio) {
+        defaultResultRadio.checked = true;
     }
-    preselectedDeckInfo = null;
+    preselectedInfo = null;
 }
 
 function applyPreselection() {
-    if (preselectedDeckInfo && deckSelect) {
-        const deckIdToSelect = preselectedDeckInfo.id;
-        const optionExists = deckSelect.querySelector(`option[value="${deckIdToSelect}"]`);
-        if (optionExists) {
-            deckSelect.value = deckIdToSelect;
-            deckSelect.disabled = true;
-            preselectedDeckInfo = null;
+    if (preselectedInfo && deckSelectElement) {
+        if (preselectedInfo.id) {
+            const deckIdToSelect = String(preselectedInfo.id);
+            const optionExists = deckSelectElement.querySelector(`option[value="${deckIdToSelect}"]`);
+            if (optionExists) {
+                deckSelectElement.value = deckIdToSelect;
+            } else {
+                console.warn(`[log-match-modal] Option for preselected deck ${deckIdToSelect} not found.`);
+            }
         } else {
-            console.warn(`[log-match-modal] Option for preselected deck ${deckIdToSelect} not found in dropdown yet.`);
+            deckSelectElement.disabled = false;
         }
-    } else if (deckSelect) {
-        deckSelect.disabled = false;
+        if (preselectedInfo.result !== undefined && preselectedInfo.result !== null) {
+            const resultRadio = formElement?.querySelector(`input[name="match_result"][value="${preselectedInfo.result}"]`);
+            if (resultRadio) {
+                resultRadio.checked = true;
+            } else {
+                console.warn(`[log-match-modal] Radio button for preselected result ${preselectedInfo.result} not found.`);
+            }
+        }
+    } else if (deckSelectElement) {
+        deckSelectElement.disabled = false;
     }
 }
 
-export function openLogMatchModal(preselectedDeck = null) {
-    if (!modal || !modalContent) {
-        console.error("Cannot open Log Match Modal: Modal elements not found.");
+// --- Modal Visibility & Initialization ---
+export function openLogMatchModal(preselectionData = null) {
+    if (!modalElement || !modalContentElement) {
+        console.error("Cannot open Log Match Modal: Modal DOM elements not initialized.");
         return;
     }
-
-    preselectedDeckInfo = preselectedDeck;
+    resetLogMatchForm();
+    preselectedInfo = preselectionData;
 
     if (typeof TagInputManager !== 'undefined' && typeof TagInputManager.init === 'function') {
         if (matchTagInputInstance && typeof matchTagInputInstance.destroy === 'function') {
             matchTagInputInstance.destroy();
         }
         matchTagInputInstance = TagInputManager.init({
-            inputId: 'match-tags-input',
-            suggestionsId: 'match-tags-suggestions',
-            containerId: 'match-tags-container', 
-
-            fetchSuggestions: async (query) => {
-                const tags = await fetchUserTags();
-                if (!tags) return [];
-                return tags.filter(tag => tag.name.toLowerCase().includes(query.toLowerCase()));
-            },
+            inputId: 'match-tags-input-field',      // ID of the actual <input type="text">
+            suggestionsId: 'match-tags-suggestions',  // ID of the suggestions dropdown div
+            wrapperId: 'match-tags-input-wrapper',  // ID of the main div styled like an input
+            tagsContainerId: 'match-tags-container',// ID of the span where pills are rendered
+            // fetchSuggestions can be omitted to use the default internal one in TagInputManager
         });
-
         if (matchTagInputInstance) {
-            matchTagInputInstance.clearTags(); 
-            const inputElement = document.getElementById('match-tags-input');
-            if (inputElement) {
-                 setTimeout(() => inputElement.focus(), 50); 
+            const tagInputElement = document.getElementById('match-tags-input-field');
+            const firstPositionLabel = document.getElementById('log-match-pos-1');
+            if (tagInputElement) {
+                 setTimeout(() => {
+                    if (preselectedInfo && preselectedInfo.id && preselectedInfo.result !== undefined) {
+                        firstPositionLabel?.focus();
+                    } else if (preselectedInfo && preselectedInfo.id) {
+                         const firstResultRadioLabel = formElement?.querySelector('label[for="log-match-result-win"]');
+                         firstResultRadioLabel?.focus();
+                    } else {
+                        deckSelectElement?.focus();
+                    }
+                 }, 160);
             }
         } else {
-            console.error("[log-match-modal] Failed to initialize TagInputManager instance for match modal.");
+            console.error("[log-match-modal] Failed to initialize TagInputManager instance.");
         }
-
     } else {
-        console.error("[log-match-modal] TagInputManager class or init method not found/imported.");
+        console.error("[log-match-modal] TagInputManager class or init method not found.");
     }
-
     applyPreselection();
-
-    modal.classList.remove("hidden");
+    modalElement.classList.remove("hidden");
     setTimeout(() => {
-        modalContent?.classList.remove("scale-95", "opacity-0");
-        modalContent?.classList.add("scale-100", "opacity-100");
+        modalContentElement?.classList.remove("scale-95", "opacity-0");
+        modalContentElement?.classList.add("scale-100", "opacity-100");
     }, 10);
 }
 
 export function closeLogMatchModal() {
-    if (!modal || !modalContent) return;
-
-    resetLogMatchForm(); 
-
+    if (!modalElement || !modalContentElement) {
+        console.error("Cannot close Log Match Modal: Modal DOM elements not initialized.");
+        return;
+    }
     if (matchTagInputInstance && typeof matchTagInputInstance.destroy === 'function') {
         matchTagInputInstance.destroy();
     }
-    matchTagInputInstance = null; 
-
-    modalContent.classList.remove("scale-100", "opacity-100");
-    modalContent.classList.add("scale-95", "opacity-0");
-
+    matchTagInputInstance = null;
+    preselectedInfo = null;
+    modalContentElement.classList.remove("scale-100", "opacity-100");
+    modalContentElement.classList.add("scale-95", "opacity-0");
     setTimeout(() => {
-        modal.classList.add("hidden");
+        modalElement.classList.add("hidden");
     }, 150);
 }
 
-if (modal && closeBtn && form) {
-     closeBtn.addEventListener("click", closeLogMatchModal);
-     modal.addEventListener("click", (event) => {
-        if (event.target === modal) {
-            closeLogMatchModal(); 
-        }
-    });
-     form.addEventListener('matchLoggedSuccess', () => {
-        closeLogMatchModal();
-    });
-
-} else {
-    console.warn("[log-match-modal] Could not attach standard modal event listeners.");
+export function getMatchTagInputInstance() {
+    return matchTagInputInstance;
 }
 
-document.addEventListener('deckOptionsLoaded', () => {
-    applyPreselection();
+// --- Event Listener Setup Function ---
+function initializeModal() {
+    modalElement = document.getElementById("logMatchModal");
+    if (!modalElement) {
+        console.error("[log-match-modal] Main modal element #logMatchModal not found.");
+        return;
+    }
+    modalContentElement = modalElement.querySelector(".bg-white, .dark\\:bg-gray-800");
+    closeButtonElement = document.getElementById("logMatchModalCloseButton");
+    formElement = document.getElementById('log-match-form');
+    deckSelectElement = document.getElementById("deck-select");
+
+    if (!modalContentElement) console.error("[log-match-modal] Modal content element not found.");
+    if (!closeButtonElement) console.error("[log-match-modal] Close button #logMatchModalCloseButton not found.");
+    if (!formElement) console.error("[log-match-modal] Form #log-match-form not found.");
+    if (!deckSelectElement) console.error("[log-match-modal] Deck select #deck-select not found.");
+
+    if (closeButtonElement) {
+        closeButtonElement.addEventListener("click", () => closeLogMatchModal());
+    }
+    if (modalElement) { // Check modalElement again before adding listener
+        modalElement.addEventListener("click", (event) => {
+            if (event.target === modalElement) closeLogMatchModal();
+        });
+    }
+    if (formElement) {
+        formElement.addEventListener('matchLoggedSuccess', () => closeLogMatchModal());
+    }
+}
+
+// --- DOMContentLoaded Listener ---
+document.addEventListener('DOMContentLoaded', () => {
+    initializeModal();
+    document.addEventListener('deckOptionsLoaded', () => {
+        if (modalElement && !modalElement.classList.contains("hidden")) {
+            applyPreselection();
+        }
+    });
 });

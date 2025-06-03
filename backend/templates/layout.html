@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" class="scroll-smooth h-full"> {# Assume 'dark' class might be here if dark mode is active #}
+<html lang="en" class="scroll-smooth h-full">
 
     <head>
         <meta charset="utf-8">
@@ -16,7 +16,7 @@
     <body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 min-h-screen flex flex-col">
 
         {% if is_logged_in %}
-            {# === Desktop Navigation (Top Bar) === #}
+            {# Desktop Navigation #}
             <nav id="main-navbar" class="bg-violet-800 dark:bg-violet-900 shadow-md hidden md:block sticky top-0 z-50">
                  <div class="container mx-auto px-4">
                     <ul class="flex justify-between items-center h-16 space-x-6 text-white">
@@ -43,7 +43,7 @@
                 </div>
             </nav>
 
-            {# === Mobile Navigation (Bottom Bar) === #}
+            {# Mobile Navigation #}
             <nav id="mobile-navbar" class="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 shadow-lg md:hidden z-50">
                  <ul class="flex justify-around items-center h-16 text-violet-700 dark:text-violet-300">
                     <li>
@@ -73,28 +73,17 @@
 
         <main class="flex-grow container max-w-6xl mx-auto px-4
                 {% if is_logged_in %}
-                    pt-3 md:pt-6 pb-16 md:pb-6 {# Padding for logged-in state #}
+                    pt-3 md:pt-6 pb-16 md:pb-6
                 {% else %}
-                    py-3 {# Basic padding for non-logged-in state. Centering handled by child or not. #}
+                    py-3
                 {% endif %}">
-
-            {# Page header block - always rendered if child template defines it #}
-            {% block page_header %}
-                {# Child templates will fill this #}
-                {# If a child (like login.html) doesn't define it, nothing appears here #}
-            {% endblock %}
-
-            {# Wrapper for main content area - conditional for logged-in specific layouts #}
+            {% block page_header %}{% endblock %}
             {% if is_logged_in %}
-                <div class="w-full space-y-4"> {# Consistent spacing for logged-in sections #}
+                <div class="w-full space-y-4">
             {% endif %}
-
-            {# Main content from child templates #}
-            {% block main %}
-            {% endblock %}
-
+            {% block main %}{% endblock %}
             {% if is_logged_in %}
-                </div> {# Close the wrapper div ONLY if logged in #}
+                </div>
             {% endif %}
         </main>
 
@@ -120,80 +109,9 @@
            </svg>
        </button>
 
-       {% if is_logged_in %} {# Modals that are only relevant when logged in #}
-        <div id="quickAddTagModal" class="fixed inset-0 bg-black bg-opacity-50 z-[70] flex items-center justify-center px-4 hidden" aria-labelledby="quickAddTagModalTitle" role="dialog" aria-modal="true">
-            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-sm p-5 space-y-4 transform transition-all scale-95 opacity-0">
-               <div class="flex items-center justify-between">
-                   <h2 id="quickAddTagModalTitle" class="text-lg font-semibold text-gray-800 dark:text-gray-100">Add Tag to Item</h2>
-                   <button id="quickAddTagModalCloseButton" type="button" aria-label="Close modal" class="text-gray-400 hover:text-gray-600 dark:text-gray-300 dark:hover:text-gray-100 text-xl font-bold leading-none">×</button>
-               </div>
-               <div class="mt-2">
-                   <label for="quick-add-tag-input" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Tags</label>
-                   <div id="quick-add-tags-container" class="mb-2 flex flex-wrap gap-1 min-h-[28px] hidden">
-                   </div>
-                   <div class="relative">
-                       <input type="text" id="quick-add-tag-input" autocomplete="off" placeholder="Search or create tag..."
-                          class="w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm text-gray-800 dark:text-gray-100 bg-white dark:bg-gray-700 shadow-sm focus:border-violet-500 focus:ring focus:ring-violet-200 focus:ring-opacity-50" />
-                       <div id="quick-add-tags-suggestions" class="absolute z-20 mt-1 w-full bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-md shadow-lg max-h-40 overflow-y-auto hidden">
-                       </div>
-                   </div>
-               </div>
-           </div>
-       </div>
-
-       <div id="logMatchModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center px-4 hidden">
-            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md p-6 space-y-5 transform transition-all scale-95 opacity-0">
-             <div class="flex items-center justify-between border-b dark:border-gray-700 pb-3">
-               <h2 class="text-lg font-bold text-gray-800 dark:text-gray-100">Log New Match</h2>
-               <button id="logMatchModalCloseButton" type="button" aria-label="Close modal"
-                 class="text-gray-400 hover:text-gray-600 dark:text-gray-300 dark:hover:text-gray-100 text-xl font-bold">
-                 ×
-               </button>
-             </div>
-             <form id="log-match-form" class="space-y-4">
-                 <div>
-                     <label for="deck-select" class="sr-only">Select Deck</label>
-                     <select id="deck-select" name="deck_id" required class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-violet-500 focus:border-violet-500 sm:text-sm rounded-md shadow-sm">
-                         <option disabled selected value="">Select Deck</option>
-                     </select>
-                 </div>
-                 <fieldset>
-                     <legend class="sr-only">Match Result</legend>
-                     <div class="flex flex-wrap justify-center gap-3 pt-2">
-                         <label class="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-violet-500 cursor-pointer has-[:checked]:ring-2 has-[:checked]:ring-offset-1 has-[:checked]:ring-green-500 has-[:checked]:border-green-400 has-[:checked]:bg-green-50 has-[:checked]:text-green-900 dark:has-[:checked]:bg-green-700 dark:has-[:checked]:text-green-100 dark:has-[:checked]:border-green-500">
-                             <input type="radio" name="match_result" value="0" class="sr-only" checked>
-                             <span>Won</span>
-                         </label>
-                         <label class="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-violet-500 cursor-pointer has-[:checked]:ring-2 has-[:checked]:ring-offset-1 has-[:checked]:ring-red-500 has-[:checked]:border-red-400 has-[:checked]:bg-red-50 has-[:checked]:text-red-900 dark:has-[:checked]:bg-red-700 dark:has-[:checked]:text-red-100 dark:has-[:checked]:border-red-500">
-                             <input type="radio" name="match_result" value="1" class="sr-only">
-                             <span>Loss</span>
-                         </label>
-                         <label class="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-violet-500 cursor-pointer has-[:checked]:ring-2 has-[:checked]:ring-offset-1 has-[:checked]:ring-yellow-500 has-[:checked]:border-yellow-400 has-[:checked]:bg-yellow-50 has-[:checked]:text-yellow-900 dark:has-[:checked]:bg-yellow-700 dark:has-[:checked]:text-yellow-100 dark:has-[:checked]:border-yellow-500">
-                             <input type="radio" name="match_result" value="2" class="sr-only">
-                             <span>Draw</span>
-                         </label>
-                     </div>
-                 </fieldset>
-                 <div>
-                   <label for="match-tags-input" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Tags (Optional)</label>
-                   <div id="match-tags-container" class="mb-2 flex flex-wrap gap-1 min-h-[28px]">
-                   </div>
-                    <div class="relative">
-                       <input type="text" id="match-tags-input" autocomplete="off" placeholder="Add tags..."
-                         class="w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm text-gray-800 dark:text-gray-100 bg-white dark:bg-gray-700 shadow-sm focus:border-violet-500 focus:ring focus:ring-violet-200 focus:ring-opacity-50" />
-                       <div id="match-tags-suggestions" class="absolute z-20 mt-1 w-full bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-md shadow-lg max-h-40 overflow-y-auto hidden">
-                       </div>
-                      </div>
-                 </div>
-                 <div>
-                      <button type="submit" class="w-full bg-violet-700 hover:bg-violet-600 text-white text-sm font-medium py-2 px-4 rounded-lg shadow-sm transition border border-transparent">
-                         Log Match
-                      </button>
-                 </div>
-             </form>
-           </div>
-         </div>
-       {% endif %} {# End of is_logged_in for modals #}
+       {# Include Modals #}
+       {% include "_quick_add_tag_modal.html" ignore missing %} {# Assuming you might have this as a partial too #}
+       {% include "_log_match_modal.html" ignore missing %}
 
         <script>
             window.TCGTRACKER_APP_CONFIG = {

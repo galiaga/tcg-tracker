@@ -52,8 +52,9 @@
           </div>
         </div>
 
-                {# Filter Controls - Reverted to <select> elements from your PROD version, but with updated styling #}
-        <div id="filter-controls" class="hidden md:grid md:grid-cols-3 gap-4 bg-white dark:bg-gray-800 shadow-md rounded-xl border border-violet-200 dark:border-gray-700 p-4">
+        {# Filter Controls - Now md:grid-cols-2 as Format filter is removed #}
+        <div id="filter-controls" class="hidden md:grid md:grid-cols-2 gap-4 bg-white dark:bg-gray-800 shadow-md rounded-xl border border-violet-200 dark:border-gray-700 p-4">
+          {# Sort By Filter #}
           <div>
             <label for="sort_decks" class="block text-sm font-medium text-violet-900 dark:text-violet-300 mb-1">Sort by</label>
             <div class="relative">
@@ -72,35 +73,14 @@
               </span>
             </div>
           </div>
-          <div>
-            <label for="filter_decks" class="block text-sm font-medium text-violet-900 dark:text-violet-300 mb-1">Format</label>
-            <div class="relative">
-              <select id="filter_decks"
-                class="appearance-none w-full cursor-default rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 py-2 pl-3 pr-10 text-sm text-gray-900 dark:text-gray-100 shadow-sm focus:border-violet-500 focus:outline-none focus:ring-1 focus:ring-violet-500 hover:bg-gray-50 dark:hover:bg-gray-600">
-                <option value="0" selected>All Formats</option> {# Changed "All" to "All Formats" for clarity #}
-                <option value="1">Standard</option>
-                <option value="2">Pioneer</option>
-                <option value="3">Modern</option>
-                <option value="4">Legacy</option>
-                <option value="5">Vintage</option>
-                <option value="6">Pauper</option>
-                <option value="7">Commander / EDH</option>
-              </select>
-              <span class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
-                <svg class="h-5 w-5 text-gray-400 dark:text-gray-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                  <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.25 4.25a.75.75 0 01-1.06 0L5.23 8.29a.75.75 0 010-1.06z" clip-rule="evenodd" />
-                </svg>
-              </span>
-            </div>
-          </div>
-          {# Tag filter remains a button-based dropdown as it's more complex than a simple select #}
+          
+          {# Tag Filter #}
           <div class="relative">
             <label for="tag-filter-button" class="block text-sm font-medium text-violet-900 dark:text-violet-300 mb-1">Tags</label>
             <button type="button" id="tag-filter-button" aria-haspopup="listbox" aria-expanded="false"
               class="relative w-full cursor-default rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 py-2 pl-3 pr-10 text-left text-sm text-gray-900 dark:text-gray-100 shadow-sm focus:border-violet-500 focus:outline-none focus:ring-1 focus:ring-violet-500 hover:bg-gray-50 dark:hover:bg-gray-600">
               <span id="tag-filter-button-text" class="block truncate">All Tags</span>
               <span class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
-                {# This is the original up/down chevron, which is fine for a multi-select or filter button #}
                 <svg class="h-5 w-5 text-gray-400 dark:text-gray-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                   <path fill-rule="evenodd" d="M10 3a.75.75 0 01.53.22l3.5 3.5a.75.75 0 01-1.06 1.06L10 4.81 7.03 7.78a.75.75 0 01-1.06-1.06l3.5-3.5A.75.75 0 0110 3zM10 17a.75.75 0 01-.53-.22l-3.5-3.5a.75.75 0 011.06-1.06L10 15.19l2.97-2.97a.75.75 0 011.06 1.06l-3.5 3.5A.75.75 0 0110 17z" clip-rule="evenodd" />
                 </svg>
@@ -122,57 +102,78 @@
      </div>
   </section>
 
-  {# MODAL - Copied from previous improved version #}
+  {# New Deck Modal #}
   <div id="newDeckModal" class="fixed inset-0 bg-gray-900 bg-opacity-75 dark:bg-opacity-80 flex items-center justify-center p-4 z-50 hidden" aria-labelledby="newDeckModalTitle" role="dialog" aria-modal="true">
     <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-lg 
                 p-6 space-y-5 transform transition-all scale-95 opacity-0
                 max-h-[90vh] overflow-y-auto">
       <div class="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 pb-3">
-        <h2 id="newDeckModalTitle" class="text-lg font-bold text-violet-900 dark:text-violet-200">New Deck</h2>
+        <h2 id="newDeckModalTitle" class="text-lg font-bold text-violet-900 dark:text-violet-200">New Commander Deck</h2>
         <button id="newDeckModalCloseButton" type="button" aria-label="Close modal"
           class="text-gray-400 hover:text-gray-600 dark:text-gray-400 dark:hover:text-gray-200 text-2xl font-light leading-none p-1 -m-1 rounded-full focus:outline-none focus:ring-2 focus:ring-violet-500">
           ×
         </button>
       </div>
-      <form id="register-deck-form" class="space-y-4">
-        <div>
-          <label for="deck_type" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Deck Type</label>
-          <select id="deck_type" required
-            class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 shadow-sm focus:border-violet-500 focus:ring focus:ring-violet-500 focus:ring-opacity-50">
-            <option value="" disabled selected>Loading deck types...</option>
-          </select>
+      <form id="register-deck-form" class="space-y-4">    
+        {# Commander and Partner fields (always visible initially for Commander) #}
+        <div id="commanderField" class="relative">
+          <label for="commander_name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Commander Name</label>
+          <input autocomplete="off" id="commander_name" placeholder="Enter Commander Name" type="text" required
+                 class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 shadow-sm focus:border-violet-500 focus:ring-1 focus:ring-violet-500 focus:ring-opacity-50 placeholder-gray-400 dark:placeholder-gray-500" />
+          <ul id="commander-suggestions"
+            class="absolute z-20 mt-1 w-full bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-md shadow-lg max-h-48 overflow-y-auto"></ul>
         </div>
-        {% for field in [
-          ("commander", "Commander Name"),
-          ("partner", "Who is the Partner?"),
-          ("friendsForever", "Who is the BFF?"),
-          ("doctorCompanion", "Who is the Doctor?"),
-          ("timeLordDoctor", "Who is the Doctor's Companion?"),
-          ("background", "Choose a commander"),
-          ("chooseABackground", "Choose a background")
-        ] %}
-        <div id="{{ field[0] }}Field" class="hidden relative">
-          <input autocomplete="off" id="{{ field[0] }}_name" placeholder="{{ field[1] }}" type="text"
-            class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 shadow-sm focus:border-violet-500 focus:ring focus:ring-violet-500 focus:ring-opacity-50 placeholder-gray-400 dark:placeholder-gray-500" />
-          <ul id="{{ field[0] }}-suggestions"
-            class="absolute z-10 mt-1 w-full bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-md shadow-lg"></ul>
+        <div id="partnerField" class="relative" style="display: none;"> {# Initially hidden, shown by JS if commander has partner ability #}
+          <label for="partner_name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Partner / Associated Commander (Optional)</label>
+          <input autocomplete="off" id="partner_name" placeholder="Enter Partner name" type="text"
+                 class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 shadow-sm focus:border-violet-500 focus:ring-1 focus:ring-violet-500 placeholder-gray-400 dark:placeholder-gray-500" />
+          <ul id="partner-suggestions"
+            class="absolute z-20 mt-1 w-full bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-md shadow-lg max-h-48 overflow-y-auto"></ul>
         </div>
-        {% endfor %}
+        
+        {# Placeholders for other conditional commander-related fields #}
+        {# These IDs must match FIELD_CONFIG in deck-form.js #}
+        <div id="friendsForeverField" class="relative" style="display: none;">
+            <label for="friendsForever_name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Friends Forever Partner</label>
+            <input autocomplete="off" id="friendsForever_name" placeholder="Enter Friends Forever partner" type="text" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 shadow-sm focus:border-violet-500 focus:ring-1 focus:ring-violet-500 placeholder-gray-400 dark:placeholder-gray-500">
+            <ul id="friendsForever-suggestions" class="absolute z-20 mt-1 w-full bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-md shadow-lg max-h-48 overflow-y-auto"></ul>
+        </div>
+        <div id="timeLordDoctorField" class="relative" style="display: none;">
+            <label for="doctorCompanion_name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Who is the Doctor?</label>
+            <input autocomplete="off" id="doctorCompanion_name" placeholder="Enter Doctor's name" type="text" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 shadow-sm focus:border-violet-500 focus:ring-1 focus:ring-violet-500 placeholder-gray-400 dark:placeholder-gray-500">
+            <ul id="doctorCompanion-suggestions" class="absolute z-20 mt-1 w-full bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-md shadow-lg max-h-48 overflow-y-auto"></ul>
+        </div>
+        <div id="doctorCompanionField" class="relative" style="display: none;">
+            <label for="timeLordDoctor_name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Who is the Doctor's Companion?</label>
+            <input autocomplete="off" id="timeLordDoctor_name" placeholder="Enter Doctor's Companion name" type="text" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 shadow-sm focus:border-violet-500 focus:ring-1 focus:ring-violet-500 placeholder-gray-400 dark:placeholder-gray-500">
+            <ul id="timeLordDoctor-suggestions" class="absolute z-20 mt-1 w-full bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-md shadow-lg max-h-48 overflow-y-auto"></ul>
+        </div>
+        <div id="chooseABackgroundField" class="relative" style="display: none;">
+            <label for="chooseABackground_name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Choose a Background</label>
+            <input autocomplete="off" id="chooseABackground_name" placeholder="Enter background name" type="text" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 shadow-sm focus:border-violet-500 focus:ring-1 focus:ring-violet-500 placeholder-gray-400 dark:placeholder-gray-500">
+            <ul id="chooseABackground-suggestions" class="absolute z-20 mt-1 w-full bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-md shadow-lg max-h-48 overflow-y-auto"></ul>
+        </div>
+
         <div>
           <label for="deck_name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Deck Name</label>
-          <input id="deck_name" type="text" autocomplete="off" placeholder="Enter a deck name"
-            class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 shadow-sm focus:border-violet-500 focus:ring focus:ring-violet-500 focus:ring-opacity-50 placeholder-gray-400 dark:placeholder-gray-500" />
+          <input id="deck_name" type="text" autocomplete="off" placeholder="Enter a deck name" required
+            class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 shadow-sm focus:border-violet-500 focus:ring-1 focus:ring-violet-500 focus:ring-opacity-50 placeholder-gray-400 dark:placeholder-gray-500" />
         </div>
-         <div>
-          <label for="deck-tags-input" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Tags</label>
-          <div id="deck-tags-container" class="mb-2 flex flex-wrap gap-1 min-h-[28px]">
-          </div>
-          <div class="relative">
-             <input type="text" id="deck-tags-input" autocomplete="off" placeholder="Add tags..."
-               class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 shadow-sm focus:border-violet-500 focus:ring focus:ring-violet-500 focus:ring-opacity-50 placeholder-gray-400 dark:placeholder-gray-500" />
-             <div id="deck-tags-suggestions" class="absolute z-20 mt-1 w-full bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-md shadow-lg max-h-40 overflow-y-auto hidden">
-             </div>
-           </div>
+
+        <div>
+          <label for="deck-tags-input-field" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Tags (Optional)</label>
+            <div id="deck-tags-input-wrapper" 
+                 class="flex flex-wrap items-center gap-x-1.5 gap-y-1 p-2 min-h-[40px] border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 shadow-sm focus-within:border-violet-500 focus-within:ring-1 focus-within:ring-violet-500 cursor-text"
+                 onclick="document.getElementById('deck-tags-input-field').focus();"> 
+                <span id="deck-tags-container" class="contents"></span>
+                <input type="text" id="deck-tags-input-field" autocomplete="off" placeholder="Add tags..."
+                       class="flex-grow p-0.5 border-none focus:ring-0 bg-transparent text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 min-w-[100px]" />
+            </div>
+            <div class="relative">
+                <div id="deck-tags-suggestions" 
+                     class="absolute z-20 mt-1 w-full bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-md shadow-lg max-h-40 overflow-y-auto hidden">
+                </div>
+            </div>
         </div>
         <button type="submit"
           class="w-full sm:w-auto bg-violet-700 hover:bg-violet-600 text-white font-semibold py-2.5 px-6 rounded-lg shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-violet-500 focus:ring-offset-2 dark:ring-offset-gray-800 transition duration-150 ease-in-out">
@@ -182,11 +183,57 @@
     </div>
   </div>
 
+  <!-- Quick Add Tag Modal -->
+  <div id="quickAddTagModal" class="fixed inset-0 bg-gray-900 bg-opacity-75 dark:bg-opacity-80 flex items-center justify-center p-4 z-50 hidden" aria-labelledby="quickAddTagModalTitle" role="dialog" aria-modal="true">
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md 
+                p-6 space-y-4 transform transition-all scale-95 opacity-0
+                max-h-[90vh] overflow-y-auto">
+        <div class="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 pb-3">
+            <h2 id="quickAddTagModalTitle" class="text-lg font-bold text-violet-900 dark:text-violet-200">Add Tag</h2>
+            <button id="quickAddTagModalCloseButton" type="button" aria-label="Close modal"
+                class="text-gray-400 hover:text-gray-600 dark:text-gray-400 dark:hover:text-gray-200 text-2xl font-light leading-none p-1 -m-1 rounded-full focus:outline-none focus:ring-2 focus:ring-violet-500">
+                ×
+            </button>
+        </div>
+        <div class="space-y-3">
+            <p class="text-sm text-gray-600 dark:text-gray-400">Select an existing tag or type to create a new one.</p>
+            <div>
+                <label for="quick-add-tag-input" class="sr-only">Add Tag</label>
+                <div id="quick-add-tags-input-wrapper" 
+                     class="flex flex-wrap items-center gap-x-1.5 gap-y-1 p-2 min-h-[40px] border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 shadow-sm focus-within:border-violet-500 focus-within:ring-1 focus-within:ring-violet-500 cursor-text"
+                     onclick="if(document.getElementById('quick-add-tag-input')) document.getElementById('quick-add-tag-input').focus();"> 
+                    <span id="quick-add-tags-container" class="contents"></span>
+                    <input type="text" id="quick-add-tag-input" autocomplete="off" placeholder="Add tag..."
+                           class="flex-grow p-0.5 border-none focus:ring-0 bg-transparent text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 min-w-[100px]" />
+                </div>
+                <div class="relative">
+                    <div id="quick-add-tags-suggestions" 
+                         class="absolute z-20 mt-1 w-full bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-md shadow-lg max-h-40 overflow-y-auto hidden">
+                        <!-- Suggestions will be populated by TagInputManager -->
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="pt-3 border-t border-gray-200 dark:border-gray-700 flex justify-end">
+             <button type="button" id="quickAddTagModalDoneButton"
+                class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-violet-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                Done
+            </button>
+        </div>
+    </div>
+  </div>
+
+
   <section aria-labelledby="deck-list-heading" class="contain-layout">
       <h2 id="deck-list-heading" class="sr-only">Deck List</h2>
       <div id="decks-container" class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-         <div class="text-center text-gray-500 dark:text-gray-400 mt-8 p-4 text-base border border-dashed border-gray-300 dark:border-gray-600 rounded-lg md:col-span-2 xl:col-span-3">
-             Loading decks...
+         {# Loading spinner / initial state #}
+         <div class="col-span-full p-8 text-center text-gray-500 dark:text-gray-400">
+             <svg class="animate-spin h-8 w-8 text-violet-500 dark:text-violet-400 mx-auto mb-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            Loading decks...
          </div>
       </div>
   </section>
@@ -195,19 +242,23 @@
 
 {% block scripts %}
     {{ super() }}
-    <script type="module" src="{{ url_for('static', filename='js/ui/decks/deckCardComponent.js') }}"></script>
-    <script type="module" src="{{ url_for('static', filename='js/ui/tagInput.js') }}"></script>
+    {# Utilities and core components first #}
+    <script type="module" src="{{ url_for('static', filename='js/ui/tagInput.js') }}"></script> 
     <script type="module" src="{{ url_for('static', filename='js/ui/tag-utils.js') }}"></script>
 
-    <script type="module" src="{{ url_for('static', filename='js/deck_types.js') }}"></script>
+    {# Page-specific components and managers #}
+    <script type="module" src="{{ url_for('static', filename='js/ui/decks/deckCardComponent.js') }}"></script>
+    
+    {# Deck form related scripts #}
+    <script type="module" src="{{ url_for('static', filename='js/deck_types.js') }}"></script> 
     <script type="module" src="{{ url_for('static', filename='js/ui/decks/deck-form.js') }}"></script>
     <script type="module" src="{{ url_for('static', filename='js/registerDeck.js') }}"></script>
-
-    <script type="module" src="{{ url_for('static', filename='js/ui/decks/sort-decks.js') }}"></script>
-    <script type="module" src="{{ url_for('static', filename='js/ui/decks/deck-list-manager.js') }}"></script>
-    <script type="module" src="{{ url_for('static', filename='js/ui/decks/filter-decks.js') }}"></script>
-    <script type="module" src="{{ url_for('static', filename='js/ui/decks/filter-decks-by-tag.js') }}"></script>
     <script type="module" src="{{ url_for('static', filename='js/ui/decks/new-deck-modal.js') }}" defer></script>
+
+    {# Deck list interaction scripts #}
+    <script type="module" src="{{ url_for('static', filename='js/ui/decks/sort-decks.js') }}"></script>
+    <script type="module" src="{{ url_for('static', filename='js/ui/decks/filter-decks-by-tag.js') }}"></script> 
+    <script type="module" src="{{ url_for('static', filename='js/ui/decks/deck-list-manager.js') }}"></script>
     
     <script src="{{ url_for('static', filename='js/ui/decks/mobile_sort_filter.js') }}" defer></script>
 {% endblock %}

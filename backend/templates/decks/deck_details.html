@@ -1,24 +1,22 @@
 {% extends "layout.html" %}
 
 {% block title %}
-    Deck Details {# Will be dynamically updated by JS if deck name is fetched #}
+    Deck Details {# Will be dynamically updated by JS #}
 {% endblock %}
 
-{# NEW/UPDATED page_header block #}
 {% block page_header %}
 <div class="flex flex-wrap justify-between items-center mb-6 md:mb-8">
     <div class="flex items-center mb-4 sm:mb-0">
         <img src="{{ url_for('static', filename='img/logo.png') }}"
              alt="Logo TCG Tracker"
              class="h-10 w-10 mr-3">
-        {# The h1 title might be dynamically set by JS later based on fetched deck name #}
         <h1 id="deck-page-title" class="text-2xl font-bold text-violet-900 dark:text-violet-200">Deck Details</h1>
     </div>
 
     {% if is_logged_in %}
     <a href="{{ url_for('frontend.profile_page') }}"
        aria-label="User Profile"
-       class="md:hidden bg-violet-100 text-violet-700 rounded-full p-2 shadow hover:bg-violet-200 transition-colors">
+       class="md:hidden bg-violet-100 dark:bg-violet-700 text-violet-700 dark:text-violet-200 rounded-full p-2 shadow hover:bg-violet-200 dark:hover:bg-violet-600 transition-colors">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6">
           <path fill-rule="evenodd" d="M7.5 6a4.5 4.5 0 1 1 9 0 4.5 4.5 0 0 1-9 0ZM3.751 20.105a8.25 8.25 0 0 1 16.498 0 .75.75 0 0 1-.437.695A18.683 18.683 0 0 1 12 22.5c-2.786 0-5.433-.608-7.812-1.7a.75.75 0 0 1-.437-.695Z" clip-rule="evenodd" />
         </svg>
@@ -30,42 +28,64 @@
 {% block main %}
 <div class="space-y-6 w-full">
 
-    {# Removed the old h1 "Deck Details" from here as it's now in page_header #}
+    <div class="max-w-3xl mx-auto space-y-6"> {# Increased max-width slightly for better layout #}
 
-    <div class="max-w-2xl mx-auto space-y-6">
-
-        <div id="deck-details" class="rounded-2xl bg-white shadow-lg border border-gray-100 overflow-hidden">
-            <div class="p-6 text-center text-gray-500">Loading deck details...</div>
+        {# This div will be populated by deck-details.js with deck info, quick log buttons, tags, AND recent matches #}
+        <div id="deck-details" 
+             class="rounded-2xl bg-white dark:bg-gray-800 shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+            {# Initial loading state for the entire deck details card #}
+            <div class="p-8 text-center text-gray-500 dark:text-gray-400">
+                <svg class="animate-spin h-8 w-8 text-violet-500 dark:text-violet-400 mx-auto mb-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Loading deck details...
+            </div>
         </div>
 
-        <div class="rounded-2xl bg-white shadow-lg border border-gray-100 overflow-hidden">
+        {# 
+        The "Last 5 Matches" section is now intended to be rendered *inside* the #deck-details div
+        by deck-details.js, which calls loadDeckMatches.
+        So, the separate card for matches below is no longer needed if following the JS logic.
+        If you want to keep it separate, deck-matches.js would need to target 'matches-list-items' (new ID)
+        and deck-details.js would not call loadDeckMatches.
+        For consistency with the JS provided, I'm assuming it's integrated.
+        I'll leave a commented-out version of the separate card for reference.
+        #}
+
+        <!-- 
+        <div class="rounded-2xl bg-white dark:bg-gray-800 shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
             <div class="p-4 sm:p-6">
                 <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-lg font-semibold text-gray-800"> {# Removed mb-4 from here #}
+                    <h2 class="text-lg font-semibold text-gray-800 dark:text-gray-100"> 
                         Last 5 Matches
                     </h2>
-                    {# Potentially add a "Log Match" button here if it's not elsewhere or in the deck-details card #}
                 </div>
                 <div class="overflow-x-auto">
-                    <table id="matches-list" class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
+                    <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                        <thead class="bg-gray-50 dark:bg-gray-700">
                             <tr>
-                                <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                                     Result
                                 </th>
-                                <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                                     Date & Time
+                                </th>
+                                <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                                    Position
                                 </th>
                             </tr>
                         </thead>
-                        <tbody class="bg-white divide-y divide-gray-200">
+                        <tbody id="matches-list-items" class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-600">
                             {# Rows will be populated by JS #}
+                            <tr><td colspan="3" class="px-4 py-4 whitespace-nowrap text-sm text-center text-gray-500 dark:text-gray-400">Loading matches...</td></tr>
                         </tbody>
                     </table>
                 </div>
-                <div id="no-matches-message" class="text-center text-gray-500 py-4 hidden">No matches recorded yet.</div>
+                <div id="no-matches-message" class="text-center text-gray-500 dark:text-gray-400 py-4 hidden">No matches recorded yet.</div>
             </div>
         </div>
+        -->
 
     </div>
 
@@ -75,13 +95,17 @@
 
 {% block scripts %}
     {{ super() }} {# Ensure super() is called if layout.html has scripts #}
-    <script type="module" src="{{ url_for('static', filename='js/ui/decks/deck-details.js') }}"></script>
-    <script type="module" src="{{ url_for('static', filename='js/ui/matches/deck-matches.js') }}"></script>
-
+    
+    {# Core utilities and components #}
     <script type="module" src="{{ url_for('static', filename='js/ui/tag-utils.js') }}"></script>
     <script type="module" src="{{ url_for('static', filename='js/ui/tagInput.js') }}"></script>
 
+    {# Match logging modal and its form logic #}
     <script type="module" src="{{ url_for('static', filename='js/ui/matches/log-match-modal.js') }}"></script>
     <script type="module" src="{{ url_for('static', filename='js/ui/matches/log-match.js') }}"></script>
+
+    {# Page specific scripts - deck-matches.js is now primarily called by deck-details.js #}
+    <script type="module" src="{{ url_for('static', filename='js/ui/matches/deck-matches.js') }}"></script>
+    <script type="module" src="{{ url_for('static', filename='js/ui/decks/deck-details.js') }}"></script>
 
 {% endblock %}

@@ -2,7 +2,7 @@
 
 import { authFetch } from '../../auth/auth.js';
 import { updateDeckListView } from "./deck-list-manager.js";
-import { fetchUserTags } from '../tag-utils.js';
+import { fetchAllUserTags } from '../tag-utils.js';
 
 
 function updateButtonText() {
@@ -58,7 +58,7 @@ export async function populateTagFilter() {
     clearButton.classList.add('hidden');
 
     try {
-        const tags = await fetchUserTags();
+        const tags = await fetchAllUserTags();
         tagFilterOptionsContainer.innerHTML = ''; // Clear loading message
 
         if (!tags || tags.length === 0) {
