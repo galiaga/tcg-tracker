@@ -1,58 +1,23 @@
+// backend/static/js/ui/tag-utils.js
 import { authFetch } from '../auth/auth.js';
-import { TagInputManager } from './tagInput.js';
+import { TagInputManager } from './tagInput.js'; // Using the older version
 
-let cachedUserTags = null;
-let isFetchingTags = false;
-let quickAddTagInputInstance = null;
+let quickAddTagInputInstance = null; // Instance for the modal's tag input
 let currentItemTypeForTagging = null;
 let currentItemIdForTagging = null;
 let currentRefreshCallback = null;
 
-async function fetchUserTags(forceRefresh = false) {
-    if (!forceRefresh && cachedUserTags !== null) {
-        return cachedUserTags;
-    }
-    if (isFetchingTags) {
-        return cachedUserTags;
-    }
-    isFetchingTags = true;
-    try {
-        const response = await authFetch("/api/tags", {
-             headers: {
-                'Cache-Control': 'no-cache, no-store, must-revalidate',
-                'Pragma': 'no-cache',
-                'Expires': '0'
-            }
-        });
-        if (!response) { throw new Error("Auth or network error fetching tags"); }
-        if (!response.ok) {
-            console.error("tagUtils.js: API response not OK", response);
-            throw new Error(`Failed to fetch tags: ${response.status}`);
-        }
-        const tags = await response.json();
-        tags.sort((a, b) => a.name.localeCompare(b.name));
-        cachedUserTags = tags;
-        return tags;
-    } catch (error) {
-         console.error("Error in fetchUserTags utility:", error);
-         cachedUserTags = null;
-         return null;
-    } finally {
-         isFetchingTags = false;
-    }
-}
+// fetchUserTags and invalidateTagCache are NOT imported or used here
+// as the older TagInputManager handles its own global cache.
 
-function invalidateTagCache() {
-    cachedUserTags = null;
-}
-
-async function associateTag(tagData) {
+async function associateTag(tagData) { // tagData is {id, name}
       if (!currentItemIdForTagging || !currentItemTypeForTagging || !tagData || typeof tagData.id === 'undefined') {
           console.error("Missing item ID, type, or tag data for association");
+          if (typeof showFlashMessage === 'function') showFlashMessage("Error: Could not associate tag. Missing data.", "danger");
           return;
       }
       const tagId = tagData.id;
-      const tagName = tagData.name;
+      const tagName = tagData.name; // For flash message
       const itemId = currentItemIdForTagging;
       const itemType = currentItemTypeForTagging;
       const apiUrl = itemType === 'deck'
@@ -65,23 +30,23 @@ async function associateTag(tagData) {
               body: JSON.stringify({ tag_id: tagId })
           });
            if (!response) throw new Error("Auth/Network Error during tag association");
+          
+           const responseData = await response.json().catch(()=>({}));
+
           if (response.ok || response.status === 201) {
-                const responseData = await response.json().catch(()=>({}));
-                invalidateTagCache(); 
+                // TagInputManager's global cache will be updated by its own logic if a new tag was created.
                 if (typeof showFlashMessage === 'function') {
-                    const flashMsg = responseData.message || (response.status === 201 ? `Tag "${tagName}" added.` : `Tag "${tagName}" was already associated.`);
+                    const flashMsg = responseData.message || (response.status === 201 ? `Tag "${tagName}" added.` : `Tag "${tagName}" associated.`);
                     showFlashMessage(flashMsg, 'success');
                 }
                 if (typeof currentRefreshCallback === 'function') {
                     await currentRefreshCallback();
-                } else {
-                    console.warn("[tag-utils] No refresh callback provided or it's not a function.");
                 }
-                closeQuickAddTagModal();
+                // With the older TagInputManager, onTagAdded triggers this, and then we close the modal.
+                closeQuickAddTagModal(); 
           } else {
-                const errorData = await response.json().catch(() => ({}));
-                console.error(`[tag-utils] Failed to associate tag. Status: ${response.status}`, errorData);
-                throw new Error(errorData.error || `Failed to add tag (${response.status})`);
+                console.error(`[tag-utils] Failed to associate tag. Status: ${response.status}`, responseData);
+                throw new Error(responseData.error || `Failed to add tag (${response.status})`);
           }
       } catch (error) {
            console.error(`[tag-utils] Error associating tag ${tagId} with ${itemType} ${itemId}:`, error);
@@ -93,43 +58,55 @@ async function associateTag(tagData) {
 
 async function handleRemoveTagClick(event) {
     const removeButton = event.target.closest('.remove-tag-button');
-    if (!removeButton) return;
+    if (!removeButton) return false;
 
     event.preventDefault();
     event.stopPropagation();
 
     const tagPill = removeButton.closest('.tag-pill');
-    const cardElement = removeButton.closest('[data-deck-id]');
+    const cardElement = removeButton.closest('[data-deck-id]'); 
 
-    if (!tagPill || !cardElement) return;
+    if (!tagPill || !cardElement) {
+        console.error("Could not find tagPill or cardElement for tag removal.");
+        if (typeof showFlashMessage === 'function') showFlashMessage("Error: Could not identify tag or item for removal.", "danger");
+        return false;
+    }
 
     const tagId = tagPill.dataset.tagId;
-    const deckId = cardElement.dataset.deckId;
+    const itemId = cardElement.dataset.deckId; 
+    const itemType = 'deck'; 
 
-    if (!tagId || !deckId) {
-        console.error("Could not find tagId or deckId for removal");
+    if (!tagId || !itemId) {
+        console.error("Could not find tagId or itemId for removal");
         if (typeof showFlashMessage === 'function') showFlashMessage("Could not remove tag: IDs missing.", "danger");
-        return;
+        return false;
     }
 
     removeButton.disabled = true;
     tagPill.style.opacity = '0.5';
 
-    try {
-        const response = await authFetch(`/api/decks/${deckId}/tags/${tagId}`, { method: 'DELETE' });
+    const apiUrl = `/api/decks/${itemId}/tags/${tagId}`;
 
+    try {
+        const response = await authFetch(apiUrl, { method: 'DELETE' });
         if (!response) throw new Error("Authentication or network error.");
+        
+        const responseData = await response.json().catch(() => ({}));
 
         if (response.ok) {
              tagPill.remove();
+             if (typeof showFlashMessage === 'function') {
+                 showFlashMessage(responseData.message || "Tag removed successfully.", "success");
+             }
+             // The TagInputManager's global cache is not directly affected by removing a tag from a deck,
+             // so no explicit cache invalidation for TagInputManager is needed here.
              return true;
         } else {
-             const errorData = await response.json().catch(() => ({}));
-             console.error(`[tag-utils] API error removing tag ${tagId} from deck ${deckId}. Status: ${response.status}`, errorData);
-             throw new Error(errorData.error || `Failed to remove tag (${response.status})`);
+             console.error(`[tag-utils] API error removing tag. Status: ${response.status}`, responseData);
+             throw new Error(responseData.error || `Failed to remove tag (${response.status})`);
         }
     } catch (error) {
-        console.error(`[tag-utils] Error in handleRemoveDeckTagClick for tag ${tagId}, deck ${deckId}:`, error);
+        console.error(`[tag-utils] Error in handleRemoveTagClick:`, error);
         if (typeof showFlashMessage === 'function') showFlashMessage(error.message || "Could not remove tag.", "danger");
         removeButton.disabled = false;
         tagPill.style.opacity = '1';
@@ -138,14 +115,14 @@ async function handleRemoveTagClick(event) {
 }
 
 function openQuickAddTagModal(itemId, itemType, refreshCallback) {
-
     const modal = document.getElementById("quickAddTagModal");
-    const modalContent = modal?.querySelector(".bg-white"); 
+    const modalContent = modal?.querySelector(".bg-white, .dark\\:bg-gray-800");
     const title = modal?.querySelector("#quickAddTagModalTitle");
     const tagInputElement = document.getElementById('quick-add-tag-input');
 
-    if (!modal || !modalContent || !title || !tagInputElement) {
-        console.error("Quick Add Tag Modal elements not found. Cannot open modal.");
+    if (!modal || !title || !tagInputElement) {
+        console.error("Quick Add Tag Modal or its core input elements not found.");
+        if (typeof showFlashMessage === 'function') showFlashMessage("Error: UI for adding tags is missing.", "danger");
         return; 
     }
 
@@ -159,54 +136,64 @@ function openQuickAddTagModal(itemId, itemType, refreshCallback) {
         if (quickAddTagInputInstance && typeof quickAddTagInputInstance.destroy === 'function') {
              quickAddTagInputInstance.destroy();
         }
+        
         quickAddTagInputInstance = TagInputManager.init({
             inputId: 'quick-add-tag-input',
             suggestionsId: 'quick-add-tags-suggestions',
-            containerId: 'quick-add-tags-container',
             onTagAdded: (tagData) => {
                 associateTag(tagData); 
-            },
-            fetchSuggestions: async (query) => {
-                const tags = await fetchUserTags(); 
-                if (!tags) return [];
-                return tags.filter(tag => tag.name.toLowerCase().includes(query.toLowerCase()));
-            },
+            }
+            // No fetchSuggestions needed here for the older TagInputManager
         });
 
-        if (quickAddTagInputInstance) {
-             quickAddTagInputInstance.clearTags(); 
-             setTimeout(() => tagInputElement.focus(), 50);
-        } else {
-              console.error("[tag-utils] Failed to initialize TagInputManager instance.");
+        if (quickAddTagInputInstance && typeof quickAddTagInputInstance.clearInput === 'function') {
+             quickAddTagInputInstance.clearInput();
+             setTimeout(() => {
+                if (tagInputElement) tagInputElement.focus();
+            }, 50);
+        } else if (!quickAddTagInputInstance) {
+              console.error("[tag-utils] Failed to initialize TagInputManager instance for Quick Add Modal.");
+              if (typeof showFlashMessage === 'function') showFlashMessage("Error: Could not initialize tag input.", "danger");
         }
     } else {
          console.error("[tag-utils] TagInputManager is not defined or init is not a function.");
+         if (typeof showFlashMessage === 'function') showFlashMessage("Error: Tag management script not loaded.", "danger");
     }
 
     modal.classList.remove("hidden");
-    setTimeout(() => {
-      if (modalContent) {
-          modalContent.classList.remove("scale-95", "opacity-0");
-          modalContent.classList.add("scale-100", "opacity-100");
-      }
-    }, 10); 
+    if (modalContent) {
+        setTimeout(() => {
+            modalContent.classList.remove("scale-95", "opacity-0");
+            modalContent.classList.add("scale-100", "opacity-100");
+        }, 10);
+    }
 }
 
 function closeQuickAddTagModal() {
     const modal = document.getElementById("quickAddTagModal");
-    const modalContent = modal?.querySelector(".bg-white");
+    const modalContent = modal?.querySelector(".bg-white, .dark\\:bg-gray-800");
     
-    if (!modal || !modalContent) return;
+    if (!modal) return;
 
+    if (quickAddTagInputInstance && typeof quickAddTagInputInstance.destroy === 'function') {
+        quickAddTagInputInstance.destroy();
+    }
     quickAddTagInputInstance = null;
+
     currentItemIdForTagging = null;
     currentItemTypeForTagging = null;
     currentRefreshCallback = null;
-    modalContent.classList.remove("scale-100", "opacity-100");
-    modalContent.classList.add("scale-95", "opacity-0");
+
+    if (modalContent) {
+        modalContent.classList.remove("scale-100", "opacity-100");
+        modalContent.classList.add("scale-95", "opacity-0");
+    }
     setTimeout(() => {
         modal.classList.add("hidden");
     }, 150);
 }
 
-export { fetchUserTags, invalidateTagCache, openQuickAddTagModal, closeQuickAddTagModal, handleRemoveTagClick };
+// Export fetchAllUserTags from TagInputManager if other modules need to preload tags.
+// If not, this export can also be removed.
+const fetchAllUserTags = TagInputManager.fetchAllUserTags; 
+export { fetchAllUserTags, openQuickAddTagModal, closeQuickAddTagModal, handleRemoveTagClick };

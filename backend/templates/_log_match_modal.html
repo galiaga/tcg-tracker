@@ -1,0 +1,142 @@
+{# backend/templates/_log_match_modal.html #}
+{% if is_logged_in %}
+<div id="logMatchModal" 
+     class="fixed inset-0 bg-black bg-opacity-75 dark:bg-opacity-80 z-50 flex items-center justify-center p-4 hidden" 
+     aria-labelledby="logMatchModalTitle" role="dialog" aria-modal="true">
+
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-lg 
+                p-6 space-y-5 transform transition-all scale-95 opacity-0
+                max-h-[90vh] overflow-y-auto">
+        
+        {# Modal Header #}
+        <div class="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 pb-3">
+            <h2 id="logMatchModalTitle" class="text-lg font-bold text-violet-900 dark:text-violet-200">Log New Match</h2>
+            <button id="logMatchModalCloseButton" type="button" aria-label="Close modal"
+              class="text-gray-400 hover:text-gray-600 dark:text-gray-400 dark:hover:text-gray-200 text-2xl font-light leading-none p-1 -m-1 rounded-full focus:outline-none focus:ring-2 focus:ring-violet-500">
+              ×
+            </button>
+        </div>
+
+        {# Modal Body - Form #}
+        <form id="log-match-form" class="space-y-4">
+            {# Deck Selection #}
+            <div>
+                <label for="deck-select" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Deck Used</label>
+                <select id="deck-select" name="deck_id" required
+                  class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 shadow-sm focus:border-violet-500 focus:ring-1 focus:ring-violet-500 focus:ring-opacity-50">
+                    <option disabled selected value="">Select Deck</option>
+                </select>
+            </div>
+
+            {# Match Result #}
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Match Result</label>
+                <div class="flex space-x-2 sm:space-x-3 rounded-md shadow-sm" role="group">
+                    <input type="radio" name="match_result" id="log-match-result-win" value="0" class="sr-only peer/win" checked>
+                    <label for="log-match-result-win"
+                           class="flex-1 text-center px-4 py-2 text-sm font-medium border border-gray-300 dark:border-gray-600 rounded-l-md cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:z-10 
+                                  text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 
+                                  peer-checked/win:bg-green-500 peer-checked/win:text-white peer-checked/win:border-green-500 dark:peer-checked/win:bg-green-600 dark:peer-checked/win:border-green-600">
+                        Win
+                    </label>
+                    <input type="radio" name="match_result" id="log-match-result-loss" value="1" class="sr-only peer/loss">
+                    <label for="log-match-result-loss"
+                           class="flex-1 text-center px-4 py-2 text-sm font-medium border-t border-b border-gray-300 dark:border-gray-600 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:z-10
+                                  text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800
+                                  peer-checked/loss:bg-red-500 peer-checked/loss:text-white peer-checked/loss:border-red-500 dark:peer-checked/loss:bg-red-600 dark:peer-checked/loss:border-red-600">
+                        Loss
+                    </label>
+                    <input type="radio" name="match_result" id="log-match-result-draw" value="2" class="sr-only peer/draw">
+                    <label for="log-match-result-draw"
+                           class="flex-1 text-center px-4 py-2 text-sm font-medium border border-gray-300 dark:border-gray-600 rounded-r-md cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:z-10
+                                  text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800
+                                  peer-checked/draw:bg-yellow-500 peer-checked/draw:text-white peer-checked/draw:border-yellow-500 dark:peer-checked/draw:bg-yellow-600 dark:peer-checked/draw:border-yellow-600">
+                        Draw
+                    </label>
+                </div>
+            </div>
+
+            {# Player Position (Commander Specific) #}
+            <div>
+                <label id="player-position-label" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Your Turn Order</label>
+                <div id="player-position-buttons" class="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 rounded-md" role="radiogroup" aria-labelledby="player-position-label">
+                    <input type="radio" name="player_position_radio" id="log-match-pos-1" value="1" class="sr-only peer/pos1">
+                    <label for="log-match-pos-1"
+                           class="text-center px-3 py-2.5 text-sm font-medium border border-gray-300 dark:border-gray-600 rounded-md cursor-pointer 
+                                  hover:bg-gray-50 dark:hover:bg-gray-700 
+                                  focus:outline-none focus:ring-2 focus:ring-violet-500 focus:z-10 
+                                  text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 
+                                  peer-checked/pos1:bg-violet-500 peer-checked/pos1:text-white peer-checked/pos1:border-violet-500 
+                                  dark:peer-checked/pos1:bg-violet-600 dark:peer-checked/pos1:border-violet-600">
+                        1st
+                    </label>
+                    <input type="radio" name="player_position_radio" id="log-match-pos-2" value="2" class="sr-only peer/pos2">
+                    <label for="log-match-pos-2"
+                           class="text-center px-3 py-2.5 text-sm font-medium border border-gray-300 dark:border-gray-600 rounded-md cursor-pointer 
+                                  hover:bg-gray-50 dark:hover:bg-gray-700 
+                                  focus:outline-none focus:ring-2 focus:ring-violet-500 focus:z-10 
+                                  text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 
+                                  peer-checked/pos2:bg-violet-500 peer-checked/pos2:text-white peer-checked/pos2:border-violet-500 
+                                  dark:peer-checked/pos2:bg-violet-600 dark:peer-checked/pos2:border-violet-600">
+                        2nd
+                    </label>
+                    <input type="radio" name="player_position_radio" id="log-match-pos-3" value="3" class="sr-only peer/pos3">
+                    <label for="log-match-pos-3"
+                           class="text-center px-3 py-2.5 text-sm font-medium border border-gray-300 dark:border-gray-600 rounded-md cursor-pointer 
+                                  hover:bg-gray-50 dark:hover:bg-gray-700 
+                                  focus:outline-none focus:ring-2 focus:ring-violet-500 focus:z-10 
+                                  text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 
+                                  peer-checked/pos3:bg-violet-500 peer-checked/pos3:text-white peer-checked/pos3:border-violet-500 
+                                  dark:peer-checked/pos3:bg-violet-600 dark:peer-checked/pos3:border-violet-600">
+                        3rd
+                    </label>
+                    <input type="radio" name="player_position_radio" id="log-match-pos-4" value="4" class="sr-only peer/pos4">
+                    <label for="log-match-pos-4"
+                           class="text-center px-3 py-2.5 text-sm font-medium border border-gray-300 dark:border-gray-600 rounded-md cursor-pointer 
+                                  hover:bg-gray-50 dark:hover:bg-gray-700 
+                                  focus:outline-none focus:ring-2 focus:ring-violet-500 focus:z-10 
+                                  text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 
+                                  peer-checked/pos4:bg-violet-500 peer-checked/pos4:text-white peer-checked/pos4:border-violet-500 
+                                  dark:peer-checked/pos4:bg-violet-600 dark:peer-checked/pos4:border-violet-600">
+                        4th
+                    </label>
+                </div>
+            </div>
+
+            {# Opponent Description (Optional) #}
+            <div>
+                <label for="log-match-opponent-description" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Opponent/Pod Description (Optional)</label>
+                <textarea id="log-match-opponent-description" name="opponent_description" rows="2"
+                  placeholder="e.g., Player A (Deck X), Player B (Deck Y)... or notes about the pod"
+                  class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 shadow-sm focus:border-violet-500 focus:ring-1 focus:ring-violet-500 focus:ring-opacity-50 placeholder-gray-400 dark:placeholder-gray-500"></textarea>
+            </div>
+
+            {# Tags (Optional) - Integrated Input Style #}
+            <div>
+                <label for="match-tags-input-field" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Tags (Optional)</label>
+                <div id="match-tags-input-wrapper" 
+                     class="flex flex-wrap items-center gap-x-1.5 gap-y-1 p-2 min-h-[40px] border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 shadow-sm
+                            focus-within:border-violet-500 focus-within:ring-1 focus-within:ring-violet-500 cursor-text"
+                     onclick="document.getElementById('match-tags-input-field').focus();"> 
+                    <span id="match-tags-container" class="contents"></span>
+                    <input type="text" id="match-tags-input-field" autocomplete="off" placeholder="Add tags..."
+                           class="flex-grow p-0.5 border-none focus:ring-0 bg-transparent text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 min-w-[100px]" />
+                </div>
+                <div class="relative">
+                    <div id="match-tags-suggestions" 
+                         class="absolute z-20 mt-1 w-full bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-md shadow-lg max-h-40 overflow-y-auto hidden">
+                    </div>
+                </div>
+            </div>
+
+            {# Modal Footer - Submit Button #}
+            <div class="pt-5 border-t border-gray-200 dark:border-gray-700 flex justify-end">
+                <button type="submit"
+                  class="bg-violet-700 hover:bg-violet-600 text-white font-semibold py-2.5 px-6 rounded-lg shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-violet-500 focus:ring-offset-2 dark:ring-offset-gray-800 transition duration-150 ease-in-out">
+                    Log Match
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endif %}

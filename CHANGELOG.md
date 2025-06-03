@@ -1,5 +1,85 @@
 # Changelog
 
+## [4.0.0] - 2025-06-03
+
+### Added
+- **Player Position Tracking (Commander):**
+    - Added functionality to log the player's turn order (1st, 2nd, 3rd, 4th) for each match, assuming 4-player Commander pods.
+    - Updated `LoggedMatch` model and database schema (`88ac1a3b8000_...`) to include `player_position`.
+    - Enhanced "Log Match" modal with button-style selectors for choosing player position.
+    - Match history displays now include player position information.
+- **API Support for Player Position:**
+    - `POST /api/log_match` now accepts and stores `player_position`.
+    - `/api/matches_history` and `/api/decks/<deck_id>` (for recent matches) now return `player_position`.
+- **Enhanced Tag Management on Item Cards:**
+    - **"My Decks" & "My Matches" Pages:** Users can now directly add or remove tags from individual deck and match cards using a consistent "+ Tag" button and "x" on tag pills.
+    - **Quick Add Tag Modal:** A new modal allows users to quickly select existing tags or create new ones for association with decks or matches directly from the card view.
+
+### Changed
+- **BREAKING CHANGE - Application Focus: Commander (EDH) Exclusivity:**
+    - The application is now primarily focused on supporting the Commander (EDH) TCG format.
+    - **Deck Creation:** New decks are implicitly Commander format. The "Deck Type" selection has been removed from the "New Deck" modal. The backend (`POST /api/register_deck`) now defaults to Commander type.
+    - **Deck Listing ("My Decks"):** Removed the "Format" filter from the "My Decks" page and associated JavaScript.
+    - **Deck Details:** The "Format" display on the deck details page now consistently shows "Commander".
+- **UI/UX - Modals & Forms:**
+    - **Log Match Modal:**
+        - Player position input changed from a dropdown to more intuitive radio-button-styled buttons.
+        - Tags input section now uses a simpler, more direct input field with suggestions, consistent with the "Quick Add Tag" modal.
+    - **New Deck Modal:**
+        - "Deck Type" selection removed.
+        - Commander, Partner, and other associated commander (Friends Forever, Doctor/Companion, Background) input fields are now correctly displayed and functional based on main commander abilities.
+        - Tags input section updated to display selected tags as pills below the input field, using a simpler suggestion-based input.
+    - **Deck Details Page:**
+        - "Quick Log" buttons (Win/Loss/Draw) now open the main "Log Match Modal", pre-filling the deck and result, ensuring `player_position` can be captured.
+        - Recent match history is now integrated directly within the main deck details card.
+- **UI/UX - Card Displays:**
+    - **"My Decks" Page:**
+        - Deck cards now feature a colored left accent border (green for high win rate, yellow for medium, red for low, neutral for new) for quick visual assessment, replacing full background color changes.
+        - Consistent dark mode background (`dark:bg-slate-800`) applied to all deck cards.
+        - "Commander" format pill retained for clarity.
+    - **"My Matches" Page:**
+        - Match cards now feature a colored left accent border (green for Win, red for Loss, neutral for Draw).
+        - Consistent dark mode background (`dark:bg-slate-800`) applied to all match cards.
+        - Removed the redundant "Commander / EDH" format pill from match cards.
+        - Result badges (Win/Loss/Draw) styling refined for better visual clarity.
+    - **"My Tags" Page:**
+        - Improved alignment of the "Selected Tags:" label and display area, ensuring consistent left alignment.
+        - Enhanced visual feedback for selected tags in "Quick Select" and "Find Tags" results.
+        - Placeholder text for tag search results is now correctly restored when the search is cleared or "Clear All" is used.
+- **JavaScript Refactoring:**
+    - `deck-form.js`: Updated `FIELD_CONFIG` and logic to correctly handle dataset attributes for commander types and manage visibility of associated commander fields.
+    - `registerDeck.js`: Aligned with Commander-only focus and corrected reading of dataset attributes for commander/partner IDs. Now correctly retrieves selected tag IDs from the new deck modal's tag input.
+    - `tagInput.js`: Reverted to a simpler, older version that focuses on suggestion-based input without inline pills, aligning with the "Quick Add Tag" modal and "New Deck" modal's tag input behavior. Manages its own global tag cache.
+    - `tag-utils.js`: Adapted to work with the older `tagInput.js`, managing the "Quick Add Tag Modal" initialization and tag association logic. No longer exports `fetchUserTags` or `invalidateTagCache` directly.
+    - `log-match-modal.js`: Updated to manage the new player position radio buttons and use the simpler tag input style.
+    - `deck-list-manager.js` & `match-list-manager.js`:
+        - Removed dependency on the "Format" filter for decks.
+        - Updated to correctly apply new card styling (left borders, consistent backgrounds).
+        - Now correctly pass refresh callbacks to card rendering components to ensure list updates after tag modifications via the "Quick Add Tag Modal".
+        - Added guard clauses to prevent initialization errors when loaded on pages where their primary target elements are missing (e.g., `my-tags.html`).
+    - `deckCardComponent.js`: Updated to implement new deck card styling (left accent border, consistent dark mode background) and correctly handle `classList.add` for multiple classes.
+    - `sort-decks.js`: Adapted to pass refresh callbacks through to `renderDeckCard`. Added guard clause for missing elements.
+    - `new-deck-modal.js`: Updated to correctly initialize the older `tagInput.js` for its tag field, manage selected tags as pills displayed below the input, and ensure proper cleanup.
+    - `user-tags.js`:
+        - Correctly initializes event listeners for removing selected tags and clearing all selections.
+        - Ensures search result placeholder text is properly managed.
+        - Manages display and interaction for "Quick Select" and "Find Tags" sections.
+        - Handles fetching and displaying associated decks/matches, including tag interactions on those displayed cards.
+
+### Fixed
+- **Tag Management:**
+    - Resolved issues with adding/removing tags from deck and match cards via the "Quick Add Tag Modal".
+    - Fixed errors preventing the "Quick Add Tag Modal" from initializing correctly on "My Matches" and "My Decks" pages due to missing HTML or incorrect JavaScript element targeting.
+    - Corrected "X" button functionality for removing tags in the "Selected Tags" display on the "My Tags" page.
+    - Ensured "Clear All" on "My Tags" page correctly resets UI state.
+- **Deck Creation:** Resolved issues preventing Commander and associated Partner/Companion/Background from being correctly selected and saved.
+- **"My Decks" & "My Matches" Pages:**
+    - Fixed `InvalidCharacterError` when applying dynamic border styles to cards by correctly using `classList.add` with the spread operator for multiple classes.
+    - Fixed JavaScript errors related to the removal of the "Format" filter and missing modal elements.
+- **Modal Functionality:** Addressed issues with modal open/close mechanisms and form element initialization across various modals.
+- **Database Migrations:** Ensured migration `88ac1a3b8000_...` correctly adds `player_position`, removes `match_format`, and applies necessary check constraints.
+- **Console Warnings:** Reduced console warnings by adding guard clauses to page-specific JavaScript modules to prevent them from running on pages where their target HTML elements are not present.
+
 ## [3.0.0] - 2025-05-27
 
 ### Changed

@@ -16,11 +16,9 @@ async function fetchAndStoreCSRFToken() {
         if (response.ok) {
             const data = await response.json();
             csrfToken = data.csrf_token;
-            console.log("CSRF token fetched successfully.");
             return csrfToken;
         } else {
             if (response.status === 401) {
-                 console.log("fetchAndStoreCSRFToken: User not authenticated (401). Cannot fetch CSRF token.");
             } else {
                  console.error("fetchAndStoreCSRFToken: Failed to fetch CSRF token:", response.status, response.statusText);
             }
@@ -82,7 +80,6 @@ export async function authFetch(url, options = {}) {
 // --- Logout Handler ---
 
 export async function handleLogout() {
-    console.log("handleLogout called");
     const token = await getCSRFToken();
     csrfToken = null;
 
@@ -131,7 +128,6 @@ window.addEventListener('load', async function() {
                 console.log(`Logout triggered by: ${trigger.id || trigger.tagName}`);
                 handleLogout(); // Call the existing logout handler
             });
-            console.log(`Attached logout listener to ${trigger.id || trigger.tagName}`);
         }
     });
     // --- End Attach Listener ---
@@ -141,7 +137,6 @@ window.addEventListener('load', async function() {
     const isPublicAuthPage = publicAuthPaths.some(path => window.location.pathname.startsWith(path));
 
     if (!isPublicAuthPage) {
-       console.log("Attempting initial CSRF token fetch on non-public page.");
        await fetchAndStoreCSRFToken();
     } else {
        console.log("Skipping initial CSRF token fetch on public auth page.");

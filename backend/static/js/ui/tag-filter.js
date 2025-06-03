@@ -1,4 +1,4 @@
-import { fetchUserTags } from './tag-utils.js';
+import { fetchAllUserTags } from './tag-utils.js';
 
 export async function populateTagFilter(config) {
     const {
@@ -32,7 +32,7 @@ export async function populateTagFilter(config) {
     optionsContainer.innerHTML = `<div class="text-center text-xs text-gray-500 py-2">${loadingMessage}</div>`;
 
     try {
-        const tags = await fetchUserTags();
+        const tags = await fetchAllUserTags();
         optionsContainer.innerHTML = '';
 
         if (!tags || tags.length === 0) {

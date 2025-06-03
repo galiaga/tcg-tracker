@@ -1,119 +1,100 @@
-import { formatMatchResult } from "../../utils.js";
+// backend/static/js/ui/matches/deck-matches.js
+import { formatMatchResult } from "../../utils.js"; // Ensure this path is correct
 import { authFetch } from '../../auth/auth.js';
 
-document.addEventListener("DOMContentLoaded", () => loadDeckMatches());
+// Removed: document.addEventListener("DOMContentLoaded", () => loadDeckMatches());
+// This module will now be called explicitly by other scripts (like deck-details.js)
 
-export async function loadDeckMatches() {
-    const matchesTableBody = document.querySelector("#matches-list tbody");
-    const noMatchesMessage = document.getElementById("no-matches-message");
+export async function loadDeckMatches(deckId, targetContainerId, limit = 5) {
+    const targetContainer = document.getElementById(targetContainerId);
 
-    if (!matchesTableBody || !noMatchesMessage) {
-        console.error("Required UI elements (#matches-list tbody or #no-matches-message) not found.");
+    if (!targetContainer) {
+        console.error(`[deck-matches.js] Target container #${targetContainerId} not found.`);
+        return;
+    }
+    if (!deckId) {
+        console.error("[deck-matches.js] Deck ID is required to load matches.");
+        targetContainer.innerHTML = '<p class="text-sm text-red-500 dark:text-red-400">Error: Deck ID missing.</p>';
         return;
     }
 
-    matchesTableBody.innerHTML = "";
-    noMatchesMessage.classList.add('hidden');
-
-    const pathParts = window.location.pathname.split("/");
-    const idSlug = pathParts[pathParts.length - 1];
-    let deckId;
+    targetContainer.innerHTML = '<p class="text-sm text-gray-500 dark:text-gray-400">Loading recent matches...</p>';
 
     try {
-         deckId = parseInt(idSlug.split("-")[0], 10);
-         if (isNaN(deckId)) {
-             throw new Error("Invalid Deck ID format in URL");
-         }
-    } catch (error) {
-        console.error("Error parsing Deck ID:", error);
-        showFlashMessage("Invalid Deck ID in URL.", "danger");
-        return;
-    }
-
-    try {
-        const apiUrl = `/api/matches_history?deck_id=${deckId}&limit=5&offset=0`
+        const apiUrl = `/api/matches_history?deck_id=${deckId}&limit=${limit}&offset=0`;
         const response = await authFetch(apiUrl);
 
         if (!response) {
-            console.error("loadDeckMatches: authFetch failed, likely handled error.");
+            console.error("[deck-matches.js] authFetch failed, likely handled error.");
+            targetContainer.innerHTML = '<p class="text-sm text-red-500 dark:text-red-400">Could not load matches (auth/network error).</p>';
             return;
         }
-        if (response.status === 401) {
-             console.error("loadDeckMatches: Received 401 from authFetch. Logout should be triggered.");
-             return;
-        }
+        // 401 should be handled by authFetch redirecting to login
 
         if (!response.ok) {
-             let errorMsg = `Error loading matches (${response.status})`;
-             try {
-                 const errorData = await response.json();
-                 errorMsg = errorData.message || errorMsg;
-             } catch(e) { }
+            let errorMsg = `Error loading matches (${response.status})`;
+            try {
+                const errorData = await response.json();
+                errorMsg = errorData.error || errorMsg; // Use 'error' key from backend
+            } catch (e) { /* Ignore if parsing JSON fails */ }
 
-             if (response.status === 404) {
-                 showFlashMessage("Matches not found for this deck.", "warning");
-                 noMatchesMessage.classList.remove('hidden');
-             } else {
-                showFlashMessage(errorMsg, "danger");
-             }
-             return;
-         }
+            targetContainer.innerHTML = `<p class="text-sm text-red-500 dark:text-red-400">${errorMsg}</p>`;
+            if (typeof showFlashMessage === 'function') showFlashMessage(errorMsg, "danger");
+            return;
+        }
 
         let deckMatches = await response.json();
 
         if (!Array.isArray(deckMatches)) {
-            console.warn("Unexpected response format, expected array:", deckMatches);
+            console.warn("[deck-matches.js] Unexpected response format, expected array:", deckMatches);
             deckMatches = [];
         }
 
         if (deckMatches.length === 0) {
-            noMatchesMessage.classList.remove('hidden');
-            matchesTableBody.innerHTML = "";
+            targetContainer.innerHTML = '<p class="text-sm text-gray-500 dark:text-gray-400">No recent matches recorded for this deck.</p>';
             return;
         }
 
-        const fragment = document.createDocumentFragment();
+        // Render as a list instead of a table for embedding
+        const list = document.createElement('ul');
+        list.className = 'space-y-3 mt-2'; // Add some spacing
 
         deckMatches.forEach(match => {
-            const row = document.createElement("tr");
-            row.classList.add('hover:bg-gray-50');
-
-            const formattedDate = new Date(match.date).toLocaleString(undefined, {
-                year: 'numeric', month: '2-digit', day: '2-digit',
-                hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
-            });
+            const listItem = document.createElement('li');
+            listItem.className = 'flex justify-between items-center text-sm pb-2 border-b border-gray-200 dark:border-gray-700 last:border-b-0';
 
             const resultText = formatMatchResult(match.result);
-            let resultColorClass = 'text-gray-900';
+            let resultColorClass = 'text-gray-700 dark:text-gray-300';
             const lowerResult = resultText.toLowerCase();
 
-            if (lowerResult === 'win') {
-                resultColorClass = 'text-green-600 font-semibold';
-            } else if (lowerResult === 'loss') {
-                resultColorClass = 'text-red-600 font-semibold';
-            } else if (lowerResult === 'draw') {
-                resultColorClass = 'text-yellow-600';
-            }
+            if (lowerResult === 'win') resultColorClass = 'text-green-600 dark:text-green-400 font-semibold';
+            else if (lowerResult === 'loss') resultColorClass = 'text-red-600 dark:text-red-400 font-semibold';
+            else if (lowerResult === 'draw') resultColorClass = 'text-yellow-600 dark:text-yellow-400';
+            
+            const positionText = match.player_position 
+                ? `<span class="text-xs text-gray-500 dark:text-gray-400 ml-2">(Pos: ${match.player_position})</span>` 
+                : '';
 
-            row.innerHTML = `
-                <td class="px-4 py-2 whitespace-nowrap text-sm font-medium ${resultColorClass}">
-                    ${resultText}
-                </td>
-                <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-500">
-                    ${formattedDate}
-                </td>
+            const dateText = match.date 
+                ? new Date(match.date).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
+                : 'N/A';
+
+            listItem.innerHTML = `
+                <div>
+                    <span class="${resultColorClass}">${resultText}</span>
+                    ${positionText}
+                </div>
+                <span class="text-gray-500 dark:text-gray-400">${dateText}</span>
             `;
-
-            fragment.appendChild(row);
+            list.appendChild(listItem);
         });
 
-        matchesTableBody.appendChild(fragment);
+        targetContainer.innerHTML = ''; // Clear "Loading..."
+        targetContainer.appendChild(list);
 
     } catch (error) {
-        console.error("Error fetching or rendering matches:", error);
-        showFlashMessage(error.message || "An unexpected error occurred while loading matches.", "danger");
-        matchesTableBody.innerHTML = "";
-        noMatchesMessage.textContent = "Could not load matches.";
-        noMatchesMessage.classList.remove('hidden');
+        console.error("[deck-matches.js] Error fetching or rendering matches:", error);
+        targetContainer.innerHTML = `<p class="text-sm text-red-500 dark:text-red-400">Could not load matches: ${error.message || 'Unknown error'}</p>`;
+        if (typeof showFlashMessage === 'function') showFlashMessage(error.message || "An unexpected error occurred while loading matches.", "danger");
     }
-};
+}

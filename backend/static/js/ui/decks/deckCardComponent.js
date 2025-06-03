@@ -1,60 +1,105 @@
-export function renderDeckCard(deck) {
-    const slug = deck.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
-    const card = document.createElement("a");
-    card.href = `/decks/${deck.id}-${slug}`;
-    card.className = "relative block rounded-xl shadow-md p-4 border hover:shadow-lg transition-all duration-200 ease-in-out cursor-pointer hover:scale-[1.02]";
+// backend/static/js/ui/decks/deckCardComponent.js
+import { openQuickAddTagModal } from '../tag-utils.js';
+
+export function renderDeckCard(deck, refreshCallback) {
+    const card = document.createElement("div");
+    card.className = `deck-card relative bg-white dark:bg-slate-800 shadow-lg rounded-lg p-4 flex flex-col space-y-3 border-l-4 hover:shadow-xl transition-shadow duration-200 ease-in-out cursor-pointer`;
     card.dataset.deckId = deck.id;
+    card.dataset.deckSlug = (deck.name || `deck-${deck.id}`).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
 
-    const winrate = deck.win_rate ?? 0;
-    card.classList.remove("bg-green-50", "border-green-200", "bg-yellow-50", "border-yellow-200", "bg-red-50", "border-red-200", "bg-white", "border-gray-200");
+    const winrate = parseFloat(deck.win_rate ?? 0);
+    const totalMatches = parseInt(deck.total_matches ?? 0, 10);
 
-    if (winrate >= 60) {
-        card.classList.add("bg-green-50", "border-green-200");
-    } else if (winrate >= 40) {
-        card.classList.add("bg-yellow-50", "border-yellow-200");
-    } else if (deck.total_matches > 0) {
-        card.classList.add("bg-red-50", "border-red-200");
-    } else {
-         card.classList.add("bg-white", "border-gray-200");
+    let borderColorClassString = 'border-gray-300 dark:border-gray-600'; // Default/Neutral as a string
+    if (totalMatches > 0) {
+        if (winrate >= 60) {
+            borderColorClassString = 'border-green-500 dark:border-green-500';
+        } else if (winrate >= 40) {
+            borderColorClassString = 'border-yellow-500 dark:border-yellow-500';
+        } else {
+            borderColorClassString = 'border-red-500 dark:border-red-500';
+        }
     }
+    // --- CORRECTED WAY TO ADD MULTIPLE CLASSES ---
+    card.classList.add(...borderColorClassString.split(' '));
+
 
     const formattedDate = formatDate(deck.last_match);
-    const deckTypeName = deck.deck_type?.name ?? 'Unknown Format';
+    const deckFormatName = deck.format_name || 'Commander';
 
     let tagPillsHtml = '';
     if (deck.tags && deck.tags.length > 0) {
         tagPillsHtml = deck.tags.map(tag =>
-            `<span class="tag-pill inline-flex items-center gap-1 bg-violet-100 text-violet-800 text-xs font-medium px-2 py-0.5 rounded-md mr-1 mb-1" data-tag-id="${tag.id}">
-                ${tag.name}
-                <button type="button" class="remove-tag-button ml-0.5 text-bvioletlue-500 hover:text-violet-700 font-bold focus:outline-none" aria-label="Remove tag ${tag.name}">&times;</button>
+            `<span class="tag-pill inline-flex items-center whitespace-nowrap bg-violet-100 dark:bg-violet-700/60 px-2.5 py-1 text-xs font-semibold text-violet-700 dark:text-violet-200 rounded-full" data-tag-id="${tag.id}">
+                <span>${tag.name}</span>
+                <button type="button" class="remove-tag-button ml-1.5 -mr-0.5 flex-shrink-0 rounded-full p-0.5 text-violet-500 dark:text-violet-400 hover:bg-violet-200 dark:hover:bg-violet-600 focus:outline-none focus:ring-1 focus:ring-violet-400 dark:focus:ring-violet-500" aria-label="Remove ${tag.name}">
+                    <svg class="h-2.5 w-2.5" stroke="currentColor" fill="none" viewBox="0 0 8 8"><path stroke-linecap="round" stroke-width="1.5" d="M1 1l6 6m0-6L1 7" /></svg>
+                </button>
             </span>`
         ).join('');
     }
 
     const addTagButtonHtml = `
-        <button type="button" class="add-deck-tag-button inline-flex items-center text-xs font-medium px-2 py-0.5 rounded border border-dashed border-gray-400 text-gray-500 hover:bg-gray-100 hover:text-gray-700 hover:border-solid mb-1" aria-label="Add tag to deck ${deck.name}" data-deck-id="${deck.id}">
+        <button type="button" class="add-deck-tag-button text-xs font-medium text-violet-600 dark:text-violet-400 hover:text-violet-800 dark:hover:text-violet-200 border border-dashed border-violet-400 dark:border-violet-500 rounded-full px-2.5 py-1 hover:bg-violet-100 dark:hover:bg-violet-700/30 transition-colors leading-tight focus:outline-none focus:ring-1 focus:ring-violet-500" aria-label="Add tag to deck ${deck.name}" data-deck-id="${deck.id}">
             + Tag
         </button>
     `;
 
-    const tagsContainerHtml = `<div class="mt-2 flex flex-wrap items-center gap-x-1">${tagPillsHtml}${addTagButtonHtml}</div>`;
-
-
     card.innerHTML = `
-        <div class="flex items-start justify-between mb-2 gap-2">
-            <h2 class="text-lg font-bold text-gray-800 min-w-0 break-words leading-tight flex-grow">${deck.name}</h2>
-            <span class="text-xs bg-violet-500 text-white px-2 py-0.5 rounded-full font-medium whitespace-nowrap flex-shrink-0">
-                ${deckTypeName}
+        <div class="flex justify-between items-start gap-2">
+            <div>
+                <h2 class="text-lg font-semibold text-gray-900 dark:text-white leading-tight truncate" title="${deck.name || 'Unnamed Deck'}">${deck.name || 'Unnamed Deck'}</h2>
+            </div>
+            <span class="flex-shrink-0 text-xs bg-violet-600 text-white px-2.5 py-1 rounded-full font-semibold whitespace-nowrap">
+                ${deckFormatName}
             </span>
         </div>
-        <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-sm text-gray-600 mt-3">
-            <div><span class="font-medium text-gray-700">Win Rate:</span> ${winrate}%</div>
-            <div><span class="font-medium text-gray-700">Matches:</span> ${deck.total_matches ?? 0}</div>
-            <div><span class="font-medium text-gray-700">Wins:</span> ${deck.total_wins ?? 0}</div>
-            <div><span class="font-medium text-gray-700">Last Match:</span> ${formattedDate}</div>
+
+        <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+            <div>
+                <p class="text-gray-600 dark:text-gray-400">Win Rate: <span class="font-medium text-gray-800 dark:text-gray-200">${winrate.toFixed(2)}%</span></p>
+                <p class="text-gray-600 dark:text-gray-400">Wins: <span class="font-medium text-gray-800 dark:text-gray-200">${deck.total_wins ?? 0}</span></p>
+            </div>
+            <div>
+                <p class="text-gray-600 dark:text-gray-400">Matches: <span class="font-medium text-gray-800 dark:text-gray-200">${totalMatches}</span></p>
+                <p class="text-gray-600 dark:text-gray-400">Last Played: <span class="font-medium text-gray-800 dark:text-gray-200">${formattedDate}</span></p>
+            </div>
         </div>
-        ${tagsContainerHtml}
+        
+        <div class="border-t border-gray-200 dark:border-gray-700/50 pt-3 mt-auto">
+            <div class="tags-interactive-area flex flex-wrap items-center gap-1.5 min-h-[28px]">
+                ${tagPillsHtml}
+                ${addTagButtonHtml}
+            </div>
+        </div>
     `;
+
+    const addTagButton = card.querySelector('.add-deck-tag-button');
+    if (addTagButton) {
+        addTagButton.addEventListener('click', (event) => {
+            event.stopPropagation();
+            event.preventDefault();
+            const deckId = card.dataset.deckId;
+            if (deckId && typeof refreshCallback === 'function') {
+                openQuickAddTagModal(deckId, 'deck', refreshCallback);
+            } else {
+                console.error("Cannot open add tag modal: deckId missing or refreshCallback not provided for deck card.");
+            }
+        });
+    }
+    
+    card.addEventListener('click', (event) => {
+        if (event.target.closest('button')) {
+            return;
+        }
+        const deckId = card.dataset.deckId;
+        const slug = card.dataset.deckSlug;
+        if (deckId && slug) {
+            window.location.href = `/decks/${deckId}-${slug}`;
+        } else if (deckId) {
+            window.location.href = `/decks/${deckId}`;
+        }
+    });
 
     return card;
 }
@@ -63,20 +108,20 @@ function formatDate(isoString) {
     if (!isoString) return "—";
     const date = new Date(isoString);
     if (isNaN(date.getTime())) return "—";
-    const options = { month: "short", day: "numeric", year: "numeric" };
+    const options = { day: 'numeric', month: 'short', year: 'numeric' };
     try {
-        return date.toLocaleDateString(undefined, options);
+        return date.toLocaleDateString('en-GB', options);
     } catch (e) {
         console.warn("Error formatting date:", e);
         return "Invalid Date";
     }
 }
 
-export function renderEmptyDecksMessage(containerElement) {
+export function renderEmptyDecksMessage(containerElement, message = "No decks found. Create a deck to get started!") {
     if (!containerElement) return;
     containerElement.innerHTML = `
-        <div class="text-center text-violet-800 mt-4 p-4 text-base border border-dashed border-violet-300 rounded-lg md:col-span-2 xl:col-span-3">
-            No decks found. Create a deck to get started!
+        <div class="text-center text-violet-700 dark:text-violet-300 mt-4 p-6 text-base border border-dashed border-violet-300 dark:border-violet-600 rounded-lg md:col-span-2 xl:col-span-3">
+            ${message}
         </div>
     `;
      containerElement.className = "grid gap-4 md:grid-cols-2 xl:grid-cols-3";
