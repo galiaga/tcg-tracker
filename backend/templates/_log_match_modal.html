@@ -60,7 +60,7 @@
             <div>
                 <label id="player-position-label" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Your Turn Order</label>
                 <div id="player-position-buttons" class="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 rounded-md" role="radiogroup" aria-labelledby="player-position-label">
-                    <input type="radio" name="player_position_radio" id="log-match-pos-1" value="1" class="sr-only peer/pos1">
+                    <input type="radio" name="player_position_radio" id="log-match-pos-1" value="1" class="sr-only peer/pos1"> {# Default to 1st #}
                     <label for="log-match-pos-1"
                            class="text-center px-3 py-2.5 text-sm font-medium border border-gray-300 dark:border-gray-600 rounded-md cursor-pointer 
                                   hover:bg-gray-50 dark:hover:bg-gray-700 
@@ -111,21 +111,27 @@
                   class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 shadow-sm focus:border-violet-500 focus:ring-1 focus:ring-violet-500 focus:ring-opacity-50 placeholder-gray-400 dark:placeholder-gray-500"></textarea>
             </div>
 
-            {# Tags (Optional) - Integrated Input Style #}
+            {# Tags (Optional) #}
             <div>
                 <label for="match-tags-input-field" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Tags (Optional)</label>
+                {# This wrapper is for the text input field itself, not for displaying pills with the older TagInputManager #}
                 <div id="match-tags-input-wrapper" 
-                     class="flex flex-wrap items-center gap-x-1.5 gap-y-1 p-2 min-h-[40px] border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 shadow-sm
-                            focus-within:border-violet-500 focus-within:ring-1 focus-within:ring-violet-500 cursor-text"
-                     onclick="document.getElementById('match-tags-input-field').focus();"> 
-                    <span id="match-tags-container" class="contents"></span>
+                     class="p-2 min-h-[40px] border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 shadow-sm
+                            focus-within:border-violet-500 focus-within:ring-1 focus-within:ring-violet-500"> 
+                    {# The older TagInputManager does not use 'contents' span for pills inside the input field #}
+                    {# <span id="match-tags-container" class="contents"></span> #}
                     <input type="text" id="match-tags-input-field" autocomplete="off" placeholder="Add tags..."
-                           class="flex-grow p-0.5 border-none focus:ring-0 bg-transparent text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 min-w-[100px]" />
+                           class="w-full p-0.5 border-none focus:ring-0 bg-transparent text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500" />
                 </div>
                 <div class="relative">
                     <div id="match-tags-suggestions" 
                          class="absolute z-20 mt-1 w-full bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-md shadow-lg max-h-40 overflow-y-auto hidden">
+                        {# Suggestions will be populated by TagInputManager #}
                     </div>
+                </div>
+                {# Container for displaying selected tag pills (managed by log-match-modal.js) #}
+                <div id="log-match-tags-pills-container" class="mt-2 flex flex-wrap gap-1.5 items-center min-h-[28px]">
+                    {# Selected tag pills will be rendered here by renderLogMatchTagPill #}
                 </div>
             </div>
 
