@@ -1,5 +1,34 @@
 # Changelog
 
+## [4.0.1] - YYYY-MM-DD 
+
+### Fixed
+- **Deck Details Page:**
+    - Resolved an issue where the Deck Details page would get stuck in a "Loading deck details..." state due to a `ReferenceError` for `totalMatches` during rendering.
+    - Ensured that after logging a new match via the "Quick Log" buttons on the Deck Details page, the main deck statistics (Win Rate, Matches, Wins) and the "Recent Matches" list are correctly refreshed.
+- **Tag Management Modals & Inputs:**
+    - **Log Match Modal:**
+        - Corrected JavaScript errors that prevented adding tags when logging a new match, by aligning the tag input initialization with the older, simpler `TagInputManager`.
+        - Ensured the deck select dropdown within the modal is populated before attempting to preselect a deck when logging from the Deck Details page, resolving "Option for preselected deck not found" warnings.
+        - Added a visual display area for selected tag pills within the Log Match Modal.
+        - Removed the default selection for "Player Position," requiring the user to make an explicit choice.
+        - Improved the validation message to be more specific if "Player Position" is not selected.
+    - **New Deck Modal:**
+        - Aligned the tag input field with the older `TagInputManager`, allowing tags to be added to new decks. Selected tags are now displayed as pills below the input field.
+    - **"My Tags" Page:**
+        - Fixed the "X" button functionality for removing tags from the "Selected Tags" display.
+        - Ensured the "Clear All" button correctly resets the selected tags UI and the search results placeholder.
+- **JavaScript Stability & Console Errors:**
+    - Resolved `InvalidCharacterError` on "My Decks" and "My Matches" pages when applying dynamic border styles to cards by correctly using `classList.add` with the spread operator.
+    - Fixed `SyntaxError: Importing binding name 'fetchUserTags' is not found` by ensuring all JavaScript modules correctly import `fetchAllUserTags` from `tag-utils.js` (which uses the older `TagInputManager`'s internal cache).
+    - Addressed console warnings (e.g., "Required match list elements not found") on pages like "Deck Details" and "My Tags" by adding guard clauses to page-specific JavaScript modules (`match-list-manager.js`, `sort-decks.js`), preventing them from executing their main initialization logic if their target HTML elements are not present.
+    - Resolved a circular dependency issue between `log-match.js` and `log-match-modal.js` related to the `populateDeckSelect` function by moving the function to be an internal part of `log-match-modal.js`.
+
+### Changed
+- **UI Consistency:**
+    - Minor styling adjustments to tag pills and "+ Tag" buttons on "My Decks" and "My Matches" cards for better visual consistency with the "My Tags" page and modals.
+    - Ensured the "Selected Tags:" label and display area on the "My Tags" page maintain consistent left alignment regardless of whether tags are selected.
+
 ## [4.0.0] - 2025-06-03
 
 ### Added

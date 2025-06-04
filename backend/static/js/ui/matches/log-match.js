@@ -1,57 +1,21 @@
 // backend/static/js/ui/matches/log-match.js
+
 import { authFetch } from '../../auth/auth.js';
 import { updateMatchHistoryView } from './match-list-manager.js';
 // Import functions from log-match-modal.js
-import { openLogMatchModal, getMatchTagInputInstance } from './log-match-modal.js';
+// REMOVED: populateDeckSelect as populateModalDeckSelect (it's now internal to log-match-modal.js)
+import { openLogMatchModal, getSelectedTagIdsForCurrentMatch } from './log-match-modal.js';
 
-// --- DOM Element References (fetched once DOM is ready) ---
-let logMatchFormElement = null;
-let deckSelectElement = null; // For populating decks
+// --- DOM Element References ---
+let logMatchFormElement = null; // This will be the form from the modal
 
 // --- Deck Population ---
-async function populateDeckSelect() {
-    const currentDeckSelect = deckSelectElement || document.getElementById("deck-select"); // Fallback if not initialized
-    if (!currentDeckSelect) {
-        console.warn("[log-match.js] Deck select element #deck-select not found for populateDeckSelect.");
-        return;
-    }
-    currentDeckSelect.disabled = true;
-    const originalOptionHTML = '<option disabled selected value="">Select Deck</option>';
-    currentDeckSelect.innerHTML = '<option disabled selected value="">Loading decks...</option>';
-    try {
-        const response = await authFetch("/api/user_decks");
-        if (!response || !response.ok) {
-             const errorData = response ? await response.json().catch(() => ({})) : {};
-             throw new Error(errorData.error || `Failed to fetch decks (${response?.status})`);
-         }
-        const decks = await response.json();
-        currentDeckSelect.innerHTML = originalOptionHTML;
-        if (Array.isArray(decks) && decks.length > 0) {
-            decks.forEach(deck => {
-                const option = document.createElement("option");
-                option.value = deck.id;
-                option.dataset.name = deck.name;
-                option.textContent = deck.name;
-                currentDeckSelect.appendChild(option);
-            });
-             currentDeckSelect.disabled = false;
-        } else {
-             currentDeckSelect.innerHTML = '<option disabled selected value="">No decks available</option>';
-        }
-        document.dispatchEvent(new CustomEvent('deckOptionsLoaded'));
-    } catch (error) {
-        console.error("Failed to fetch decks for log match:", error);
-        if (currentDeckSelect) currentDeckSelect.innerHTML = '<option disabled selected value="">Could not load decks</option>';
-         if (typeof showFlashMessage === 'function') {
-             showFlashMessage(error.message || "Could not load your decks.", "danger");
-         }
-    }
-}
+// populateDeckSelect function has been MOVED to log-match-modal.js
 
 // --- Form Submission ---
 async function handleLogMatchSubmit(event) {
     event.preventDefault();
-    const form = event.target; // Should be logMatchFormElement
+    const form = event.target;
 
     const currentDeckSelect = form.querySelector("#deck-select");
     const selectedResultRadio = form.querySelector('input[name="match_result"]:checked');
@@ -59,31 +23,50 @@ async function handleLogMatchSubmit(event) {
     const opponentDescriptionInput = form.querySelector("#log-match-opponent-description");
     const submitButton = form.querySelector('button[type="submit"]');
 
-    if (!currentDeckSelect || !selectedResultRadio || !submitButton) {
-        if (typeof showFlashMessage === 'function') showFlashMessage("Form elements missing (deck, result, or submit). Please refresh.", "danger");
-        console.error("Log match form elements missing (deck select, result radio, or submit button).");
-        return;
-    }
-    if (!selectedPositionRadio) {
-        if (typeof showFlashMessage === 'function') showFlashMessage("Please select your turn position.", "warning");
-        console.error("Player position radio not selected.");
+    // --- MODIFIED VALIDATION ---
+    // 1. Check for essential structural form elements first
+    if (!currentDeckSelect || !submitButton) { // Result radio has a default, position is checked next
+        if (typeof showFlashMessage === 'function') {
+            showFlashMessage("Critical form elements are missing. Please try refreshing the page.", "danger");
+        }
+        console.error("Log match form: Deck select or submit button missing.");
         return;
     }
 
+    // 2. Check for selected deck
     const deckId = currentDeckSelect.value;
     const selectedOption = currentDeckSelect.options[currentDeckSelect.selectedIndex];
+    if (!deckId || !deckId.trim() || (selectedOption && selectedOption.disabled)) {
+        if (typeof showFlashMessage === 'function') showFlashMessage("Please select a valid deck.", "warning");
+        return;
+    }
+    
+    // 3. Check for selected result (though it has a default, good to keep a check)
+    if (!selectedResultRadio) {
+        if (typeof showFlashMessage === 'function') showFlashMessage("Please select the match result.", "warning");
+        // This case should be rare now since "Win" is default checked in HTML
+        return; 
+    }
+
+    // 4. Check for selected player position - THIS IS THE SPECIFIC CHECK
+    if (!selectedPositionRadio) {
+        if (typeof showFlashMessage === 'function') {
+            showFlashMessage("Please select your turn order (player position).", "warning"); // Specific message
+        }
+        // Optionally, focus the first player position button or its label
+        const firstPositionLabel = form.querySelector('label[for="log-match-pos-1"]');
+        firstPositionLabel?.focus();
+        return;
+    }
+    // --- END OF MODIFIED VALIDATION ---
+
+
     const deckName = selectedOption?.dataset.name ?? 'Selected Deck';
     const resultValue = selectedResultRadio.value;
     const playerPositionValue = selectedPositionRadio.value;
     const opponentDescription = opponentDescriptionInput ? opponentDescriptionInput.value.trim() : null;
 
-    if (!deckId || !deckId.trim() || (selectedOption && selectedOption.disabled)) {
-        if (typeof showFlashMessage === 'function') showFlashMessage("Please select a valid deck.", "warning");
-        return;
-    }
-
-    const tagInputInstance = getMatchTagInputInstance();
-    const selectedTagIds = (tagInputInstance) ? tagInputInstance.getSelectedTagIds() : [];
+    const selectedTagIds = getSelectedTagIdsForCurrentMatch();
 
     const payload = {
         deck_id: parseInt(deckId, 10),
@@ -112,15 +95,27 @@ async function handleLogMatchSubmit(event) {
             if (typeof showFlashMessage === 'function') {
                 showFlashMessage(`${matchResultText} with ${deckName} registered!`, "success");
             }
-            if (form) form.reset();
-            if (currentDeckSelect && currentDeckSelect.options.length > 0) currentDeckSelect.value = "";
-            const defaultResultRadio = form.querySelector('input[name="match_result"][value="0"]');
-            if (defaultResultRadio) defaultResultRadio.checked = true;
+            
+            document.dispatchEvent(new CustomEvent('globalMatchLoggedSuccess', { 
+                detail: { 
+                    matchId: data.match?.id,
+                    deckId: payload.deck_id 
+                } 
+            }));
 
-            form.dispatchEvent(new CustomEvent('matchLoggedSuccess', { detail: { matchId: data.match?.id } }));
-            if (typeof updateMatchHistoryView === 'function') {
-                updateMatchHistoryView();
+            const isOnMyMatchesPage = document.getElementById('matches-list-items') && 
+                                      !document.getElementById('deck-details');
+         
+            if (isOnMyMatchesPage) {
+                if (typeof updateMatchHistoryView === 'function') {
+                    updateMatchHistoryView();
+                }
             }
+
+            if (form) {
+                 form.dispatchEvent(new CustomEvent('matchLoggedSuccess', { detail: { matchId: data.match?.id } }));
+            }
+
         } else {
             throw new Error(data.error || `Error logging match: ${response.statusText}`);
         }
@@ -139,37 +134,40 @@ async function handleLogMatchSubmit(event) {
 
 // --- Event Listeners & Initialization ---
 function initializeLogMatchScript() {
-    // Get the form element. The submit listener will be attached to this.
+    // Get the form from the modal AFTER the modal's own JS has initialized it.
+    // The listener is now added in log-match-modal.js's initializeModal if formElement is found.
+    // However, it's safer if log-match.js (which owns submit logic) adds it.
+    // Let's ensure logMatchFormElement is set up here if the modal is present.
+
     logMatchFormElement = document.getElementById("log-match-form");
     if (logMatchFormElement) {
-        // Get the deck select element within the form for populating it.
-        deckSelectElement = logMatchFormElement.querySelector("#deck-select");
-        
+        // Remove existing listener to prevent duplicates if this script runs multiple times
+        logMatchFormElement.removeEventListener("submit", handleLogMatchSubmit);
         logMatchFormElement.addEventListener("submit", handleLogMatchSubmit);
-        populateDeckSelect(); // Populate decks as the form exists.
     } else {
-        // This is expected if the modal (and thus the form) is not in the current page's static HTML
-        // but included via a partial that might not be rendered on all pages.
-        // console.info("log-match.js: Log match form #log-match-form not found on this page. Submit listener not attached.");
+        // This might happen if the modal is not in the DOM when this script runs.
+        // log-match-modal.js's initializeModal should find it.
     }
 
-    // Get the button that opens the modal. This button might be on specific pages like matches-history.html
+
     const mainLogMatchButtonElement = document.getElementById('logMatchModalButton');
     if (mainLogMatchButtonElement) {
         if (typeof openLogMatchModal === 'function') {
             mainLogMatchButtonElement.addEventListener('click', () => {
-                console.log("[log-match.js] Main Log Match Button (id='logMatchModalButton') clicked, attempting to open modal.");
-                openLogMatchModal(); // This function is from log-match-modal.js
+                // openLogMatchModal now handles its own deck population
+                openLogMatchModal(); 
             });
         } else {
-            console.warn("[log-match.js] Main Log Match Modal button found, but openLogMatchModal function is not available/imported correctly.");
+            console.warn("[log-match.js] Main Log Match Modal button found, but openLogMatchModal function is not available.");
         }
-    } else {
-        // This is normal if this specific button isn't on the current page.
-        // console.info("[log-match.js] Main Log Match Modal button with ID 'logMatchModalButton' not found on this page.");
     }
 }
 
 document.addEventListener("DOMContentLoaded", () => {
     initializeLogMatchScript();
 });
+
+// No need to export populateDeckSelect from here anymore
+// handleLogMatchSubmit might not need to be exported if the event listener is always set up here.
+// However, if log-match-modal.js *needs* to directly call it (e.g. if it had its own submit button), then export.
+// For now, assuming the form's submit event is the sole trigger.
