@@ -8,6 +8,7 @@ from .commanders import Commander
 from .commander_deck import CommanderDeck
 from .deck_type import DeckType
 from .tag import Tag
+from .opponent_commander_in_match import OpponentCommanderInMatch
 
 __all__ = [
     'User',
@@ -18,6 +19,6 @@ __all__ = [
     'Tag',
     'LoggedMatch',
     'LoggedMatchResult',
-    'UserDeck'
-
+    'UserDeck',
+    'OpponentCommanderInMatch'
 ]
