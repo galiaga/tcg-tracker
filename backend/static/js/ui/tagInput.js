@@ -1,257 +1,307 @@
-// backend/static/js/ui/tagInput.js
 import { authFetch } from '../auth/auth.js';
 
-const TagInputManager = (() => {
-    let userTags = []; // Global cache for all user tags
-    let isLoading = false;
-    let hasFetched = false;
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
 
-    async function fetchUserTags() {
-        if (isLoading) return userTags; // If already loading, let it finish
-        if (hasFetched) return userTags; // Return cached if already fetched
-        isLoading = true;
+const TagInputManager = (() => {
+    let userTagsCache = []; 
+    let isLoadingUserTags = false;
+    let hasFetchedUserTags = false;
+
+    async function fetchDefaultUserTags() {
+        if (isLoadingUserTags) return userTagsCache;
+        if (hasFetchedUserTags) return userTagsCache;
+        isLoadingUserTags = true;
         try {
             const response = await authFetch("/api/tags");
             if (!response.ok) {
-                // console.error(`Failed to fetch tags: ${response.status}`);
                 throw new Error(`Failed to fetch tags: ${response.status}`);
             }
-            userTags = await response.json();
-            userTags.sort((a, b) => a.name.localeCompare(b.name)); // Sort once fetched
-            hasFetched = true;
-            return userTags;
+            userTagsCache = await response.json();
+            userTagsCache.sort((a, b) => a.name.localeCompare(b.name));
+            hasFetchedUserTags = true;
+            return userTagsCache;
         } catch (error) {
-            console.error("Error fetching user tags:", error);
-            hasFetched = false; // Allow retry on next init
-            return []; // Return empty on error
+            console.error("Error fetching default user tags:", error);
+            hasFetchedUserTags = false; 
+            return [];
         } finally {
-            isLoading = false;
+            isLoadingUserTags = false;
         }
     }
 
-    // This function is effectively the "select tag" or "confirm tag" action
-    function handleTagSelection(tagData, options) {
+    function handleSelection(selectedItemData, options) {
         const { inputElement, suggestionsElement, onTagAdded } = options;
 
-        if (!tagData || typeof tagData.id === 'undefined' || typeof tagData.name === 'undefined') {
-            console.error("Invalid tag data provided to handleTagSelection", tagData);
+        if (!selectedItemData || typeof selectedItemData.id === 'undefined' || typeof selectedItemData.name === 'undefined') {
+            console.error("Invalid item data provided to handleSelection", selectedItemData);
             return;
         }
 
-        // Call the provided callback when a tag is selected or created
         if (typeof onTagAdded === 'function') {
-            onTagAdded(tagData); // This will trigger associateTag in tag-utils.js
+            onTagAdded(selectedItemData); 
         }
 
-        // Clear input and hide suggestions
         if (inputElement) inputElement.value = '';
         if (suggestionsElement) {
             suggestionsElement.innerHTML = '';
-            suggestionsElement.classList.add('hidden');
+            suggestionsElement.style.display = 'none'; // Ensure 'hidden' class is used
         }
-        if (inputElement) inputElement.focus();
     }
 
-    async function handleCreateTagRequest(tagName, options) {
-        const { inputElement, suggestionsElement } = options;
-        const normalizedTagName = tagName.trim(); // Keep original case for creation, backend can normalize
+    async function handleCreateNewRequest(itemName, options) {
+        const { inputElement, suggestionsElement, onTagAdded, isCommanderSearch } = options;
+        const normalizedItemName = itemName.trim();
 
-        if (!normalizedTagName) return;
+        if (!normalizedItemName) return;
 
-        // Clear input and hide suggestions immediately
+        if (isCommanderSearch) {
+            console.warn("[TagInputManager] Attempted to create a commander. This is not supported here.");
+            if (typeof showFlashMessage === 'function') showFlashMessage("Cannot create new commanders from this input.", "warning");
+            if (inputElement) inputElement.value = '';
+            if (suggestionsElement) suggestionsElement.style.display = 'none';
+            return;
+        }
+        
         if (inputElement) inputElement.value = '';
         if (suggestionsElement) {
             suggestionsElement.innerHTML = '';
-            suggestionsElement.classList.add('hidden');
+            suggestionsElement.style.display = 'none';
         }
-        
+
         try {
             const response = await authFetch("/api/tags", {
                 method: 'POST',
-                body: JSON.stringify({ name: normalizedTagName }) // Send original case
+                body: JSON.stringify({ name: normalizedItemName })
             });
 
-            if (!response) return; // authFetch handles CSRF by returning null
+            if (!response) return; 
+            const newItemData = await response.json();
 
-            const newTagData = await response.json();
-
-            if (response.ok) { // Tag created successfully (201)
-                 // Update global cache if it's a truly new tag
-                 if (!userTags.some(t => t.id === newTagData.id)) {
-                      userTags.push(newTagData);
-                      userTags.sort((a, b) => a.name.localeCompare(b.name));
+            if (response.ok) {
+                 if (!userTagsCache.some(t => t.id === newItemData.id)) {
+                      userTagsCache.push(newItemData);
+                      userTagsCache.sort((a, b) => a.name.localeCompare(b.name));
                  }
-                 handleTagSelection(newTagData, options); // Process the newly created tag
-            } else if (response.status === 409) { // Conflict - tag name exists
-                 // The backend should return the existing tag data in the 409 response
-                 const existingTag = newTagData.tag || userTags.find(t => t.name.toLowerCase() === normalizedTagName.toLowerCase());
-                 if (existingTag) {
-                      handleTagSelection(existingTag, options); // Process the existing tag
+                 handleSelection(newItemData, options); 
+            } else if (response.status === 409) {
+                 const existingItem = newItemData.tag || userTagsCache.find(t => t.name.toLowerCase() === normalizedItemName.toLowerCase());
+                 if (existingItem) {
+                      handleSelection(existingItem, options); 
                  } else {
-                      if (typeof showFlashMessage === 'function') {
-                           showFlashMessage(newTagData.error || 'Tag already exists but could not be retrieved.', 'warning');
-                       }
+                      if (typeof showFlashMessage === 'function') showFlashMessage(newItemData.error || 'Item already exists but could not be retrieved.', 'warning');
                  }
-            } else { // Other errors
-                 console.error("Error creating tag:", newTagData);
-                 if (typeof showFlashMessage === 'function') {
-                      showFlashMessage(newTagData.error || 'Failed to create tag.', 'danger');
-                 }
+            } else { 
+                 console.error("Error creating item:", newItemData);
+                 if (typeof showFlashMessage === 'function') showFlashMessage(newItemData.error || 'Failed to create item.', 'danger');
             }
         } catch(error) {
-             console.error("API error creating tag:", error);
-             if (typeof showFlashMessage === 'function') {
-                  showFlashMessage('Error connecting to server to create tag.', 'danger');
-             }
+             console.error("API error creating item:", error);
+             if (typeof showFlashMessage === 'function') showFlashMessage('Error connecting to server to create item.', 'danger');
         }
     }
 
-    async function showSuggestions(options) { // Changed to async as fetchUserTags is async
-        const { inputElement, suggestionsElement } = options;
+    async function showSuggestions(options) {
+        const { inputElement, suggestionsElement, searchFunction, renderSuggestionItem, isCommanderSearch } = options; 
         const inputValue = inputElement.value.trim();
-        const lowerInputValue = inputValue.toLowerCase();
-
-        suggestionsElement.innerHTML = ''; // Clear previous suggestions
+        
+        suggestionsElement.innerHTML = ''; 
 
         if (inputValue.length < 1) {
             suggestionsElement.classList.add('hidden');
             return;
         }
 
-        // Ensure tags are fetched before filtering
-        const currentTags = await fetchUserTags(); // Use the global cache
+        let itemsToSuggest = [];
+        if (typeof searchFunction === 'function') {
+            try {
+                itemsToSuggest = await searchFunction(inputValue);
+            } catch (error) {
+                console.error(`[TagInputManager] Error from provided searchFunction for ${inputElement.id}:`, error);
+                itemsToSuggest = [];
+            }
+        } else {
+            const currentTags = await fetchDefaultUserTags();
+            const lowerInputValueForTags = inputValue.toLowerCase();
+            itemsToSuggest = currentTags.filter(tag =>
+                tag.name.toLowerCase().includes(lowerInputValueForTags)
+            );
+        }
 
-        const filteredTags = currentTags.filter(tag =>
-            tag.name.toLowerCase().includes(lowerInputValue)
-            // No need to filter selectedTags as this version doesn't maintain a selectedTags list in the UI
-        );
+        const suggestionsToShow = itemsToSuggest.slice(0, 10); 
 
-        // Check if an exact match (case-insensitive) already exists in the fetched tags
-        let exactMatchFound = currentTags.some(tag => tag.name.toLowerCase() === lowerInputValue);
-
-        const suggestionsToShow = filteredTags.slice(0, 10); // Limit suggestions
-
-        suggestionsToShow.forEach(tag => {
-            const btn = document.createElement('button');
-            btn.type = 'button';
-            // Styling from your screenshot
-            btn.className = 'w-full text-left block px-3 py-2 bg-violet-100 dark:bg-violet-700 text-violet-800 dark:text-violet-100 text-sm font-medium rounded-md hover:bg-violet-200 dark:hover:bg-violet-600 transition-colors duration-150 mb-1 focus:outline-none focus:ring-2 focus:ring-violet-500';
-            btn.textContent = tag.name;
-            // No dataset needed here as we pass the full tag object
-            btn.addEventListener('click', () => {
-                handleTagSelection({ id: tag.id, name: tag.name }, options);
-            });
-            suggestionsElement.appendChild(btn);
+        suggestionsToShow.forEach(item => {
+            const suggestionElementWrapper = document.createElement('div'); 
+            if (typeof renderSuggestionItem === 'function') {
+                suggestionElementWrapper.innerHTML = renderSuggestionItem(item); 
+                const clickableElement = suggestionElementWrapper.firstChild; 
+                if (clickableElement) {
+                    clickableElement.addEventListener('click', () => {
+                        handleSelection(item, options);
+                    });
+                    suggestionsElement.appendChild(clickableElement);
+                } else {
+                     console.warn(`[TagInputManager] renderSuggestionItem for ${inputElement.id} did not produce a child element for item:`, item);
+                }
+            } else {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'w-full text-left block px-3 py-2 bg-violet-100 dark:bg-violet-700 text-violet-800 dark:text-violet-100 text-sm font-medium rounded-md hover:bg-violet-200 dark:hover:bg-violet-600 transition-colors duration-150 mb-1 focus:outline-none focus:ring-2 focus:ring-violet-500';
+                btn.textContent = item.name;
+                btn.addEventListener('click', () => {
+                    handleSelection(item, options);
+                });
+                suggestionsElement.appendChild(btn);
+            }
         });
-
-        // "Create new tag" button
-        if (!exactMatchFound && inputValue) {
-            const createBtn = document.createElement('button');
-            createBtn.type = 'button';
-            // Styling from your screenshot
-            createBtn.className = 'w-full text-left block px-3 py-2 bg-green-100 dark:bg-green-700 text-green-700 dark:text-green-300 text-sm font-medium rounded-md hover:bg-green-200 dark:hover:bg-green-600 transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-green-500' + 
-                                (suggestionsToShow.length > 0 ? ' border-t border-gray-200 dark:border-gray-600 mt-2 pt-2' : '');
-            createBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline-block mr-1.5 align-text-bottom" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" /></svg>Create: "${inputValue}"`;
-
-            createBtn.addEventListener('click', () => {
-                handleCreateTagRequest(inputValue, options);
-            });
-            suggestionsElement.appendChild(createBtn);
+        
+        if (!isCommanderSearch && typeof searchFunction !== 'function') {
+            const lowerInputValueForTags = inputValue.toLowerCase();
+            let exactMatchFound = itemsToSuggest.some(tag => tag.name.toLowerCase() === lowerInputValueForTags);
+            if (!exactMatchFound && inputValue) {
+                const createBtn = document.createElement('button');
+                createBtn.type = 'button';
+                createBtn.className = 'w-full text-left block px-3 py-2 bg-green-100 dark:bg-green-700 text-green-700 dark:text-green-300 text-sm font-medium rounded-md hover:bg-green-200 dark:hover:bg-green-600 transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-green-500' + 
+                                    (suggestionsToShow.length > 0 ? ' border-t border-gray-200 dark:border-gray-600 mt-2 pt-2' : '');
+                createBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline-block mr-1.5 align-text-bottom" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" /></svg>Create: "${inputValue}"`;
+                createBtn.addEventListener('click', () => {
+                    handleCreateNewRequest(inputValue, options);
+                });
+                suggestionsElement.appendChild(createBtn);
+            }
         }
 
         if (suggestionsElement.hasChildNodes()) {
-            suggestionsElement.classList.remove('hidden');
+            suggestionsElement.style.display = 'block';
         } else {
-            suggestionsElement.classList.add('hidden');
+             if (inputValue) { 
+                const noResults = document.createElement("li"); 
+                noResults.className = "px-4 py-2 text-center text-sm text-gray-500 dark:text-gray-400";
+                noResults.textContent = "No results found";
+                suggestionsElement.appendChild(noResults);
+                suggestionsElement.style.display = 'block';
+            } else {
+                suggestionsElement.style.display = 'none';
+            }
         }
     }
 
     function initTagInput(options) {
-        // This older version does not use `containerId` for pills,
-        // it uses `suggestionsId` for the dropdown.
-        // `onTagAdded` is the crucial callback.
-        const { inputId, suggestionsId, onTagAdded } = options; 
+        const { inputId, suggestionsId, onTagAdded, searchFunction, renderSuggestionItem, isCommanderSearch = false } = options; 
         const inputElement = document.getElementById(inputId);
         const suggestionsElement = document.getElementById(suggestionsId);
-        // No containerElement for pills in this version's input field itself.
+
 
         if (!inputElement || !suggestionsElement) {
             console.error("TagInput init failed: Input or suggestions element not found.", { inputId, suggestionsId });
-            return null; // Return null if essential elements are missing
+            return null; 
         }
 
-        // This version doesn't maintain a `selectedTags` array within the input UI itself.
-        // The `onTagAdded` callback handles the "selected" tag immediately.
-        const instanceOptions = {
-            inputElement,
-            suggestionsElement,
-            onTagAdded // This is key
-        };
-
-        // Fetch tags if not already done. showSuggestions will await this.
-        fetchUserTags(); 
-
-        inputElement.addEventListener('input', () => {
-            showSuggestions(instanceOptions);
-        });
-        
-        inputElement.addEventListener('focus', () => { // Show suggestions on focus if there's input
-            if (inputElement.value.trim().length > 0) {
-                showSuggestions(instanceOptions);
-            }
-        });
-
-        // Hide suggestions when clicking outside
-        // A bound function for removal
-        const boundHideSuggestionsOnClickOutside = (event) => {
-            if (suggestionsElement && !inputElement.contains(event.target) && !suggestionsElement.contains(event.target)) {
-                if (!suggestionsElement.classList.contains('hidden')) {
-                     suggestionsElement.classList.add('hidden');
-                }
-            }
-        };
-        document.addEventListener('click', boundHideSuggestionsOnClickOutside);
-
-
-         inputElement.addEventListener('keydown', (event) => {
-             if (event.key === 'Enter') {
-                 event.preventDefault();
-                 // Try to click the first suggestion button if visible
-                 const firstSuggestionButton = suggestionsElement.querySelector('button:not([disabled])');
-                 const currentVal = inputElement.value.trim();
-
-                 if (!suggestionsElement.classList.contains('hidden') && firstSuggestionButton) {
-                      firstSuggestionButton.click(); // This will trigger handleTagSelection
-                 } else if (currentVal) { // If no suggestions, but there's input, try to create
-                      handleCreateTagRequest(currentVal, instanceOptions);
-                 }
-             } else if (event.key === 'Escape') {
-                  suggestionsElement.classList.add('hidden');
-             }
-             // Backspace to remove pills is not applicable as there are no pills in this input style
-         });
-        
-        // The returned object for this simpler version
-        return {
-            // No getSelectedTagIds or addTag needed as it doesn't manage pills in UI
-            clearInput: () => { // Renamed from clearTags as it only clears the input field
-                if (inputElement) inputElement.value = '';
-                if (suggestionsElement) {
-                    suggestionsElement.innerHTML = '';
-                    suggestionsElement.classList.add('hidden');
+        const instanceApi = {
+            config: options,
+            inputElement: inputElement,
+            suggestionsElement: suggestionsElement,
+            boundHideFunction: null, 
+            handleInputEventRef: null,
+            handleFocusEventRef: null,
+            handleKeydownEventRef: null,
+            clearInput: () => { 
+                if (instanceApi.inputElement) instanceApi.inputElement.value = '';
+                if (instanceApi.suggestionsElement) {
+                    instanceApi.suggestionsElement.innerHTML = '';
+                    instanceApi.suggestionsElement.style.display = 'none';
                 }
             },
-            destroy: () => { // Important to remove document-level event listener
-                document.removeEventListener('click', boundHideSuggestionsOnClickOutside);
-                // console.log("Simplified TagInput instance destroyed for input:", inputId);
+            destroy: () => { 
+                instanceApi.inputElement?.removeEventListener('input', instanceApi.handleInputEventRef);
+                instanceApi.inputElement?.removeEventListener('focus', instanceApi.handleFocusEventRef);
+                instanceApi.inputElement?.removeEventListener('keydown', instanceApi.handleKeydownEventRef);
+
+                if (instanceApi.boundHideFunction) {
+                    document.removeEventListener('click', instanceApi.boundHideFunction); 
+                    instanceApi.boundHideFunction = null; // Clear ref after removing
+                }
             }
         };
+
+        const instanceOptions = { 
+            inputElement,
+            suggestionsElement,
+            onTagAdded,
+            searchFunction, 
+            renderSuggestionItem, 
+            isCommanderSearch 
+        };
+
+        if (typeof searchFunction !== 'function' && !isCommanderSearch) {
+            fetchDefaultUserTags(); 
+        }
+        
+        const debouncedShowSuggestions = debounce(() => showSuggestions(instanceOptions), 300);
+
+        instanceApi.handleInputEventRef = (event) => {
+            debouncedShowSuggestions();
+        };
+        
+        instanceApi.handleFocusEventRef = () => { 
+            if (inputElement.value.trim().length > 0) {
+                showSuggestions(instanceOptions); 
+            }
+        };
+
+        instanceApi.handleKeydownEventRef = (event) => {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                const firstSuggestionButtonOrItem = suggestionsElement.querySelector('button:not([disabled]), li:not([disabled])');
+                const currentVal = inputElement.value.trim();
+
+                if (!suggestionsElement.classList.contains('hidden') && firstSuggestionButtonOrItem) {
+                     firstSuggestionButtonOrItem.click(); 
+                } else if (currentVal && !isCommanderSearch && typeof searchFunction !== 'function') { 
+                     handleCreateNewRequest(currentVal, instanceOptions);
+                }
+            } else if (event.key === 'Escape') {
+                 suggestionsElement.classList.add('hidden');
+            }
+        };
+
+        inputElement.addEventListener('input', instanceApi.handleInputEventRef);
+        
+        inputElement.addEventListener('focus', instanceApi.handleFocusEventRef);
+        inputElement.addEventListener('keydown', instanceApi.handleKeydownEventRef);
+        
+        const hideFunc = (event) => {
+            if (instanceApi.suggestionsElement && document.body.contains(instanceApi.suggestionsElement) &&
+                instanceApi.inputElement && document.body.contains(instanceApi.inputElement)) {
+                if (!instanceApi.inputElement.contains(event.target) && 
+                    !instanceApi.suggestionsElement.contains(event.target)) {
+                    if (instanceApi.suggestionsElement.style.display !== 'none') {
+                         instanceApi.suggestionsElement.style.display = 'none';
+                    }
+                }
+            } else if (instanceApi.boundHideFunction) { 
+                document.removeEventListener('click', instanceApi.boundHideFunction);
+                instanceApi.boundHideFunction = null; 
+            }
+        };
+        instanceApi.boundHideFunction = hideFunc; 
+        document.addEventListener('click', instanceApi.boundHideFunction); 
+
+        return instanceApi; 
     }
 
     return {
         init: initTagInput,
-        // Expose fetchUserTags if other parts of the app need to preload tags
-        fetchAllUserTags: fetchUserTags 
+        fetchAllUserTags: fetchDefaultUserTags 
     };
 
 })();

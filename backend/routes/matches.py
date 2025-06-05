@@ -3,9 +3,11 @@
 from flask import jsonify, Blueprint, request, session, current_app
 from backend.utils.decorators import login_required
 from backend import db, limiter
-from backend.models import LoggedMatch, Tag, Deck # DeckType might not be needed if format is gone
-from backend.models.logged_match import match_tags
-from sqlalchemy.orm import selectinload
+from backend.models import LoggedMatch, Tag, Deck, Commander # Ensure Commander is imported
+# Import the new model for opponent commanders in a match
+from backend.models.opponent_commander_in_match import OpponentCommanderInMatch 
+from backend.models.logged_match import match_tags # For direct association table operations if needed
+from sqlalchemy.orm import selectinload, joinedload # joinedload for eager loading opponent commanders
 from sqlalchemy import select, delete
 import logging
 from datetime import timezone, datetime
@@ -14,63 +16,110 @@ matches_bp = Blueprint("matches", __name__, url_prefix="/api")
 logger = logging.getLogger(__name__)
 
 # --- Constants ---
-# Assuming LoggedMatchResult enum is defined in models.logged_match
-# If not, define or import it here. For simplicity, using direct values.
 RESULT_WIN = 0
 RESULT_LOSS = 1
 RESULT_DRAW = 2
 VALID_RESULTS = {RESULT_WIN, RESULT_LOSS, RESULT_DRAW}
 RESULT_MAP_TEXT = {
-    RESULT_WIN: "Win", # Changed from Victory/Defeat for consistency with frontend
+    RESULT_WIN: "Win",
     RESULT_LOSS: "Loss",
     RESULT_DRAW: "Draw"
 }
+VALID_COMMANDER_ROLES = {"primary", "partner", "background", "friends_forever", "doctor_companion", "time_lord_doctor"}
+
 
 # --- Helper Functions ---
 def format_timestamp(dt):
     if not dt: return None
-    # Ensure datetime is timezone-aware (UTC) before formatting
     aware_dt = dt.astimezone(timezone.utc) if dt.tzinfo else dt.replace(tzinfo=timezone.utc)
     return aware_dt.isoformat()
 
 # --- API Endpoints ---
 
 @matches_bp.route("/log_match", methods=["POST"])
-@limiter.limit("60 per minute") # Consider if this limit is appropriate for frequent logging
+@limiter.limit("60 per minute")
 @login_required
 def log_match():
     user_id = session.get('user_id')
     data = request.get_json()
     if not data: return jsonify({"error": "Invalid request body. JSON expected."}), 400
 
+    # --- Extract required fields ---
     deck_id_str = data.get("deck_id")
     match_result_str = data.get("result")
-    player_position_str = data.get("player_position") # New field
-    tag_names = data.get('tags', []) # Assuming tags are passed as a list of names
-    opponent_description = data.get('opponent_description', None)
-    # match_format is removed
+    player_position_str = data.get("player_position") # Player's turn order/seat
 
-    if deck_id_str is None or match_result_str is None:
-        # player_position is optional for now to support older data or non-tracked games
-        return jsonify({"error": "Missing required fields: deck_id, result"}), 400
+    # --- Extract optional fields ---
+    player_mulligans_str = data.get("player_mulligans")
+    pod_notes = data.get("pod_notes")
+    tag_names_or_ids = data.get('tags', [])
+    
+    # Expected payload for opponent commanders:
+    # "opponent_commanders_by_seat": {
+    #     "1": [ {"id": 123, "role": "primary"}, {"id": 124, "role": "partner"} ], // Seat 1 opponents
+    #     "3": [ {"id": 456, "role": "primary"} ], // Seat 3 opponent (if player is e.g. seat 2)
+    #     // etc. for other opponent seats
+    # }
+    opponent_commanders_payload = data.get("opponent_commanders_by_seat", {})
+
+
+    # --- Validate required fields ---
+    if deck_id_str is None or match_result_str is None or player_position_str is None:
+        return jsonify({"error": "Missing required fields: deck_id, result, or player_position"}), 400
 
     try:
         deck_id = int(deck_id_str)
         match_result = int(match_result_str)
-        player_position = int(player_position_str) if player_position_str is not None else None
+        player_position = int(player_position_str) 
+        
+        player_mulligans = None
+        if player_mulligans_str is not None:
+            player_mulligans = int(player_mulligans_str)
+            if player_mulligans < 0:
+                return jsonify({"error": "Player mulligans cannot be negative."}), 400
+        
+        # Validate opponent_commanders_payload structure
+        parsed_opponent_commanders = [] # Will store tuples of (seat, commander_id, role)
+        if not isinstance(opponent_commanders_payload, dict):
+            return jsonify({"error": "opponent_commanders_by_seat must be an object."}), 400
+
+        for seat_str, commanders_in_seat_list in opponent_commanders_payload.items():
+            try:
+                seat = int(seat_str)
+                if not (1 <= seat <= 4) or seat == player_position:
+                    # Silently ignore invalid seats or player's own seat if sent by frontend
+                    continue 
+                
+                if not isinstance(commanders_in_seat_list, list):
+                     return jsonify({"error": f"Commanders for seat {seat} must be a list."}), 400
+
+                for cmd_data in commanders_in_seat_list:
+                    if not isinstance(cmd_data, dict) or "id" not in cmd_data or "role" not in cmd_data:
+                        return jsonify({"error": f"Invalid commander data format for seat {seat}. Expected {{'id': ..., 'role': ...}}."}), 400
+                    
+                    cmd_id = int(cmd_data["id"])
+                    role = cmd_data["role"].lower()
+
+                    if role not in VALID_COMMANDER_ROLES:
+                        return jsonify({"error": f"Invalid role '{role}' for commander at seat {seat}."}), 400
+                    if not db.session.get(Commander, cmd_id):
+                        return jsonify({"error": f"Commander ID {cmd_id} for opponent at seat {seat} (role: {role}) not found."}), 400
+                    
+                    parsed_opponent_commanders.append({'seat_number': seat, 'commander_id': cmd_id, 'role': role})
+
+            except (ValueError, TypeError):
+                return jsonify({"error": "Invalid format within opponent_commanders_by_seat. Seat keys must be numbers, commander IDs must be integers."}), 400
+                
     except (ValueError, TypeError):
-         return jsonify({"error": "Invalid type for deck_id, result, or player_position. Integers required."}), 400
+         return jsonify({"error": "Invalid type for numeric fields (deck_id, result, player_position, or mulligans)."}), 400
 
     if match_result not in VALID_RESULTS:
-         return jsonify({"error": f"Invalid result value. Must be one of {VALID_RESULTS}"}), 400
+         return jsonify({"error": f"Invalid result value."}), 400
+    if not (1 <= player_position <= 4):
+        return jsonify({"error": "Invalid player position."}), 400
 
-    if player_position is not None and not (1 <= player_position <= 4):
-        return jsonify({"error": "Invalid player position. Must be between 1 and 4."}), 400
-
-    # Ensure the deck exists, belongs to the user, and is active
     deck = Deck.query.filter_by(id=deck_id, user_id=user_id, is_active=True).first()
     if not deck:
-        logger.warning(f"User {user_id} attempted to log match for non-owned, inactive, or non-existent deck {deck_id}")
         return jsonify({"error": "Active deck not found or not owned by user."}), 404
 
     try:
@@ -79,60 +128,94 @@ def log_match():
             logger_user_id=user_id,
             deck_id=deck_id,
             timestamp=datetime.now(timezone.utc),
-            opponent_description=opponent_description,
-            player_position=player_position # Added new field
-            # match_format is removed
+            player_position=player_position,
+            player_mulligans=player_mulligans,
+            pod_notes=pod_notes
         )
         db.session.add(new_match)
-        db.session.flush() # Flush to get new_match.id for tag association
+        # We need to flush to get new_match.id before creating OpponentCommanderInMatch entries
+        db.session.flush() 
+
+        # Create OpponentCommanderInMatch entries
+        for opp_cmd_data in parsed_opponent_commanders:
+            ocim_entry = OpponentCommanderInMatch(
+                logged_match_id=new_match.id,
+                seat_number=opp_cmd_data['seat_number'],
+                commander_id=opp_cmd_data['commander_id'],
+                role=opp_cmd_data['role']
+            )
+            db.session.add(ocim_entry)
 
         # Handle tags
-        if tag_names and isinstance(tag_names, list):
+        if tag_names_or_ids and isinstance(tag_names_or_ids, list):
             tags_to_associate = []
-            for name_or_id in tag_names: # Assuming frontend might send names or IDs
+            for name_or_id in tag_names_or_ids:
                 tag = None
-                if isinstance(name_or_id, int): # If ID is sent
+                if isinstance(name_or_id, int):
                     tag = Tag.query.filter_by(id=name_or_id, user_id=user_id).first()
-                elif isinstance(name_or_id, str) and name_or_id.strip(): # If name is sent
+                elif isinstance(name_or_id, str) and name_or_id.strip():
                     tag_name = name_or_id.strip()
                     tag = Tag.query.filter_by(user_id=user_id, name=tag_name).first()
-                    if not tag: # Create tag if it doesn't exist for the user
+                    if not tag:
                         tag = Tag(user_id=user_id, name=tag_name)
                         db.session.add(tag)
-                        # No need to flush here, will be flushed before commit or handled by relationship
                 if tag:
                     tags_to_associate.append(tag)
-            
             if tags_to_associate:
                 new_match.tags.extend(tags_to_associate)
 
         db.session.commit()
         logger.info(f"Match logged successfully (ID: {new_match.id}) for user {user_id}, deck {deck_id}")
 
-        # Return comprehensive match details
+        # Prepare response data - Eager load opponent commanders for the response
+        # This is to ensure the response includes the newly created opponent commander details.
+        final_match_data = LoggedMatch.query.options(
+            joinedload(LoggedMatch.opponent_commanders).joinedload(OpponentCommanderInMatch.commander),
+            selectinload(LoggedMatch.tags) # Keep existing eager load for tags
+        ).get(new_match.id)
+
+
+        response_match_data = {
+            "id": final_match_data.id,
+            "timestamp": format_timestamp(final_match_data.timestamp),
+            "result": final_match_data.result,
+            "result_text": RESULT_MAP_TEXT.get(final_match_data.result, "Unknown"),
+            "deck_id": final_match_data.deck_id,
+            "logger_user_id": final_match_data.logger_user_id,
+            "player_position": final_match_data.player_position,
+            "player_mulligans": final_match_data.player_mulligans,
+            "pod_notes": final_match_data.pod_notes,
+            "is_active": final_match_data.is_active,
+            "tags": [{"id": t.id, "name": t.name} for t in final_match_data.tags],
+            "opponent_commanders_by_seat": {} # Populate this based on final_match_data.opponent_commanders
+        }
+        
+        for oc in final_match_data.opponent_commanders:
+            seat_key = str(oc.seat_number)
+            if seat_key not in response_match_data["opponent_commanders_by_seat"]:
+                response_match_data["opponent_commanders_by_seat"][seat_key] = []
+            response_match_data["opponent_commanders_by_seat"][seat_key].append({
+                "id": oc.commander_id,
+                "name": oc.commander.name if oc.commander else "Unknown Commander", # Access via relationship
+                "role": oc.role
+            })
+        
         return jsonify({
             "message": "Match logged successfully",
-            "match": {
-                "id": new_match.id,
-                "timestamp": format_timestamp(new_match.timestamp),
-                "result": new_match.result,
-                "result_text": RESULT_MAP_TEXT.get(new_match.result, "Unknown"),
-                "deck_id": new_match.deck_id,
-                "logger_user_id": new_match.logger_user_id,
-                "opponent_description": new_match.opponent_description,
-                "player_position": new_match.player_position, # Added
-                # "match_format": new_match.match_format, # Removed
-                "is_active": new_match.is_active,
-                "tags": [{"id": t.id, "name": t.name} for t in new_match.tags]
-            }
+            "match": response_match_data
             }), 201
     except Exception as e:
         db.session.rollback()
         logger.error(f"Database error logging match for user {user_id}, deck {deck_id}: {e}", exc_info=True)
-        # Provide more detail in debug mode, generic message otherwise
         error_detail = str(e) if current_app.debug else "An internal error occurred"
         return jsonify({"error": "Database error", "details": error_detail}), 500
 
+
+# --- Other Match Routes (add_tag_to_match, remove_tag_from_match, delete_match) ---
+# These routes generally do not need to change for this specific feature of logging opponent commanders,
+# as they operate on the LoggedMatch itself or its direct tag associations.
+# The soft_delete method on LoggedMatch will handle cascade deletion of OpponentCommanderInMatch
+# entries due to `ondelete='CASCADE'` on the ForeignKey and `cascade="all, delete-orphan"` on the relationship.
 
 @matches_bp.route('/matches/<int:match_id>/tags', methods=['POST'])
 @limiter.limit("60 per minute")
@@ -148,7 +231,7 @@ def add_tag_to_match(match_id):
         LoggedMatch.id == match_id,
         LoggedMatch.logger_user_id == current_user_id,
         LoggedMatch.is_active == True
-    ).options(selectinload(LoggedMatch.tags)) # Eager load tags
+    ).options(selectinload(LoggedMatch.tags))
     match = db.session.scalars(stmt_match).first()
 
     if not match:
@@ -159,7 +242,7 @@ def add_tag_to_match(match_id):
         return jsonify({"error": "Tag not found or not owned by user"}), 404
 
     if tag_to_add in match.tags:
-        return jsonify({"message": "Tag already associated with this match"}), 200 # Or 200 if idempotent
+        return jsonify({"message": "Tag already associated with this match"}), 200
 
     try:
         match.tags.append(tag_to_add)
@@ -181,13 +264,12 @@ def remove_tag_from_match(match_id, tag_id):
         LoggedMatch.id == match_id,
         LoggedMatch.logger_user_id == current_user_id,
         LoggedMatch.is_active == True
-    ) # No need to eager load tags if using direct delete from association
+    )
     match = db.session.scalars(stmt_match).first()
 
     if not match:
         return jsonify({"error": "Match not found or not available for tag removal"}), 404
 
-    # Check if the association exists directly (more robust than 'tag in match.tags' before removal)
     association_exists_stmt = select(match_tags).where(
         match_tags.c.match_id == match_id,
         match_tags.c.tag_id == tag_id
@@ -198,7 +280,6 @@ def remove_tag_from_match(match_id, tag_id):
          return jsonify({"error": "Tag is not associated with this match"}), 404
 
     try:
-        # Delete directly from the association table
         delete_stmt = delete(match_tags).where(
             match_tags.c.match_id == match_id,
             match_tags.c.tag_id == tag_id
@@ -222,7 +303,7 @@ def delete_match(match_id):
     stmt = select(LoggedMatch).where(
         LoggedMatch.id == match_id,
         LoggedMatch.logger_user_id == current_user_id,
-        LoggedMatch.is_active == True # Only allow deleting active matches
+        LoggedMatch.is_active == True
     )
     match_to_soft_delete = db.session.scalars(stmt).first()
 
@@ -231,7 +312,7 @@ def delete_match(match_id):
         return jsonify({"error": "Match not found or cannot be deleted"}), 404
 
     try:
-        match_to_soft_delete.soft_delete() # Call the method from the model
+        match_to_soft_delete.soft_delete() # This will also handle cascade for OpponentCommanderInMatch due to model setup
         db.session.commit()
         logger.info(f"Match {match_id} soft deleted successfully by user {current_user_id}.")
         return '', 204

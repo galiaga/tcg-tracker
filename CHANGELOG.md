@@ -1,6 +1,56 @@
 # Changelog
 
-## [4.0.1] - YYYY-MM-DD 
+## [4.1.0] - YYYY-MM-DD 
+
+### Added
+- **Enhanced Match Logging (Commander Specifics):**
+    - **Opponent Commanders:**
+        - Implemented structured logging for opponent commanders based on their seat at the table.
+        - "Log New Match" modal now dynamically displays input fields for each opponent seat after the user selects their own turn order.
+        - Each opponent commander input uses autocomplete, searching against the application's commander database.
+        - Added support for logging an **associated commander** (e.g., Partner, Background, Friends Forever, Doctor's Companion) for each opponent.
+            - An "+ Add Partner/Associated" button appears if the selected primary opponent commander has a pairing ability.
+            - The search for the associated commander is filtered by the required pairing type (e.g., only shows "Partner" commanders if the primary has "Partner").
+        - Backend `LoggedMatch` model updated with a new `OpponentCommanderInMatch` association table to store multiple commanders per opponent seat with their roles (primary, partner, etc.).
+        - API endpoint `POST /api/log_match` now accepts a structured `opponent_commanders_by_seat` payload.
+    - **Player Mulligans:**
+        - Added functionality to log the number of mulligans taken by the player.
+        - "Log New Match" modal now features radio-button style selectors for mulligan count (Keep 7 (0), To 6 (1), etc.) for improved mobile usability.
+        - Updated `LoggedMatch` model to include `player_mulligans`.
+        - API endpoint `POST /api/log_match` now accepts `player_mulligans`.
+    - **Pod Notes:** The "Opponent/Pod Description" field in the "Log New Match" modal has been repurposed and renamed to "Pod Notes" for more general match commentary.
+- **Deck Details Page Enhancements:**
+    - **Performance by Turn Order:** Added a new card to display the deck's win rate and match count broken down by the player's turn order (1st, 2nd, 3rd, 4th).
+    - **Recent Matches Display:** The "Recent Matches" card on the Deck Details page now loads and displays a list of the last 5 matches played with the deck, showing result, date, and player position.
+    - API endpoint `GET /api/decks/<deck_id>` now optionally returns `turn_order_stats` and `recent_matches` via query parameters.
+- **API - Commander Search Enhancement:**
+    - The `GET /api/search_commanders` endpoint now accepts an optional `type` query parameter to filter commander search results by specific pairing abilities (e.g., `?type=partner` will only return commanders with the "Partner" ability).
+
+### Changed
+- **UI/UX - Deck Details Page:**
+    - Redesigned the layout for a more compact and mobile-first experience.
+    - Combined deck identity (Commander, Associated) and core performance statistics (Win Rate, Matches, Wins) into a single, prominent card.
+    - Removed the redundant display of "Deck Name" and "Format: Commander / EDH" from the main content card, as this information is already present in the page header.
+    - Reduced vertical spacing between the page header and the first content card.
+    - Adjusted styling of card headers and content for better visual hierarchy and compactness.
+- **UI/UX - Log New Match Modal:**
+    - "Your Turn Order" selection now dynamically determines which "Seat X Commander" input fields are displayed.
+    - Opponent commander inputs now use a pill-based display for selected commanders, similar to tag inputs.
+- **Backend - Match Logging:**
+    - `LoggedMatch.player_position` is now a non-nullable field and required during match logging.
+    - Refactored opponent commander storage from individual columns in `LoggedMatch` to the new `OpponentCommanderInMatch` association table.
+- **JavaScript - Modals & Script Loading:**
+    - Ensured global modals (`_quick_add_tag_modal.html`, `_log_match_modal.html`) and their dependent JavaScript files (`tag-utils.js`, `tagInput.js`, `log-match-modal.js`, `log-match.js`, `deck-api.js`) are correctly included and initialized via `layout.html` for consistent availability across pages.
+
+### Fixed
+- **Deck Details Page - Tag Modal:** Resolved an error where the "Quick Add Tag Modal" would not open due to its HTML elements not being found in the DOM. This was fixed by ensuring the modal's HTML is globally available via `layout.html`.
+- **My Decks Page - Deck Loading:** Fixed a `SyntaxError` ("Importing binding name 'handleRemoveTagClick' is not found") in `deckCardComponent.js` (and potentially other files like `deck-list-manager.js`, `user-tags.js`) by correcting the import statement to use the actual exported function name `handleRemoveDeckTagClick` from `tag-utils.js`.
+- **Unit Tests:**
+    - Updated `test_deck_register.py` to no longer send `deck_type_id` (as backend defaults to Commander) and to correctly use test fixtures.
+    - Updated `test_get_user_decks.py` to expect `format_name: "Commander"` and potentially adjust for AND/OR logic in tag filtering.
+    - Updated `test_get_matches_history.py` (match tag API tests) to provide the now-required `player_position` when creating `LoggedMatch` instances in fixtures and to use correct dictionary keys for tag data.
+
+## [4.0.1] - 2025-06-04 
 
 ### Fixed
 - **Deck Details Page:**
