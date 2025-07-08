@@ -6,9 +6,10 @@
 - **Player Performance Dashboard:**
     - Introduced a new top-level **"Player Performance"** page, designed to give users a strategic overview of their overall gameplay, independent of any single deck.
     - Added "Performance" to the main site navigation on both desktop (header) and mobile (footer).
-    - The new dashboard features two primary indicators:
+    - The new dashboard features primary indicators:
         - **Headline Stats Card:** Displays key KPIs at a glance, including Overall Win Rate, Total Matches Logged, a user's "Winningest Deck" (min. 10 matches), and their "Most Played Deck".
         - **Overall Performance by Turn Order:** A powerful visual breakdown of a player's win rate in the 1st, 2nd, 3rd, and 4th seats, aggregated across all of their logged matches.
+        - **Your Personal Metagame:** A new card showing a ranked list of the commanders the user faces most frequently across all their matches. This provides actionable insight into their typical opponent meta.
     - Includes a dedicated "No Data" state that encourages new users to log their first match.
 - **Backend & API:**
     - Created a new API endpoint `GET /api/performance-summary` to perform all necessary aggregations and calculations for the dashboard in a single, efficient call.
