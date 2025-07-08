@@ -88,6 +88,21 @@ Player Performance
                     <!-- JS will populate the 4 quadrants here -->
                 </div>
             </div>
+
+            <div id="personal-metagame-card" class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 sm:p-6 hidden">
+                <h3 class="text-base font-bold text-gray-800 dark:text-gray-100">
+                    Your Personal Metagame
+                </h3>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    The commanders you face most often across all matches.
+                </p>
+                <div id="personal-metagame-list" class="mt-4 space-y-3">
+                    <!-- JS will populate the commander list here -->
+                </div>
+                <p id="no-metagame-data" class="text-center text-sm text-gray-500 dark:text-gray-400 py-4 hidden">
+                    Log matches with opponent commanders to see your meta breakdown.
+                </p>
+            </div>
         </div>
     </div>
 {% endblock %}

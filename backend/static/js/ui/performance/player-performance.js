@@ -83,6 +83,37 @@ function renderTurnOrderStats(stats) {
     });
 }
 
+function renderPersonalMetagame(metagameData) {
+    const cardEl = document.getElementById('personal-metagame-card');
+    const listEl = document.getElementById('personal-metagame-list');
+    const noDataEl = document.getElementById('no-metagame-data');
+
+    if (!cardEl || !listEl || !noDataEl) return;
+
+    listEl.innerHTML = ''; // Clear previous data
+
+    if (metagameData && metagameData.length > 0) {
+        metagameData.forEach((commander, index) => {
+            const item = document.createElement('div');
+            item.className = 'flex items-center justify-between text-sm';
+            item.innerHTML = `
+                <span class="font-medium text-gray-800 dark:text-gray-100 truncate pr-4">
+                    ${index + 1}. ${commander.name}
+                </span>
+                <span class="text-gray-500 dark:text-gray-400 flex-shrink-0">
+                    Faced ${commander.count} time${commander.count > 1 ? 's' : ''}
+                </span>
+            `;
+            listEl.appendChild(item);
+        });
+        noDataEl.classList.add('hidden');
+        cardEl.classList.remove('hidden');
+    } else {
+        // Hide the card completely if there is no data
+        cardEl.classList.add('hidden');
+    }
+}
+
 async function loadPerformanceData() {
     showLoadingState(true);
     try {
@@ -95,6 +126,7 @@ async function loadPerformanceData() {
         if (data.has_data) {
             renderHeadlineStats(data);
             renderTurnOrderStats(data.turn_order_stats);
+            renderPersonalMetagame(data.personal_metagame);
         } else {
             showNoDataState();
         }

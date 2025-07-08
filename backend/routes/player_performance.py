@@ -3,7 +3,7 @@
 from flask import Blueprint, jsonify, session
 from backend.utils.decorators import login_required
 from backend import db
-from backend.models import LoggedMatch, Deck
+from backend.models import LoggedMatch, Deck, Commander, OpponentCommanderInMatch
 from sqlalchemy import func, case, cast, Float, desc
 import logging
 
@@ -105,6 +105,31 @@ def get_performance_summary():
         ).order_by(desc('win_rate')).first()
 
         winningest_deck = f"{winningest_deck_query.name} ({winningest_deck_query.win_rate:.1f}%)" if winningest_deck_query else "N/A"
+
+        # --- 5. Personal Metagame (Most-Faced Commanders) ---
+        most_faced_commanders_query = db.session.query(
+            Commander.name,
+            func.count(OpponentCommanderInMatch.id).label('encounter_count')
+        ).join(
+            LoggedMatch, OpponentCommanderInMatch.logged_match_id == LoggedMatch.id
+        ).join(
+            Commander, OpponentCommanderInMatch.commander_id == Commander.id
+        ).filter(
+            LoggedMatch.logger_user_id == user_id,
+            LoggedMatch.is_active == True
+            # We only count the primary commander to avoid double-counting partners
+            # You could change this if you want to count partners separately
+            # OpponentCommanderInMatch.role == 'primary' 
+        ).group_by(
+            Commander.id
+        ).order_by(
+            desc('encounter_count')
+        ).limit(10).all() # Limit to the top 10
+
+        personal_metagame = [
+            {"name": row.name, "count": row.encounter_count} 
+            for row in most_faced_commanders_query
+        ]
         
         response_data = {
             "has_data": True,
@@ -113,6 +138,7 @@ def get_performance_summary():
             "winningest_deck": winningest_deck,
             "most_played_deck": most_played_deck,
             "turn_order_stats": turn_order_stats,
+            "personal_metagame": personal_metagame
         }
         
         return jsonify(response_data)
