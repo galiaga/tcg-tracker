@@ -1,6 +1,7 @@
+// backend/static/js/ui/decks/deck-details.js 
+
 import { authFetch } from '../../auth/auth.js';
 import { openQuickAddTagModal, closeQuickAddTagModal } from '../tag-utils.js';
-// Ensure the function name matches the export from deck-matches.js
 import { loadDeckMatchesIntoContainer } from '../matches/deck-matches.js'; 
 import { openLogMatchModal } from '../matches/log-match-modal.js';
 
@@ -9,7 +10,7 @@ let currentDeckName = null;
 
 let deckDetailsContentElement = null;
 let deckDetailsLoadingElement = null;
-let deckPageTitleElement = null; // This is in the page_header block
+let deckPageTitleElement = null;
 let backToDecksButton = null;
 
 let deckInfoStatsCardElement = null;
@@ -17,6 +18,7 @@ let quickLogCardElement = null;
 let deckTagsCardElement = null;
 let turnOrderStatsCardElement = null;
 let recentMatchesCardElement = null;
+let mulliganStatsCardElement = null; // New element for mulligan stats
 
 let deckOptionsMenuButton = null;
 let deckOptionsDropdown = null;
@@ -29,19 +31,20 @@ let renameDeckModalCloseButton = null;
 let renameDeckCancelButton = null;
 let newDeckNameInputElement = null;
 
-let globalLogMatchFab = null; // For the FAB/button in the header
+let globalLogMatchFab = null;
 
 // --- UI Update Functions ---
 function updatePageTitle(newTitle) {
     document.title = `TCG Tracker: ${newTitle || 'Deck Details'}`;
-    if (deckPageTitleElement) { // deckPageTitleElement is in the header, not the card
+    if (deckPageTitleElement) {
         deckPageTitleElement.textContent = newTitle || "Deck Details";
     }
 }
 
 function showLoadingState() {
     if (deckDetailsLoadingElement) deckDetailsLoadingElement.style.display = 'block';
-    [deckInfoStatsCardElement, quickLogCardElement, deckTagsCardElement, turnOrderStatsCardElement, recentMatchesCardElement]
+    // Add the new mulligan card to the list of elements to hide
+    [deckInfoStatsCardElement, quickLogCardElement, deckTagsCardElement, turnOrderStatsCardElement, recentMatchesCardElement, mulliganStatsCardElement]
         .forEach(el => el?.classList.add('hidden'));
 }
 
@@ -56,11 +59,11 @@ function renderDeckInfoStats(deckData) {
 
     const winRate = parseFloat(deckData.win_rate ?? 0);
     const totalMatches = parseInt(deckData.total_matches ?? 0, 10);
-    let winrateColorClass = 'text-gray-700 dark:text-gray-200'; // Default color
-    if (totalMatches > 0) { // Only apply color if there are matches
+    let winrateColorClass = 'text-gray-700 dark:text-gray-200';
+    if (totalMatches > 0) {
         if (winRate >= 55) winrateColorClass = 'text-green-500 dark:text-green-400';
         else if (winRate < 45) winrateColorClass = 'text-red-500 dark:text-red-400';
-        else winrateColorClass = 'text-yellow-500 dark:text-yellow-400'; // Between 45 and 54.99
+        else winrateColorClass = 'text-yellow-500 dark:text-yellow-400';
     }
 
     let commanderHtml = '';
@@ -72,7 +75,7 @@ function renderDeckInfoStats(deckData) {
             </div>`;
     }
     
-    let assocLabel = "Associated"; // Default label
+    let assocLabel = "Associated";
     if (deckData.partner_name) assocLabel = "Partner";
     else if (deckData.friends_forever_name) assocLabel = "Friends Forever";
     else if (deckData.background_name) assocLabel = "Background";
@@ -87,7 +90,6 @@ function renderDeckInfoStats(deckData) {
             </div>`;
     }
     
-    // Removed deck name and format from here, as it's in the page header
     deckInfoStatsCardElement.innerHTML = `
         <div class="border-t border-gray-200 dark:border-gray-700 first:border-t-0">
             <dl class="divide-y divide-gray-200 dark:divide-gray-700">
@@ -108,7 +110,6 @@ function renderDeckInfoStats(deckData) {
 }
 
 function renderQuickLogButtons() {
-    // ... (This function can remain largely the same as in the previous full version)
     if (!quickLogCardElement) return;
     const container = quickLogCardElement.querySelector('#quick-log-buttons-container');
     if (!container) return;
@@ -122,7 +123,6 @@ function renderQuickLogButtons() {
 }
 
 function renderDeckTags(tags, deckId) {
-    // ... (This function can remain largely the same)
     if (!deckTagsCardElement) return;
     const pillsContainer = deckTagsCardElement.querySelector('#deck-tags-pills-container-detail');
     const addButton = deckTagsCardElement.querySelector('#add-deck-tag-button-detail');
@@ -150,7 +150,6 @@ function renderDeckTags(tags, deckId) {
 }
 
 function renderTurnOrderStats(stats) {
-    // ... (This function can remain largely the same)
     if (!turnOrderStatsCardElement || !stats) return;
     const container = turnOrderStatsCardElement.querySelector('#turn-order-stats-container');
     if (!container) return;
@@ -192,10 +191,60 @@ function renderTurnOrderStats(stats) {
     turnOrderStatsCardElement.classList.remove('hidden');
 }
 
+// --- NEW FUNCTION ---
+function renderMulliganStats(stats) {
+    const container = mulliganStatsCardElement;
+    if (!container) return;
+
+    const tableBody = container.querySelector('#mulligan-stats-tbody');
+    const noDataMessage = container.querySelector('#no-mulligan-data');
+    const table = tableBody ? tableBody.closest('table') : null;
+
+    if (!tableBody || !noDataMessage || !table) {
+        container.classList.add('hidden'); // Hide card if internal structure is missing
+        return;
+    }
+
+    tableBody.innerHTML = ''; // Clear previous data
+
+    if (stats && stats.length > 0) {
+        stats.forEach(stat => {
+            const winRate = stat.win_rate;
+            let textColor = 'text-gray-600 dark:text-gray-300';
+            if (stat.game_count > 0) {
+                if (winRate >= 55) textColor = 'text-green-600 dark:text-green-400';
+                else if (winRate < 45) textColor = 'text-red-600 dark:text-red-400';
+                else textColor = 'text-yellow-500 dark:text-yellow-400';
+            }
+
+            const row = `
+                <tr>
+                    <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">
+                        ${stat.label}
+                    </td>
+                    <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 text-center">
+                        ${stat.game_count}
+                    </td>
+                    <td class="px-4 py-3 whitespace-nowrap text-sm font-semibold ${textColor} text-center">
+                        ${winRate}%
+                    </td>
+                </tr>
+            `;
+            tableBody.insertAdjacentHTML('beforeend', row);
+        });
+
+        table.classList.remove('hidden');
+        noDataMessage.classList.add('hidden');
+        container.classList.remove('hidden');
+    } else {
+        // No data, so ensure the entire card is hidden for a cleaner look
+        container.classList.add('hidden');
+    }
+}
+
 function renderRecentMatches(matches, deckId) {
-    // ... (This function can remain largely the same, ensure it uses the correct container ID from HTML)
     if (!recentMatchesCardElement) return;
-    const listContainer = recentMatchesCardElement.querySelector('#recent-matches-list-container'); // Corrected ID
+    const listContainer = recentMatchesCardElement.querySelector('#recent-matches-list-container');
     const noMatchesMsg = recentMatchesCardElement.querySelector('#no-recent-matches-message');
     const viewAllBtnContainer = recentMatchesCardElement.querySelector('#view-all-matches-button-container');
     const viewAllLink = recentMatchesCardElement.querySelector('#view-all-matches-link');
@@ -239,8 +288,8 @@ async function loadDeckDetails(deckIdToLoad) {
     currentDeckId = deckIdToLoad; 
 
     try {
-        // Ensure your backend returns 'recent_matches' and 'turn_order_stats'
-        const response = await authFetch(`/api/decks/${deckIdToLoad}?include_turn_stats=true&include_recent_matches=5`);
+        // Update API call to explicitly request all stats we need
+        const response = await authFetch(`/api/decks/${deckIdToLoad}?include_turn_stats=true&include_recent_matches=5&include_mulligan_stats=true`);
         if (!response) throw new Error("Auth/Network Error fetching deck details.");
         if (!response.ok) {
             if (response.status === 404) throw new Error("Deck not found.");
@@ -251,12 +300,13 @@ async function loadDeckDetails(deckIdToLoad) {
         if (!deckData || !deckData.id) throw new Error("Received invalid deck data.");
 
         currentDeckName = deckData.name;
-        updatePageTitle(deckData.name); // This updates the h1 in the page_header block
+        updatePageTitle(deckData.name);
 
-        renderDeckInfoStats(deckData); // This will no longer render deck name/format inside the card
+        renderDeckInfoStats(deckData);
         renderQuickLogButtons(); 
         renderDeckTags(deckData.tags, deckData.id); 
         renderTurnOrderStats(deckData.turn_order_stats || {});
+        renderMulliganStats(deckData.mulligan_stats || []); // Call new function
         renderRecentMatches(deckData.recent_matches || [], deckData.id); 
         
         setupDeckOptionsMenuListeners(deckData);
@@ -265,7 +315,7 @@ async function loadDeckDetails(deckIdToLoad) {
         console.error("[deck-details.js] Error in loadDeckDetails:", error);
         if (typeof showFlashMessage === 'function') showFlashMessage(error.message || "Failed to load deck details.", "danger");
         if (deckDetailsContentElement) deckDetailsContentElement.innerHTML = `<div class="p-6 text-center text-red-500 dark:text-red-400">${error.message || 'Error loading details.'}</div>`;
-        updatePageTitle("Error"); // Update h1 in header to "Error"
+        updatePageTitle("Error");
     } finally {
         hideLoadingState();
     }
@@ -273,7 +323,6 @@ async function loadDeckDetails(deckIdToLoad) {
 
 // --- Event Listeners & Actions ---
 function setupDeckOptionsMenuListeners(deck) {
-    // ... (This function can remain largely the same) ...
     if (!deckOptionsMenuButton || !deckOptionsDropdown || !renameDeckButton || !deleteDeckButton) return;
 
     deckOptionsMenuButton.onclick = (event) => {
@@ -292,7 +341,6 @@ function setupDeckOptionsMenuListeners(deck) {
 }
 
 function promptForRename(deckId, currentName) {
-    // ... (This function can remain largely the same) ...
     if (!renameDeckModalElement || !newDeckNameInputElement || !renameDeckFormElement || !renameDeckModalCloseButton || !renameDeckCancelButton) return;
     
     newDeckNameInputElement.value = currentName;
@@ -315,13 +363,11 @@ function promptForRename(deckId, currentName) {
 }
 
 function closeRenameModal() {
-    // ... (This function can remain largely the same) ...
     if (renameDeckModalElement) renameDeckModalElement.classList.add('hidden');
     if (renameDeckFormElement) renameDeckFormElement.onsubmit = null;
 }
 
 async function updateDeckNameOnServer(deckId, newName) {
-    // ... (This function can remain largely the same) ...
     try {
         const response = await authFetch(`/api/decks/${deckId}`, {
             method: 'PATCH',
@@ -341,14 +387,12 @@ async function updateDeckNameOnServer(deckId, newName) {
 }
 
 function showDeleteConfirmation(deckId, deckName) {
-    // ... (This function can remain largely the same) ...
      if (window.confirm(`Are you sure you want to delete the deck "${deckName}"? This action cannot be undone.`)) {
         deleteDeckOnServer(deckId);
     }
 }
 
 async function deleteDeckOnServer(deckId) {
-    // ... (This function can remain largely the same) ...
     try {
         const response = await authFetch(`/api/decks/${deckId}`, {
             method: 'DELETE',
@@ -417,15 +461,14 @@ function initializePageEventListeners() {
         });
     }
 
-    if (globalLogMatchFab) { // Listener for the FAB/header Log Match button
+    if (globalLogMatchFab) {
         globalLogMatchFab.addEventListener('click', () => {
             if (typeof openLogMatchModal === 'function') {
-                openLogMatchModal(); // Open general log match modal, no preselection from here
+                openLogMatchModal();
             }
         });
     }
     
-    // Global click listener for deck options dropdown
     document.addEventListener('click', (event) => {
         if (deckOptionsMenuButton && deckOptionsDropdown && 
             !deckOptionsMenuButton.contains(event.target) && 
@@ -437,7 +480,7 @@ function initializePageEventListeners() {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-    deckPageTitleElement = document.getElementById("deck-page-title"); // Get this early
+    deckPageTitleElement = document.getElementById("deck-page-title");
     deckDetailsContentElement = document.getElementById("deck-details-content");
     deckDetailsLoadingElement = document.getElementById('deck-details-loading');
     backToDecksButton = document.getElementById('back-to-decks-btn');
@@ -447,6 +490,7 @@ document.addEventListener("DOMContentLoaded", () => {
     deckTagsCardElement = document.getElementById('deck-tags-card');
     turnOrderStatsCardElement = document.getElementById('turn-order-stats-card');
     recentMatchesCardElement = document.getElementById('recent-matches-card');
+    mulliganStatsCardElement = document.getElementById('mulligan-stats-container'); // Initialize new element
 
     deckOptionsMenuButton = document.getElementById('deck-options-menu-button');
     deckOptionsDropdown = document.getElementById('deck-options-dropdown');

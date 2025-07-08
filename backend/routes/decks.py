@@ -3,16 +3,14 @@
 from flask import Blueprint, jsonify, request, session, current_app
 from sqlalchemy import select, true, func, case, or_
 from sqlalchemy.orm import selectinload
-# import json # Not strictly used, can be removed
 import logging
 from datetime import timezone, datetime
 
 from backend import db, limiter
 from backend.models import LoggedMatch, OpponentCommanderInMatch, CommanderDeck, Commander, UserDeck, Deck, Tag, DeckType
-from backend.services.matches.match_service import get_all_decks_stats # get_deck_stats is used in deck_details
-# from backend.services.decks.get_user_decks_service import get_user_decks # We'll query directly for simplicity now
-# from backend.services.decks.get_commander_attributes_service import get_commander_attributes_by_id # Not directly used here
+from backend.services.matches.match_service import get_all_decks_stats
 from backend.utils.decorators import login_required
+from backend.services.decks.deck_service import get_mulligan_stats_for_deck
 
 decks_bp = Blueprint("decks_api", __name__, url_prefix="/api")
 logger = logging.getLogger(__name__)
@@ -42,6 +40,7 @@ def deck_details(deck_id):
     
     include_turn_stats_param = request.args.get('include_turn_stats', 'false').lower() == 'true'
     recent_matches_limit_str = request.args.get('include_recent_matches', None)
+    mulligan_stats = get_mulligan_stats_for_deck(deck_id, user_id)
     
     recent_matches_limit = None
     if recent_matches_limit_str:
@@ -71,7 +70,8 @@ def deck_details(deck_id):
         "commander_id": None, "commander_name": None,
         "associated_commander_id": None, "associated_commander_name": None,
         "partner_name": None, "friends_forever_name": None, "background_name": None,
-        "doctor_companion_name": None, "time_lord_doctor_name": None
+        "doctor_companion_name": None, "time_lord_doctor_name": None,
+        "mulligan_stats": mulligan_stats 
     }
 
     if deck.commander_decks and deck.commander_decks.commander:
