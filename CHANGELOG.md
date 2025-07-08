@@ -1,5 +1,24 @@
 # Changelog
 
+## [4.2.0] - 2025-07-25
+
+### Added
+- **Player Performance Dashboard:**
+    - Introduced a new top-level **"Player Performance"** page, designed to give users a strategic overview of their overall gameplay, independent of any single deck.
+    - Added "Performance" to the main site navigation on both desktop (header) and mobile (footer).
+    - The new dashboard features two primary indicators:
+        - **Headline Stats Card:** Displays key KPIs at a glance, including Overall Win Rate, Total Matches Logged, a user's "Winningest Deck" (min. 10 matches), and their "Most Played Deck".
+        - **Overall Performance by Turn Order:** A powerful visual breakdown of a player's win rate in the 1st, 2nd, 3rd, and 4th seats, aggregated across all of their logged matches.
+    - Includes a dedicated "No Data" state that encourages new users to log their first match.
+- **Backend & API:**
+    - Created a new API endpoint `GET /api/performance-summary` to perform all necessary aggregations and calculations for the dashboard in a single, efficient call.
+    - Added a new route `GET /player-performance` to render the page template.
+    - Refactored blueprint registration to centralize all page-rendering routes in `frontend.py` and API routes in their respective files for improved code organization.
+
+### Changed
+- The Deck Details page now includes "Mulligan Performance" as a new indicator card, showing win rates grouped by mulligan decisions (Keep First 7, Free mulligan, mulligan to 6, etc.).
+- The API endpoint `GET /api/decks/<deck_id>` now accepts an `include_mulligan_stats=true` query parameter to return this new data.
+
 ## [4.1.1] - 2025-07-08
 
 ### Fixed

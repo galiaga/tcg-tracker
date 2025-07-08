@@ -32,6 +32,13 @@ def get_current_user_for_page_load():
     return user, is_logged_in
 
 # --- Protected Routes ---
+    
+@frontend_bp.route("/player-performance", methods=["GET"])
+def player_performance_page():
+    current_user, is_logged_in = get_current_user_for_page_load()
+    if not is_logged_in:
+        return redirect(url_for("frontend.login_page"))
+    return render_template("player-performance.html", is_logged_in=is_logged_in, user=current_user)
 
 @frontend_bp.route("/decks/<deck_id_slug>", methods=["GET"])
 def deck_details_page(deck_id_slug):

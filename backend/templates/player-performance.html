@@ -1,0 +1,99 @@
+{% extends "layout.html" %}
+
+{% block title %}
+Player Performance
+{% endblock %}
+
+{% block page_header %}
+<div class="flex justify-between items-center mb-4">
+    <div class="flex items-center">
+        <img src="{{ url_for('static', filename='img/logo.png') }}"
+             alt="Logo TCG Tracker"
+             class="h-10 w-10 mr-3">
+        <h1 class="text-2xl font-bold text-violet-900 dark:text-violet-200">Player Performance</h1>
+    </div>
+    {% if is_logged_in %}
+    <a href="{{ url_for('frontend.profile_page') }}"
+       aria-label="User Profile"
+       class="md:hidden bg-violet-100 text-violet-700 dark:bg-violet-700 dark:text-violet-200 rounded-full p-2 shadow hover:bg-violet-200 dark:hover:bg-violet-600 transition-colors">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6">
+          <path fill-rule="evenodd" d="M7.5 6a4.5 4.5 0 1 1 9 0 4.5 4.5 0 0 1-9 0ZM3.751 20.105a8.25 8.25 0 0 1 16.498 0 .75.75 0 0 1-.437.695A18.683 18.683 0 0 1 12 22.5c-2.786 0-5.433-.608-7.812-1.7a.75.75 0 0 1-.437-.695Z" clip-rule="evenodd" />
+        </svg>
+    </a>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block main %}
+    <div id="player-performance-content" class="space-y-6">
+
+        <!-- Loading State -->
+        <div id="performance-loading" class="text-center py-10">
+            <div class="spinner-large"></div>
+            <p class="mt-4 text-sm text-gray-500 dark:text-gray-400">Calculating your performance...</p>
+        </div>
+
+        <!-- No Data State (hidden by default) -->
+        <div id="no-performance-data" class="hidden text-center py-10 bg-white dark:bg-gray-800 rounded-lg shadow-md">
+            <p class="text-lg font-semibold text-gray-700 dark:text-gray-200">No Match Data Found</p>
+            <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">Log your first match to see your performance stats here.</p>
+            <button id="log-first-match-button" type="button" class="mt-4 bg-violet-600 hover:bg-violet-700 text-white font-bold py-2 px-4 rounded-lg shadow">
+                Log a Match
+            </button>
+        </div>
+        
+        <!-- Main Content Area (hidden by default) -->
+        <div id="performance-data-container" class="hidden space-y-6">
+            <!-- Headline Stats Card -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 sm:p-6">
+                <h3 class="text-base font-bold text-gray-800 dark:text-gray-100 mb-4">
+                    Overall Performance
+                </h3>
+                <div class="grid grid-cols-2 gap-x-4 gap-y-6 text-sm">
+                    <!-- Overall Win Rate -->
+                    <div>
+                        <div class="text-gray-500 dark:text-gray-400">Overall Win Rate</div>
+                        <div id="dashboard-overall-wr" class="text-2xl font-bold text-violet-600 dark:text-violet-400">--%</div>
+                    </div>
+                    <!-- Total Matches -->
+                    <div>
+                        <div class="text-gray-500 dark:text-gray-400">Total Matches</div>
+                        <div id="dashboard-total-matches" class="text-2xl font-bold text-gray-800 dark:text-gray-100">--</div>
+                    </div>
+                    <!-- Winningest Deck -->
+                    <div>
+                        <div class="text-gray-500 dark:text-gray-400">Winningest Deck</div>
+                        <div id="dashboard-winningest-deck" class="font-semibold text-gray-800 dark:text-gray-100 truncate" title="">--</div>
+                    </div>
+                    <!-- Most Played Deck -->
+                    <div>
+                        <div class="text-gray-500 dark:text-gray-400">Most Played Deck</div>
+                        <div id="dashboard-most-played-deck" class="font-semibold text-gray-800 dark:text-gray-100 truncate" title="">--</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Performance by Turn Order Card -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden">
+                <div class="p-4 sm:p-6">
+                    <h3 class="text-base font-bold text-gray-800 dark:text-gray-100">
+                        Performance by Turn Order
+                    </h3>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        Your overall win rate based on your seat at the table across all decks.
+                    </p>
+                </div>
+                <!-- Container for the 4 quadrants -->
+                <div id="dashboard-turn-order-stats-container" class="grid grid-cols-2 sm:grid-cols-4 gap-px bg-gray-200 dark:bg-gray-700">
+                    <!-- JS will populate the 4 quadrants here -->
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<!-- Add the new JS file for this page -->
+<script type="module" src="{{ url_for('static', filename='js/ui/performance/player-performance.js') }}"></script>
+{% endblock %}
