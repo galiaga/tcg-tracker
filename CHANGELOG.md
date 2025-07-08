@@ -1,6 +1,11 @@
 # Changelog
 
-## [4.1.0] - YYYY-MM-DD 
+## [4.1.1] - 2025-07-08
+
+### Fixed
+- **Log New Match Modal:** Resolved an issue where the **'Free (to 7)'** mulligan button did not provide visual feedback (i.e., turn purple) when selected. The button's styling now correctly updates to indicate its active state, matching the behavior of all other options in the group.
+
+## [4.1.0] - 2025-06-15 
 
 ### Added
 - **Enhanced Match Logging (Commander Specifics):**
@@ -14,10 +19,10 @@
         - Backend `LoggedMatch` model updated with a new `OpponentCommanderInMatch` association table to store multiple commanders per opponent seat with their roles (primary, partner, etc.).
         - API endpoint `POST /api/log_match` now accepts a structured `opponent_commanders_by_seat` payload.
     - **Player Mulligans:**
-        - Added functionality to log the number of mulligans taken by the player.
-        - "Log New Match" modal now features radio-button style selectors for mulligan count (Keep 7 (0), To 6 (1), etc.) for improved mobile usability.
-        - Updated `LoggedMatch` model to include `player_mulligans`.
-        - API endpoint `POST /api/log_match` now accepts `player_mulligans`.
+        - Added functionality to log the number of mulligans taken by the player for deeper strategic analysis.
+        - "Log New Match" modal now features radio-button style selectors for mulligan count, including a distinct **'Free (to 7)'** option (value: -1) to differentiate it from keeping the initial 7-card hand.
+        - Updated `LoggedMatch` model to include `player_mulligans` and allow for the new free mulligan value.
+        - API endpoint `POST /api/log_match` now accepts `player_mulligans`, including the `-1` value for a free mulligan.
     - **Pod Notes:** The "Opponent/Pod Description" field in the "Log New Match" modal has been repurposed and renamed to "Pod Notes" for more general match commentary.
 - **Deck Details Page Enhancements:**
     - **Performance by Turn Order:** Added a new card to display the deck's win rate and match count broken down by the player's turn order (1st, 2nd, 3rd, 4th).
