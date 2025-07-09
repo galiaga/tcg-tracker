@@ -107,28 +107,43 @@ def get_performance_summary():
         winningest_deck = f"{winningest_deck_query.name} ({winningest_deck_query.win_rate:.1f}%)" if winningest_deck_query else "N/A"
 
         # --- 5. Personal Metagame (Most-Faced Commanders) ---
-        most_faced_commanders_query = db.session.query(
-            Commander.name,
-            func.count(OpponentCommanderInMatch.id).label('encounter_count')
-        ).join(
-            LoggedMatch, OpponentCommanderInMatch.logged_match_id == LoggedMatch.id
+        
+        # Step 1: Create a subquery (or CTE) to identify each opponent's full command zone per match.
+        # We concatenate the commander names, ensuring a consistent order so that
+        # "Tymna / Kraum" is treated the same as "Kraum / Tymna".
+        opponent_command_zones_subquery = db.session.query(
+            OpponentCommanderInMatch.logged_match_id,
+            OpponentCommanderInMatch.seat_number,
+            # For PostgreSQL:
+            func.string_agg(Commander.name, ' / ').over(
+                partition_by=[OpponentCommanderInMatch.logged_match_id, OpponentCommanderInMatch.seat_number],
+                order_by=Commander.name
+            ).label('combined_names')
+            # For SQLite/MySQL, you would use group_concat and a different structure.
+            # Sticking with the more robust window function approach here.
         ).join(
             Commander, OpponentCommanderInMatch.commander_id == Commander.id
+        ).join(
+            LoggedMatch, OpponentCommanderInMatch.logged_match_id == LoggedMatch.id
         ).filter(
             LoggedMatch.logger_user_id == user_id,
             LoggedMatch.is_active == True
-            # We only count the primary commander to avoid double-counting partners
-            # You could change this if you want to count partners separately
-            # OpponentCommanderInMatch.role == 'primary' 
+        ).distinct().subquery() # Use distinct to get one row per opponent per match
+
+        # Step 2: Now, count the occurrences of each unique command zone.
+        most_faced_pairings_query = db.session.query(
+            opponent_command_zones_subquery.c.combined_names,
+            func.count().label('encounter_count')
         ).group_by(
-            Commander.id
+            opponent_command_zones_subquery.c.combined_names
         ).order_by(
-            desc('encounter_count')
-        ).limit(10).all() # Limit to the top 10
+            desc('encounter_count'),
+            opponent_command_zones_subquery.c.combined_names # Secondary sort for consistent ordering
+        ).limit(10).all()
 
         personal_metagame = [
-            {"name": row.name, "count": row.encounter_count} 
-            for row in most_faced_commanders_query
+            {"name": row.combined_names, "count": row.encounter_count}
+            for row in most_faced_pairings_query
         ]
         
         response_data = {
