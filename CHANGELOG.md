@@ -9,7 +9,6 @@
     - The new dashboard features primary indicators:
         - **Headline Stats Card:** Displays key KPIs at a glance, including Overall Win Rate, Total Matches Logged, a user's "Winningest Deck" (min. 10 matches), and their "Most Played Deck".
         - **Overall Performance by Turn Order:** A powerful visual breakdown of a player's win rate in the 1st, 2nd, 3rd, and 4th seats, aggregated across all of their logged matches.
-        - **Your Personal Metagame:** A new card showing a ranked list of the commanders the user faces most frequently across all their matches. This provides actionable insight into their typical opponent meta.
     - Includes a dedicated "No Data" state that encourages new users to log their first match.
 - **Backend & API:**
     - Created a new API endpoint `GET /api/performance-summary` to perform all necessary aggregations and calculations for the dashboard in a single, efficient call.
@@ -17,8 +16,13 @@
     - Refactored blueprint registration to centralize all page-rendering routes in `frontend.py` and API routes in their respective files for improved code organization.
 
 ### Changed
-- The Deck Details page now includes "Mulligan Performance" as a new indicator card, showing win rates grouped by mulligan decisions (Keep First 7, Free mulligan, mulligan to 6, etc.).
-- The API endpoint `GET /api/decks/<deck_id>` now accepts an `include_mulligan_stats=true` query parameter to return this new data.
+- **Personal Metagame Indicator:** The "Your Personal Metagame" card on the Player Performance page has been significantly enhanced to provide a more accurate and valuable representation of the cEDH meta.
+    - The indicator now intelligently groups opponent commanders by their full command zone pairing (e.g., "Tymna the Weaver / Kraum, Ludevic's Opus") instead of counting them individually.
+    - The backend query now generates a unique "signature" for each opponent's command zone, allowing for correct aggregation of both partnered and single-commander decks.
+- **Deck Details Page:** The page now includes a "Mulligan Performance" indicator card, showing win rates grouped by mulligan decisions (Keep First 7, Free mulligan, mulligan to 6, etc.).
+- **API Endpoints:**
+    - The `GET /api/decks/<deck_id>` endpoint now accepts an `include_mulligan_stats=true` query parameter.
+    - The `GET /api/performance-summary` endpoint has been updated to return the new commander pairing data for the metagame breakdown.
 
 ## [4.1.1] - 2025-07-08
 
