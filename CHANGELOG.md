@@ -1,5 +1,28 @@
 # Changelog
 
+## [4.3.0] - 2025-07-26
+
+### Added
+- **Deck Details - Advanced Matchup Analysis:**
+    - The "Deck Details" page now features a powerful new **"Matchup Analysis"** indicator card.
+    - This card displays the user's toughest opponents (nemesis matchups) and most favorable matchups for the specific deck being viewed.
+    - The analysis intelligently groups opponent commanders by their full command zone, correctly treating partner/associated commanders (e.g., "Rograkh, Son of Rohgahh / Thrasios, Triton Hero") as a single entity.
+    - Matchups are partitioned based on their win rate relative to the deck's overall average win rate.
+    - A minimum of 3 encounters with an opponent command zone is required for it to appear in the analysis, ensuring statistical relevance.
+
+### Changed
+- **BREAKING CHANGE (Database & API):**
+    - The `LoggedMatch` data model has been fundamentally refactored to support complex opponent command zones.
+    - The old, rigid `commander_at_seat_X_id` columns have been **removed** from the `logged_matches` table.
+    - A new `OpponentCommanderInMatch` model and `opponent_commanders_in_match` table have been introduced. This new "linking" table stores multiple commanders per opponent seat, each with a designated role (e.g., "primary", "partner").
+    - The `POST /api/log_match` endpoint has been updated to accept a new, flexible `opponent_commanders_by_seat` object, allowing clients to submit multi-commander opponents.
+    - The `GET /api/decks/<deck_id>` endpoint now accepts an `include_matchup_stats=true` query parameter to return the new matchup analysis data.
+    - The `GET /api/matches_history` endpoint now returns the full opponent commander data for each match in a structured `opponents_by_seat` object.
+
+### Fixed
+- **Matchup Analytics Accuracy:** Resolved a long-standing issue where matchup analytics could not correctly aggregate or display data for partnered commanders. The new data model and backend query now provide a precise and valuable strategic overview.
+- **Database Query Performance:** The new analytics query is optimized to perform the complex commander grouping and aggregation efficiently on the backend.
+
 ## [4.2.0] - 2025-07-25
 
 ### Added
