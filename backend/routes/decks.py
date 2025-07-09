@@ -10,7 +10,7 @@ from backend import db, limiter
 from backend.models import LoggedMatch, OpponentCommanderInMatch, CommanderDeck, Commander, UserDeck, Deck, Tag, DeckType
 from backend.services.matches.match_service import get_all_decks_stats
 from backend.utils.decorators import login_required
-from backend.services.decks.deck_service import get_mulligan_stats_for_deck
+from backend.services.decks.deck_service import get_mulligan_stats_for_deck, get_deck_matchup_stats
 
 decks_bp = Blueprint("decks_api", __name__, url_prefix="/api")
 logger = logging.getLogger(__name__)
@@ -39,6 +39,7 @@ def deck_details(deck_id):
     user_id = session.get('user_id')
     
     include_turn_stats_param = request.args.get('include_turn_stats', 'false').lower() == 'true'
+    include_matchup_stats_param = request.args.get('include_matchup_stats', 'false').lower() == 'true'
     recent_matches_limit_str = request.args.get('include_recent_matches', None)
     mulligan_stats = get_mulligan_stats_for_deck(deck_id, user_id)
     
@@ -65,7 +66,7 @@ def deck_details(deck_id):
     deck_data = {
         "id": deck.id,
         "name": deck.name,
-        "format_name": COMMANDER_DECK_TYPE_NAME, # Always Commander
+        "format_name": COMMANDER_DECK_TYPE_NAME,
         "tags": [{"id": tag.id, "name": tag.name} for tag in deck.tags],
         "commander_id": None, "commander_name": None,
         "associated_commander_id": None, "associated_commander_name": None,
@@ -97,6 +98,10 @@ def deck_details(deck_id):
     deck_data["total_matches"] = overall_stats_q.total_matches if overall_stats_q and overall_stats_q.total_matches is not None else 0
     deck_data["total_wins"] = overall_stats_q.total_wins if overall_stats_q and overall_stats_q.total_wins is not None else 0
     deck_data["win_rate"] = (deck_data["total_wins"] / deck_data["total_matches"] * 100) if deck_data["total_matches"] > 0 else 0.0
+
+    if include_matchup_stats_param:
+        deck_average_wr = deck_data["win_rate"]
+        deck_data["matchup_stats"] = get_deck_matchup_stats(deck_id, deck_average_wr)
 
     if include_turn_stats_param:
         deck_data["turn_order_stats"] = {}

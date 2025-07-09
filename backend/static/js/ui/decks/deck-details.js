@@ -18,7 +18,8 @@ let quickLogCardElement = null;
 let deckTagsCardElement = null;
 let turnOrderStatsCardElement = null;
 let recentMatchesCardElement = null;
-let mulliganStatsCardElement = null; // New element for mulligan stats
+let mulliganStatsCardElement = null;
+let matchupAnalysisCardElement = null;
 
 let deckOptionsMenuButton = null;
 let deckOptionsDropdown = null;
@@ -44,7 +45,7 @@ function updatePageTitle(newTitle) {
 function showLoadingState() {
     if (deckDetailsLoadingElement) deckDetailsLoadingElement.style.display = 'block';
     // Add the new mulligan card to the list of elements to hide
-    [deckInfoStatsCardElement, quickLogCardElement, deckTagsCardElement, turnOrderStatsCardElement, recentMatchesCardElement, mulliganStatsCardElement]
+    [deckInfoStatsCardElement, quickLogCardElement, deckTagsCardElement, turnOrderStatsCardElement, recentMatchesCardElement, mulliganStatsCardElement, matchupAnalysisCardElement]
         .forEach(el => el?.classList.add('hidden'));
 }
 
@@ -282,6 +283,67 @@ function renderRecentMatches(matches, deckId) {
     recentMatchesCardElement.classList.remove('hidden');
 }
 
+function renderMatchupStats(matchupData) {
+    if (!matchupAnalysisCardElement) return;
+
+    // Helper function to create the HTML for a single matchup item
+    const createMatchupItem = (matchup, type) => {
+        const winRateColor = type === 'nemesis' ? 'text-red-500 dark:text-red-400' : 'text-green-500 dark:text-green-400';
+        return `
+            <div class="grid grid-cols-3 gap-4 items-center py-2 border-b border-gray-700/50 last:border-b-0">
+                <div class="col-span-2">
+                    <p class="text-sm font-medium text-white" title="${matchup.name}">${matchup.name}</p>
+                    <p class="text-xs text-gray-400">${matchup.wins}W – ${matchup.losses}L</p>
+                </div>
+                <div class="text-right">
+                    <p class="text-base font-semibold ${winRateColor}">${matchup.win_rate}%</p>
+                </div>
+            </div>
+        `;
+    };
+
+    const placeholder = matchupAnalysisCardElement.querySelector('#matchup-analysis-placeholder');
+    const container = matchupAnalysisCardElement.querySelector('#matchup-analysis-container');
+    
+    if (!placeholder || !container) {
+        matchupAnalysisCardElement.classList.add('hidden');
+        return;
+    }
+
+    const nemesisList = container.querySelector('#nemesis-matchups-list');
+    const favorableList = container.querySelector('#favorable-matchups-list');
+
+    const hasNemesisData = matchupData && matchupData.nemesis && matchupData.nemesis.length > 0;
+    const hasFavorableData = matchupData && matchupData.favorable && matchupData.favorable.length > 0;
+
+    if (!hasNemesisData && !hasFavorableData) {
+        placeholder.classList.remove('hidden');
+        container.classList.add('hidden');
+    } else {
+        placeholder.classList.add('hidden');
+        container.classList.remove('hidden');
+
+        nemesisList.innerHTML = '';
+        favorableList.innerHTML = '';
+
+        if (hasNemesisData) {
+            matchupData.nemesis.forEach(matchup => {
+                nemesisList.insertAdjacentHTML('beforeend', createMatchupItem(matchup, 'nemesis'));
+            });
+        } else {
+            nemesisList.innerHTML = '<p class="text-gray-500 text-sm">No significant nemesis matchups found.</p>';
+        }
+
+        if (hasFavorableData) {
+            matchupData.favorable.forEach(matchup => {
+                favorableList.insertAdjacentHTML('beforeend', createMatchupItem(matchup, 'favorable'));
+            });
+        } else {
+            favorableList.innerHTML = '<p class="text-gray-500 text-sm">No significant favorable matchups found.</p>';
+        }
+    }
+    matchupAnalysisCardElement.classList.remove('hidden');
+}
 
 async function loadDeckDetails(deckIdToLoad) {
     showLoadingState();
@@ -289,7 +351,7 @@ async function loadDeckDetails(deckIdToLoad) {
 
     try {
         // Update API call to explicitly request all stats we need
-        const response = await authFetch(`/api/decks/${deckIdToLoad}?include_turn_stats=true&include_recent_matches=5&include_mulligan_stats=true`);
+        const response = await authFetch(`/api/decks/${deckIdToLoad}?include_turn_stats=true&include_recent_matches=5&include_mulligan_stats=true&include_matchup_stats=true`);
         if (!response) throw new Error("Auth/Network Error fetching deck details.");
         if (!response.ok) {
             if (response.status === 404) throw new Error("Deck not found.");
@@ -306,7 +368,8 @@ async function loadDeckDetails(deckIdToLoad) {
         renderQuickLogButtons(); 
         renderDeckTags(deckData.tags, deckData.id); 
         renderTurnOrderStats(deckData.turn_order_stats || {});
-        renderMulliganStats(deckData.mulligan_stats || []); // Call new function
+        renderMulliganStats(deckData.mulligan_stats || []);
+        renderMatchupStats(deckData.matchup_stats || {});
         renderRecentMatches(deckData.recent_matches || [], deckData.id); 
         
         setupDeckOptionsMenuListeners(deckData);
@@ -490,7 +553,8 @@ document.addEventListener("DOMContentLoaded", () => {
     deckTagsCardElement = document.getElementById('deck-tags-card');
     turnOrderStatsCardElement = document.getElementById('turn-order-stats-card');
     recentMatchesCardElement = document.getElementById('recent-matches-card');
-    mulliganStatsCardElement = document.getElementById('mulligan-stats-container'); // Initialize new element
+    mulliganStatsCardElement = document.getElementById('mulligan-stats-container');
+    matchupAnalysisCardElement = document.getElementById('matchup-analysis-card'); 
 
     deckOptionsMenuButton = document.getElementById('deck-options-menu-button');
     deckOptionsDropdown = document.getElementById('deck-options-dropdown');

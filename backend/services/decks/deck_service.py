@@ -1,12 +1,69 @@
-# In a service file, e.g., backend/services/deck/deck_service.py
-# Define a function to get mulligan stats for a specific deck
-# This function will query the database for matches related to the deck and calculate win rates based on mulligan counts.
-# Ensure you have the necessary imports and database setup in your Flask app.
 # backend/services/decks/deck_service.py
 
-from sqlalchemy import func, case
-from backend.models import LoggedMatch, Deck
+from sqlalchemy import func, case, literal, Integer, select, Text, text
+from backend.models import LoggedMatch, Deck, Commander, OpponentCommanderInMatch
 from backend import db
+
+MIN_ENCOUNTERS_FOR_MATCHUP = 3
+
+def get_deck_matchup_stats(deck_id: int, deck_average_wr: float):
+    """
+    Calculates win rates against specific opponent command zones.
+    
+    This definitive version uses a raw SQL subquery for creating the opponent
+    signatures. This is necessary to bypass a persistent SQLAlchemy compiler
+    issue. The raw SQL is known to be correct and performant.
+    """
+
+    # Step 1: Define the raw SQL and describe its output columns to SQLAlchemy.
+    # This is the correct pattern for creating a selectable from raw text.
+    opponent_signatures_subquery = text("""
+        SELECT
+            ocim.logged_match_id,
+            string_agg(c.name, ' / ' ORDER BY c.name ASC) AS opponent_signature
+        FROM opponent_commanders_in_match ocim
+        JOIN commanders c ON ocim.commander_id = c.id
+        GROUP BY ocim.logged_match_id, ocim.seat_number
+    """).columns(
+        logged_match_id=Integer,
+        opponent_signature=Text
+    ).subquery("opponent_signatures")
+
+    # Step 2: Join the main SQLAlchemy query to this raw SQL subquery.
+    # The rest of the query can still be built using the ORM.
+    matchup_stats_query = db.session.query(
+        opponent_signatures_subquery.c.opponent_signature,
+        func.count().label('games'),
+        func.sum(case((LoggedMatch.result == 0, 1), else_=0)).label('wins')
+    ).select_from(LoggedMatch).join(
+        opponent_signatures_subquery,
+        LoggedMatch.id == opponent_signatures_subquery.c.logged_match_id
+    ).filter(
+        LoggedMatch.deck_id == deck_id,
+        LoggedMatch.is_active == True
+    ).group_by(
+        opponent_signatures_subquery.c.opponent_signature
+    ).having(
+        func.count() >= MIN_ENCOUNTERS_FOR_MATCHUP
+    ).all()
+
+    # Process and Partition the results (this logic is correct and remains unchanged)
+    nemesis_candidates, favorable_candidates = [], []
+    for row in matchup_stats_query:
+        win_rate = (row.wins / row.games * 100) if row.games > 0 else 0
+        matchup = {
+            "name": row.opponent_signature, "wins": row.wins, "losses": row.games - row.wins,
+            "win_rate": round(win_rate, 1)
+        }
+        if win_rate < deck_average_wr:
+            nemesis_candidates.append(matchup)
+        elif win_rate > deck_average_wr:
+            favorable_candidates.append(matchup)
+
+    nemesis_matchups = sorted(nemesis_candidates, key=lambda x: x['win_rate'])[:5]
+    favorable_matchups = sorted(favorable_candidates, key=lambda x: x['win_rate'], reverse=True)[:5]
+
+    return {"nemesis": nemesis_matchups, "favorable": favorable_matchups}
 
 def get_mulligan_stats_for_deck(deck_id: int, user_id: int):
     """

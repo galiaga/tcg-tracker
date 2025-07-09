@@ -124,6 +124,47 @@
             </div>
         </div>
 
+       <div id="matchup-analysis-card" class="hidden">
+
+            <!-- This placeholder div is now INSIDE the wrapper -->
+            <div id="matchup-analysis-placeholder" class="hidden text-center bg-gray-800 p-6 rounded-lg">
+                <h3 class="text-lg font-semibold text-white">Matchup Analysis</h3>
+                <p class="text-gray-400 mt-2">
+                    Not enough data to show matchup stats. Play at least 3 games against the same opponent command zone to start seeing results.
+                </p>
+            </div>
+
+            <!-- This stats container is also INSIDE the wrapper -->
+            <div id="matchup-analysis-container" class="hidden bg-gray-800 p-6 rounded-lg">
+                <div class="border-b border-gray-700 pb-4 mb-6">
+                    <h2 class="text-xl font-bold text-white">Matchup Analysis</h2>
+                    <p class="text-sm text-gray-400 mt-1">Performance against specific opponent command zones (min. 3 encounters).</p>
+                </div>
+
+                <!-- Grid for two-column layout -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+                    
+                    <!-- Column 1: Toughest Opponents -->
+                    <div>
+                        <h3 class="text-base font-bold text-red-400 mb-3">Toughest Opponents</h3>
+                        <div id="nemesis-matchups-list">
+                            <!-- Nemesis matchups will be dynamically inserted here by JavaScript -->
+                        </div>
+                    </div>
+
+                    <!-- Column 2: Favorable Matchups -->
+                    <div>
+                        <h3 class="text-base font-bold text-green-400 mb-3">Favorable Matchups</h3>
+                        <div id="favorable-matchups-list">
+                            <!-- Favorable matchups will be dynamically inserted here by JavaScript -->
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+
         <div id="recent-matches-card" class="rounded-xl bg-white dark:bg-gray-800 shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden hidden">
             <div class="p-4 sm:p-5">
                 <h3 class="text-sm font-semibold text-gray-600 dark:text-gray-300 mb-2.5">Recent Matches</h3>
