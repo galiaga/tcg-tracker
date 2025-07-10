@@ -1,3 +1,5 @@
+// backend/static/js/ui/tag-filter.js
+
 import { fetchAllUserTags } from './tag-utils.js';
 
 export async function populateTagFilter(config) {
@@ -49,8 +51,8 @@ export async function populateTagFilter(config) {
             const checkboxId = `${checkboxIdPrefix}-${tag.id}`;
 
             div.innerHTML = `
-                <input id="${checkboxId}" name="${checkboxName}" type="checkbox" value="${tag.id}" class="h-4 w-4 rounded border-gray-300 text-violet-600 focus:ring-violet-500 cursor-pointer">
-                <label for="${checkboxId}" class="ml-2 block text-sm text-gray-700 hover:text-gray-900 cursor-pointer flex-grow">${tag.name}</label>
+                <input id="${checkboxId}" name="${checkboxName}" type="checkbox" value="${tag.id}" class="h-4 w-4 rounded border-gray-300 dark:border-gray-500 bg-white dark:bg-gray-600 text-violet-600 focus:ring-violet-500 cursor-pointer">
+                <label for="${checkboxId}" class="ml-2 block text-sm text-gray-700 dark:text-gray-200 hover:text-gray-900 dark:hover:text-white cursor-pointer flex-grow">${tag.name}</label>
             `;
             const checkbox = div.querySelector('input');
 

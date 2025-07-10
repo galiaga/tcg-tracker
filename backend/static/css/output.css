@@ -45,6 +45,10 @@
     --color-violet-700: oklch(0.491 0.27 292.581);
     --color-violet-800: oklch(0.432 0.232 292.759);
     --color-violet-900: oklch(0.38 0.189 293.745);
+    --color-slate-200: oklch(0.929 0.013 255.508);
+    --color-slate-300: oklch(0.869 0.022 252.894);
+    --color-slate-400: oklch(0.704 0.04 256.788);
+    --color-slate-500: oklch(0.554 0.046 257.417);
     --color-slate-600: oklch(0.446 0.043 257.281);
     --color-slate-700: oklch(0.372 0.044 257.287);
     --color-slate-800: oklch(0.279 0.041 260.031);
@@ -869,6 +873,11 @@
     text-overflow: ellipsis;
     white-space: nowrap;
   }
+  .truncate\! {
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+  }
   .overflow-hidden {
     overflow: hidden;
   }
@@ -1021,6 +1030,9 @@
   .bg-sky-100 {
     background-color: var(--color-sky-100);
   }
+  .bg-slate-200 {
+    background-color: var(--color-slate-200);
+  }
   .bg-transparent {
     background-color: transparent;
   }
@@ -1119,6 +1131,9 @@
   }
   .py-10 {
     padding-block: calc(var(--spacing) * 10);
+  }
+  .pt-1 {
+    padding-top: calc(var(--spacing) * 1);
   }
   .pt-2 {
     padding-top: calc(var(--spacing) * 2);
@@ -1306,6 +1321,12 @@
   .text-sky-700 {
     color: var(--color-sky-700);
   }
+  .text-slate-400 {
+    color: var(--color-slate-400);
+  }
+  .text-slate-600 {
+    color: var(--color-slate-600);
+  }
   .text-violet-200 {
     color: var(--color-violet-200);
   }
@@ -1333,6 +1354,9 @@
   .text-yellow-500 {
     color: var(--color-yellow-500);
   }
+  .capitalize {
+    text-transform: capitalize;
+  }
   .lowercase {
     text-transform: lowercase;
   }
@@ -1341,6 +1365,9 @@
   }
   .italic {
     font-style: italic;
+  }
+  .overline {
+    text-decoration-line: overline;
   }
   .underline {
     text-decoration-line: underline;
@@ -2585,6 +2612,16 @@
   .dark\:text-sky-400 {
     @media (prefers-color-scheme: dark) {
       color: var(--color-sky-400);
+    }
+  }
+  .dark\:text-slate-300 {
+    @media (prefers-color-scheme: dark) {
+      color: var(--color-slate-300);
+    }
+  }
+  .dark\:text-slate-500 {
+    @media (prefers-color-scheme: dark) {
+      color: var(--color-slate-500);
     }
   }
   .dark\:text-violet-100 {

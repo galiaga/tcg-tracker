@@ -2,80 +2,82 @@
 
 from sqlalchemy.orm import selectinload
 from backend import db
-# Ensure all required models are imported - REMOVED UserDeck
+# --- MODIFIED IMPORTS ---
 from backend.models import LoggedMatch, Deck, DeckType, Tag
-from sqlalchemy import desc
-import logging # Import logging
+# We no longer need OpponentCommanderInMatch or Commander here directly
+from sqlalchemy import desc, text, Integer
+from sqlalchemy.dialects.postgresql import JSONB # Use JSONB for efficiency
+# --- END MODIFIED IMPORTS ---
+import logging
 
-# Add print statement for debugging load issues
 logger = logging.getLogger(__name__)
 
 def get_matches_by_user(user_id, deck_id=None, limit=None, offset=None, tag_ids=None):
     """
-    Fetches match history logged by a user, returning only matches that are active
-    AND associated with an active deck.
-
-    Args:
-        user_id (int): The ID of the user whose logged matches to fetch.
-        deck_id (int, optional): Filter matches by a specific deck ID used in the match. Defaults to None.
-        limit (int, optional): Maximum number of matches to return. Defaults to None.
-        offset (int, optional): Number of matches to skip. Defaults to None.
-        tag_ids (list[int], optional): Filter matches by associated tag IDs. Defaults to None.
-
-    Returns:
-        List[Tuple[LoggedMatch, Deck, DeckType]]: A list of tuples containing the
-                                            LoggedMatch, associated Deck, and DeckType objects.
+    Fetches match history for a user, enriching it with opponent data using a robust
+    raw SQL subquery to prevent ORM compiler issues.
     """
+    
+    # --- THE ROBUST SOLUTION: A SINGLE RAW SQL SUBQUERY ---
+    # This subquery does all the complex work in pure, reliable SQL:
+    # 1. Inner query: Groups commanders by match and seat to create "signatures" (e.g., 'Tymna / Kraum').
+    # 2. Outer query: Aggregates these signatures into a single JSON array for each match ID.
+    # This completely bypasses the SQLAlchemy ORM compiler for the complex aggregation part.
+    aggregated_opponents_subquery = text("""
+        SELECT
+            sub.logged_match_id,
+            jsonb_agg(sub.signature) AS opponents
+        FROM (
+            SELECT
+                ocim.logged_match_id,
+                string_agg(c.name, ' / ' ORDER BY c.name ASC) AS signature
+            FROM opponent_commanders_in_match ocim
+            JOIN commanders c ON ocim.commander_id = c.id
+            GROUP BY ocim.logged_match_id, ocim.seat_number
+        ) AS sub
+        GROUP BY sub.logged_match_id
+    """).columns(
+        logged_match_id=Integer,
+        opponents=JSONB  # Define the output columns and their types
+    ).subquery("aggregated_opponents")
 
-    # Start building the query, selecting the necessary objects
+    # --- SIMPLIFIED MAIN QUERY ---
+    # Now we build a simple ORM query and just join our pre-computed subquery.
     query_builder = (
         db.session.query(
             LoggedMatch,
             Deck,
-            DeckType
+            DeckType,
+            aggregated_opponents_subquery.c.opponents # Select the 'opponents' column from our subquery
         )
-        # Eager load tags for each match to prevent N+1 queries later
         .options(selectinload(LoggedMatch.tags))
-        # Explicitly state the starting table
         .select_from(LoggedMatch)
-        # --- UPDATED JOINS ---
-        # Join Deck directly using LoggedMatch.deck_id
         .join(Deck, LoggedMatch.deck_id == Deck.id)
-        # Join DeckType directly from Deck
         .join(DeckType, Deck.deck_type_id == DeckType.id)
-        # --- END UPDATED JOINS ---
-
-        # --- CORE FILTERS ---
-        # Filter by the user who logged the match
-        .filter(LoggedMatch.logger_user_id == user_id) # Use logger_user_id
-        # Filter out matches that have been soft-deleted
+        # Use a simple outer join on our robust, raw SQL subquery
+        .outerjoin(
+            aggregated_opponents_subquery, 
+            LoggedMatch.id == aggregated_opponents_subquery.c.logged_match_id
+        )
+        .filter(LoggedMatch.logger_user_id == user_id)
         .filter(LoggedMatch.is_active == True)
-        # Filter out matches whose associated Deck has been soft-deleted
         .filter(Deck.is_active == True)
-        # --- END CORE FILTERS ---
     )
+    # --- END SIMPLIFIED MAIN QUERY ---
 
-    # --- OPTIONAL FILTERS ---
-    # Apply deck filter if provided (filters by the deck used in the match)
+    # --- OPTIONAL FILTERS, ORDERING, PAGINATION (All Unchanged) ---
     if deck_id is not None:
-        query_builder = query_builder.filter(Deck.id == deck_id) # Filter on Deck.id
+        query_builder = query_builder.filter(Deck.id == deck_id)
 
-    # Apply tag filter if provided
     if tag_ids:
         query_builder = query_builder.filter(LoggedMatch.tags.any(Tag.id.in_(tag_ids)))
 
-    # --- ORDERING ---
-    # Order the results by timestamp, newest first
     query_builder = query_builder.order_by(desc(LoggedMatch.timestamp))
 
-    # --- PAGINATION ---
-    # Apply limit and offset if provided and valid
     if limit is not None and limit > 0:
         current_offset = offset if (offset is not None and offset >= 0) else 0
         query_builder = query_builder.limit(limit).offset(current_offset)
 
-    # Execute the query and fetch all results
     results = query_builder.all()
 
-    # The results are already in the desired [(LoggedMatch, Deck, DeckType), ...] format
     return results

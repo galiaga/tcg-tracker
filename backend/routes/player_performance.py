@@ -8,7 +8,7 @@ from sqlalchemy import func, case, cast, Float, desc, text, Integer, Text
 import logging
 
 # --- Constants ---
-MIN_MATCHES_FOR_WINNINGEST = 10
+MIN_MATCHES_FOR_WINNINGEST = 5
 
 player_performance_bp = Blueprint(
     "player_performance", 
