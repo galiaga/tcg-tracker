@@ -49,7 +49,7 @@ def matches_history():
              return jsonify([]), 200
 
         matches_list = []
-        for user_match, deck, deck_type in user_matches:
+        for user_match, deck, deck_type, opponents in user_matches:
              matches_list.append({
                  "id": user_match.id,
                  "result": user_match.result,
@@ -62,6 +62,8 @@ def matches_history():
                  "deck_type": {
                      "name": deck_type.name if deck_type else "Unknown Type"
                  },
+                 # Add the new opponents key. The 'or []' handles the None case from the outer join.
+                 "opponents": opponents or [],
                  "tags": [{"id": tag.id, "name": tag.name} for tag in user_match.tags] 
              })
 
