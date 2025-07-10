@@ -1,5 +1,22 @@
 # Changelog
 
+## [4.3.1] - 2025-07-27
+
+### Added
+- **Match History - Opponent Display:** Individual match cards on the "My Matches" page now display a list of the commanders and pairings faced in that game. This leverages the new database schema to correctly show partnered commanders as a single entity (e.g., "Tymna the Weaver / Kraum, Ludevic's Opus").
+
+### Changed
+- **UI/UX - Match Card Layout:** The match cards on the "My Matches" page have been redesigned to be more compact and information-dense.
+    - The "Win/Loss/Draw" result pill has been moved into the card's header, on the same line as the deck name.
+    - The new "Opponents" list and the existing "Tags" list are now grouped together in a unified footer section at the bottom of the card.
+
+### Fixed
+- **Application Stability:** Resolved a critical application startup failure (presenting as a 404 error on all pages) caused by an SQLAlchemy ORM compiler issue when fetching match history with opponent data. The fix involved replacing the complex ORM subqueries with a single, robust raw SQL subquery (`text()`), ensuring stability and performance.
+- **Tag Functionality on Match Cards:** Restored the "Tags" section (including the "+ Tag" button) to match cards on the "My Matches" page, which was inadvertently removed during a layout refactor.
+- **Tag Filter UI:** Corrected a CSS issue in the "Filter by Tags" dropdown where tag names were unreadable in dark mode. Added appropriate `dark:` mode text color classes to the labels.
+- **Tag Filter Functionality:** Fixed a `ReferenceError` in the tag filtering logic that prevented it from working correctly. The `getSelectedMatchTagIds` function was updated to filter checkboxes *before* mapping them to their values.
+- **JavaScript Module Loading:** Resolved a `SyntaxError: Unexpected keyword 'export'` by ensuring the shared `utils.js` script is loaded with `type="module"` in the application's HTML templates.
+
 ## [4.3.0] - 2025-07-26
 
 ### Added
