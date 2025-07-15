@@ -11,6 +11,7 @@ class Commander(db.Model):
     name = db.Column(db.String, nullable=False)
     flavor_name = db.Column(db.String, nullable=True)
     mana_cost = db.Column(db.String, nullable=True)
+    cmc = db.Column(db.Float, nullable=True)
     type_line = db.Column(db.String, nullable=True)
     oracle_text = db.Column(db.Text, nullable=True)
     power = db.Column(db.String, nullable=True)

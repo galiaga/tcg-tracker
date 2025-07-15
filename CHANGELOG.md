@@ -1,6 +1,34 @@
 # Changelog
 
-## [4.3.1] - 2025-07-27
+## [4.4.0] - 2025-07-15
+
+### Added
+- **Deck Details - Decklist Intelligence & Analysis:**
+    - Implemented a powerful new **"Decklist Intelligence"** feature on the "Deck Details" page.
+    - When a user provides a Moxfield decklist URL, a new **"Fetch Info"** button appears.
+    - On click, the application now performs a multi-step analysis:
+        1.  Calls the internal Moxfield API to retrieve the full, accurate card list for the deck.
+        2.  Sends the list of card identifiers to the Scryfall API to get detailed, up-to-date card data (CMC, type line, etc.) in a single, efficient batch request.
+        3.  Analyzes the complete data on the backend to calculate key deck-building metrics.
+    - The results are displayed in a new, compact, mobile-first **stacked bar chart**, which visualizes:
+        - **Mana Curve:** The distribution of cards at each mana cost from 0 to 10+.
+        - **Card Types:** The composition of the mana curve, with colored segments in each bar representing Creatures, Instants, Sorceries, Artifacts, etc.
+    - A new summary line prominently displays the deck's **Average CMC**, along with non-land and land counts.
+
+### Changed
+- **UI/UX - Deck Details Page:**
+    - The "Decklist Link" card has been redesigned to be an interactive analysis module.
+    - Replaced the previous two separate charts (mana curve and card type doughnut) with the single, more information-dense stacked bar chart, significantly improving layout compactness on mobile devices.
+- **Backend & API:**
+    - Created a new API endpoint `POST /api/decks/<deck_id>/fetch_metadata` to orchestrate the decklist analysis.
+    - Implemented a robust, multi-stage data fetching service in `deck_scraper.py` that now uses the official Scryfall API for card data, removing the dependency on an incomplete local card database for analysis. This ensures accuracy for all cards, not just commanders.
+
+### Fixed
+- **Decklist Analysis Accuracy:** Resolved a critical logical flaw where deck analysis was performed against the local `commanders` table, leading to incorrect charts that only accounted for creature cards. The new Scryfall-based approach guarantees accurate analysis for all 100 cards in a decklist.
+- **Web Scraper Brittleness:** Replaced all previous HTML-based web scraping and `__NEXT_DATA__` parsing methods with a direct call to Moxfield's internal API. This provides a much more stable and reliable way to retrieve the initial card list, preventing errors caused by frequent changes to Moxfield's website layout.
+- **Database Model:** Added a `cmc` column to the `Commander` model and updated the `update_commanders.py` script to populate it, resolving an `AttributeError` and ensuring the local commander database is more complete.
+
+## [4.3.1] - 2025-07-10
 
 ### Added
 - **Match History - Opponent Display:** Individual match cards on the "My Matches" page now display a list of the commanders and pairings faced in that game. This leverages the new database schema to correctly show partnered commanders as a single entity (e.g., "Tymna the Weaver / Kraum, Ludevic's Opus").
