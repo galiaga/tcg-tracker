@@ -46,6 +46,7 @@ try:
             name = card.get("name", "")
             flavor_name = card.get("flavor_name", None)
             mana_cost = card.get("mana_cost", "")
+            cmc = card.get("cmc", 0.0)
             type_line = card.get("type_line", "")
             oracle_text = card.get("oracle_text", "")
             power = card.get("power", None)
@@ -59,7 +60,7 @@ try:
 
             sql = """
                 INSERT INTO commanders (
-                    scryfall_id, name, flavor_name, mana_cost, type_line, oracle_text,
+                    scryfall_id, name, flavor_name, mana_cost, cmc, type_line, oracle_text,
                     power, toughness, loyalty, colors, color_identity, set_code, image_url,
                     art_crop, updated_at
                 )
@@ -73,7 +74,7 @@ try:
                     art_crop=excluded.art_crop, updated_at=CURRENT_TIMESTAMP;
             """
             params = (
-                scryfall_id, name, flavor_name, mana_cost, type_line, oracle_text,
+                scryfall_id, name, flavor_name, mana_cost, cmc, type_line, oracle_text,
                 power, toughness, loyalty, colors, color_identity, set_code, image_url, art_crop
             )
             cursor.execute(sql, params)

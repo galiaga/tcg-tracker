@@ -44,6 +44,7 @@ class Deck(db.Model):
     )
     deck_type = db.relationship("DeckType", back_populates="decks")
     commander_decks = db.relationship("CommanderDeck", back_populates="deck", uselist=False, cascade="all, delete-orphan")
+    deck_url = db.Column(db.String(512), nullable=True)
 
     # --- Instance Methods ---
     def to_dict(self):

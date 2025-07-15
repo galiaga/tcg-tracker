@@ -7,6 +7,7 @@ import logging
 from datetime import timezone, datetime
 
 from backend import db, limiter
+from backend.services.decks.deck_scraper import get_card_identifiers_from_moxfield, get_card_details_from_scryfall, analyze_scryfall_data
 from backend.models import LoggedMatch, OpponentCommanderInMatch, CommanderDeck, Commander, UserDeck, Deck, Tag, DeckType
 from backend.services.matches.match_service import get_all_decks_stats
 from backend.utils.decorators import login_required
@@ -66,6 +67,7 @@ def deck_details(deck_id):
     deck_data = {
         "id": deck.id,
         "name": deck.name,
+        "deck_url": deck.deck_url,
         "format_name": COMMANDER_DECK_TYPE_NAME,
         "tags": [{"id": tag.id, "name": tag.name} for tag in deck.tags],
         "commander_id": None, "commander_name": None,
@@ -214,7 +216,7 @@ def register_deck():
     if not data: return jsonify({"error": "Invalid request body"}), 400
 
     deck_name = data.get("deck_name")
-    # deck_type_id is now always COMMANDER_DECK_TYPE_ID, not taken from payload
+    deck_url = data.get("deck_url", None) 
     deck_type_id = COMMANDER_DECK_TYPE_ID
     logger.debug(f"Deck type ID automatically set to: {deck_type_id}")
 
@@ -285,14 +287,9 @@ def register_deck():
             return jsonify({"error": f"'{associated_commander.name}' is not a valid {assoc_type_name}."}), 400
 
     try:
-        new_deck = Deck(user_id=user_id, name=deck_name, deck_type_id=COMMANDER_DECK_TYPE_ID) # Use constant
+        new_deck = Deck(user_id=user_id, name=deck_name, deck_type_id=COMMANDER_DECK_TYPE_ID, deck_url=deck_url) 
         db.session.add(new_deck)
         db.session.flush()
-
-        # UserDeck association might be implicit if Deck.user_id is primary link
-        # If UserDeck table is still actively used for other purposes, keep this.
-        # user_deck = UserDeck(user_id=user_id, deck_id=new_deck.id)
-        # db.session.add(user_deck)
 
         commander_deck_entry = CommanderDeck(
             deck_id=new_deck.id,
@@ -314,7 +311,8 @@ def register_deck():
         response_deck_data = {
             "id": new_deck.id,
             "name": new_deck.name,
-            "deck_type_id": new_deck.deck_type_id, # Will be COMMANDER_DECK_TYPE_ID
+            "deck_url": new_deck.deck_url,
+            "deck_type_id": new_deck.deck_type_id,
             "commander_id": commander_id,
             "partner_id": None, "friends_forever_id": None, "doctor_companion_id": None,
             "time_lord_doctor_id": None, "background_id": None,
@@ -336,8 +334,6 @@ def register_deck():
 @limiter.limit("60 per minute")
 @login_required
 def update_deck(deck_id):
-    # ... (This route seems mostly okay, ensure deck_details(deck_id) call is correct if used for response) ...
-    # ... (The main change was in deck_details for fetching, not directly in update logic unless you update commanders here)
     user_id = session.get('user_id')
     deck = Deck.query.filter_by(id=deck_id, user_id=user_id, is_active=True).first()
     if not deck: return jsonify({"error": f"Active deck with id {deck_id} not found for this user."}), 404
@@ -350,7 +346,12 @@ def update_deck(deck_id):
         new_name = data['deck_name'].strip()
         if not new_name: return jsonify({"error": "Deck Name cannot be empty"}), 400
         if deck.name != new_name: deck.name = new_name; updated = True
-    
+
+    if 'deck_url' in data:
+        new_url = data['deck_url'].strip()
+        if not new_url: return jsonify({"error": "Deck URL cannot be empty"}), 400
+        if deck.deck_url != new_url: deck.deck_url = new_url; updated = True
+
     if not updated: return jsonify({"message": "No changes detected"}), 200
 
     try:
@@ -450,3 +451,35 @@ def remove_tag_from_deck(deck_id, tag_id):
         db.session.rollback()
         logger.error(f"Error removing tag {tag_id} from deck {deck_id}: {e}", exc_info=True)
         return jsonify({"error": "An unexpected error occurred while disassociating the tag"}), 500
+    
+@decks_bp.route("/decks/<int:deck_id>/fetch_metadata", methods=["POST"])
+@limiter.limit("10 per minute")
+@login_required
+def fetch_deck_metadata(deck_id):
+    user_id = session.get('user_id')
+    deck = Deck.query.filter_by(id=deck_id, user_id=user_id, is_active=True).first()
+    
+    if not deck:
+        return jsonify({"error": "Deck not found."}), 404
+    
+    if not deck.deck_url:
+        return jsonify({"error": "No decklist URL is saved for this deck."}), 400
+
+    try:
+        # Step 1: Get card identifiers from Moxfield
+        card_identifiers = get_card_identifiers_from_moxfield(deck.deck_url)
+        
+        # Step 2: Get full card details from Scryfall
+        full_card_details = get_card_details_from_scryfall(card_identifiers)
+        
+        # Step 3: Analyze the rich data from Scryfall
+        analysis_data = analyze_scryfall_data(full_card_details)
+        
+        return jsonify(analysis_data), 200
+        
+    except (ValueError, ConnectionError) as e:
+        logger.error(f"Failed to parse decklist for deck {deck_id}: {e}")
+        return jsonify({"error": str(e)}), 400
+    except Exception as e:
+        logger.error(f"An unexpected error occurred during decklist fetch for deck {deck_id}: {e}", exc_info=True)
+        return jsonify({"error": "An unexpected server error occurred."}), 500
