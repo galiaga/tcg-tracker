@@ -1,3 +1,5 @@
+# backend/routes/match_history.py
+
 from flask import jsonify, Blueprint, request, session
 from backend.utils.decorators import login_required
 from backend import limiter
@@ -37,6 +39,7 @@ def matches_history():
              tag_ids = None
 
     try:
+        # The service now returns opponent_command_zones with the new structure
         user_matches = get_matches_by_user(
             user_id,
             deck_id,
@@ -49,7 +52,7 @@ def matches_history():
              return jsonify([]), 200
 
         matches_list = []
-        for user_match, deck, deck_type, opponents in user_matches:
+        for user_match, deck, deck_type, user_deck_command_zone, opponent_command_zones in user_matches:
              matches_list.append({
                  "id": user_match.id,
                  "result": user_match.result,
@@ -57,14 +60,13 @@ def matches_history():
                  "deck": {
                      "id": deck.id if deck else None,
                      "name": deck.name if deck else "Unknown Deck",
-                     "type": deck.deck_type_id if deck else None
+                     "command_zone": user_deck_command_zone or []
                  },
-                 "deck_type": {
-                     "name": deck_type.name if deck_type else "Unknown Type"
-                 },
-                 # Add the new opponents key. The 'or []' handles the None case from the outer join.
-                 "opponents": opponents or [],
-                 "tags": [{"id": tag.id, "name": tag.name} for tag in user_match.tags] 
+                 "opponent_command_zones": opponent_command_zones or [],
+                 "tags": [{"id": tag.id, "name": tag.name} for tag in user_match.tags],
+                 "player_position": user_match.player_position,
+                 "player_mulligans": user_match.player_mulligans,
+                 "pod_notes": user_match.pod_notes
              })
 
         return jsonify(matches_list), 200
