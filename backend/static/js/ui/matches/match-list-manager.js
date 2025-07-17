@@ -1,3 +1,5 @@
+// backend/static/js/ui/matches/match-list-manager.js
+
 import { authFetch } from '../../auth/auth.js';
 import { formatMatchResult } from '../../utils.js';
 import { openQuickAddTagModal, closeQuickAddTagModal } from '../tag-utils.js';
@@ -12,9 +14,6 @@ function getSelectedMatchTagIds() {
     // Get all checked checkboxes
     const checkedCheckboxes = Array.from(optionsContainer.querySelectorAll('input[type="checkbox"]:checked'));
 
-    // Corrected Logic:
-    // 1. First, FILTER out any special checkboxes (like a 'select-all').
-    // 2. Then, MAP the remaining, valid checkboxes to their values.
     return checkedCheckboxes
         .filter(checkbox => checkbox.id !== 'select-all-match-tags-checkbox')
         .map(checkbox => checkbox.value);

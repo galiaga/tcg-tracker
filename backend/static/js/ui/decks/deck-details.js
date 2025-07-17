@@ -5,7 +5,7 @@ import { openQuickAddTagModal } from '../tag-utils.js';
 import { openLogMatchModal } from '../matches/log-match-modal.js';
 
 // --- Module-level variables ---
-let manaCurveChartInstance = null; // We only need one chart instance now
+let manaCurveChartInstance = null;
 
 let fetchDeckInfoButton = null;
 let deckAnalysisContent = null;
@@ -220,7 +220,7 @@ function renderRecentMatches(matches, deckId) {
             item.className = 'py-2 border-b border-gray-100 dark:border-gray-700/50 last:border-b-0 flex justify-between items-center text-xs';
             const resultText = match.result === 0 ? 'Win' : match.result === 1 ? 'Loss' : 'Draw';
             const resultColor = match.result === 0 ? 'text-green-500' : match.result === 1 ? 'text-red-500' : 'text-yellow-500';
-            const date = match.date ? new Date(match.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : 'N/A';
+            const date = match.timestamp ? new Date(match.timestamp).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : 'N/A';
             item.innerHTML = `<span class="font-medium ${resultColor}">${resultText}</span><span class="text-gray-400 dark:text-gray-500">${date} (P${match.player_position || '?'})</span>`;
             listContainer.appendChild(item);
         });
