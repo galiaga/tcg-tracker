@@ -1,5 +1,28 @@
 # Changelog
 
+## [4.4.1] - 2025-07-17
+
+### Changed
+- **UI/UX - Match History Card Redesign:**
+    - Fundamentally redesigned the layout of match cards on the "My Matches" page for a more modern, compact, and visually intuitive experience.
+    - The top of the card is now a two-column layout:
+        - The left column is dedicated to a large, prominent visual of the **user's commander** or commander pairing.
+        - The right column now neatly contains all other top-level match details: the date, the Win/Loss pill, and the options menu.
+    - The user's commander pairing now uses a clean, side-by-side split-image style for visual consistency with opponent pairings.
+    - The user's commander/deck name is now displayed as a bold, slightly larger overlay on their commander's art, creating a clear "hero" element.
+    - Turn order and mulligan information is now displayed compactly in the right-hand column, below the match date.
+- **UI/UX - Opponent Display:**
+    - The display for opponent commanders has been refined to be more compact and visually scannable.
+    - Opponent commander names are now displayed as an overlay on their art, with a subtle gradient to ensure readability.
+    - Single opponent commanders now show their full name (e.g., "Aminatou, the Fateshifter"), while paired commanders are abbreviated for compactness (e.g., "Tymna / Rograkh").
+
+### Fixed
+- **Backend Stability:**
+    - Resolved a critical 500 Internal Server Error caused by an `AttributeError` when the match history service tried to access a non-existent `associated_commander` relationship on the `CommanderDeck` model. The fix involved defining the missing SQLAlchemy relationship in `commander_deck.py` and correcting the eager-loading query in `match_history_service.py`.
+    - Fixed a subsequent `TypeError` by correctly handling the one-to-one relationship between `Deck` and `CommanderDeck` (accessing `deck.commander_decks` directly instead of as a list).
+    - Corrected a `ValueError` by ensuring the data tuple returned from the service and unpacked by the API route had the same number of items.
+- **SQLAlchemy Mapper Initialization:** Fixed a `sqlalchemy.exc.InvalidRequestError` that occurred at application startup. The error was caused by an ambiguous relationship between the `Commander` and `CommanderDeck` models. The fix involved explicitly defining the `foreign_keys` on the `Commander.commander_decks` relationship to resolve the ambiguity.
+
 ## [4.4.0] - 2025-07-15
 
 ### Added
