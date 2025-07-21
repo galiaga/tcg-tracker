@@ -10,6 +10,7 @@ primary_region = 'scl'
   dockerfile = "Dockerfile"
   target = "release"
 
+# This is the single, correct section for deployment configuration.
 [deploy]
   release_command = "flask db upgrade"
   vm_memory = "512mb" 
@@ -18,7 +19,7 @@ primary_region = 'scl'
 [http_service]
   internal_port = 8080
   force_https = true
-  auto_stop_machines = true # 'stop' is valid, but 'true' is the modern syntax
+  auto_stop_machines = true
   auto_start_machines = true
   min_machines_running = 0
   # This tells the service to route traffic to machines in the 'app' process group.
@@ -27,10 +28,6 @@ primary_region = 'scl'
 # This sets environment variables for ALL processes (app and cron).
 [env]
   FLASK_ENV = "production"
-
-# This command runs once on deployment to apply database migrations. It remains unchanged.
-[deploy]
-  release_command = "flask db upgrade"
 
 # --- Process Definitions ---
 # This is the modern way to define your machine types.
