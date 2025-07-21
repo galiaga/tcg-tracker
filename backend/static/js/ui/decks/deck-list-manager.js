@@ -1,3 +1,5 @@
+// backend/static/js/ui/decks/deck-list-manager.js
+
 import { authFetch } from '../../auth/auth.js';
 import { sortAndRenderDecks } from './sort-decks.js'; 
 import { renderEmptyDecksMessage } from './deckCardComponent.js';
@@ -18,6 +20,45 @@ function getSelectedTagIds() {
     });
     return selectedIds;
 }
+
+// Function to find, scroll to, and highlight a newly created deck.
+function highlightNewDeck() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const newDeckId = urlParams.get('new_deck_id');
+
+    // If the parameter isn't in the URL, do nothing.
+    if (!newDeckId) {
+        return;
+    }
+
+    // A small delay ensures the DOM has been updated by the rendering logic.
+    setTimeout(() => {
+        // Your deck cards must have a `data-deck-id` attribute for this to work.
+        const newDeckCard = document.querySelector(`.deck-card[data-deck-id='${newDeckId}']`);
+        
+        if (newDeckCard) {
+            // Scroll the new card into the middle of the viewport smoothly.
+            newDeckCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+            // Apply the initial highlight effect.
+            newDeckCard.classList.add('new-deck-highlight');
+
+            // After a moment, add the fade-out class to smoothly remove the highlight.
+            setTimeout(() => {
+                newDeckCard.classList.add('new-deck-highlight-fade-out');
+                // Clean up the classes entirely after the transition is over.
+                setTimeout(() => {
+                    newDeckCard.classList.remove('new-deck-highlight', 'new-deck-highlight-fade-out');
+                }, 600); // Must be slightly longer than the transition duration in CSS.
+            }, 1500); // How long the highlight stays fully visible.
+        }
+
+        // Clean the URL in the browser's history so a refresh doesn't trigger the effect again.
+        const newUrl = window.location.pathname;
+        window.history.replaceState({}, document.title, newUrl);
+    }, 200); // 200ms delay for robustness.
+}
+
 
 // --- Core View Update Function ---
 async function updateDeckListView() {
@@ -131,7 +172,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const initializeView = async () => {
         try {
             await populateTagFilter(updateDeckListView); 
-            await updateDeckListView(); 
+            await updateDeckListView();
+            highlightNewDeck();
         } catch (error) {
             console.error("Error during initial view initialization:", error);
              if (decksContainer) {

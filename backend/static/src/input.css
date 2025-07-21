@@ -1,1 +1,14 @@
 @import "tailwindcss";
+
+/* For highlighting the newly created deck card */
+.new-deck-highlight {
+  /* Use a subtle box-shadow for the highlight.
+     The theme() function pulls colors directly from your tailwind.config.js */
+  box-shadow: 0 0 0 3px theme('colors.violet.500');
+  transition: box-shadow 0.5s ease-out;
+}
+
+/* This class will be added via JS to fade the effect away */
+.new-deck-highlight-fade-out {
+  box-shadow: 0 0 0 0px theme('colors.violet.500/0%');
+}
