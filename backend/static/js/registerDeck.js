@@ -76,8 +76,9 @@ document.addEventListener("DOMContentLoaded", function() {
                 // The backend handles tag association, so the post-creation loop is no longer needed.
                 const finalMessage = data.message || `Deck "${deckName}" registered!`;
                 sessionStorage.setItem("flashMessage", finalMessage);
-                sessionStorage.setItem("flashType", "success");
-                window.location.href = "/my-decks";
+                sessionStorage.setItem("flashType", associationErrors ? "warning" : "success");
+                window.location.href = `/my-decks?new_deck_id=${newDeckId}`;
+
             } else {
                 if (typeof showFlashMessage === 'function') showFlashMessage(data.error || `Error: ${registerResponse.statusText}`, "error");
             }

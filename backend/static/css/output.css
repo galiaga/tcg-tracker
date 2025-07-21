@@ -3127,6 +3127,13 @@
     }
   }
 }
+.new-deck-highlight {
+  box-shadow: 0 0 0 3px oklch(0.606 0.25 292.717);
+  transition: box-shadow 0.5s ease-out;
+}
+.new-deck-highlight-fade-out {
+  box-shadow: 0 0 0 0px color-mix(in oklab, oklch(0.606 0.25 292.717) 0%, transparent);
+}
 @property --tw-translate-x {
   syntax: "*";
   inherits: false;
