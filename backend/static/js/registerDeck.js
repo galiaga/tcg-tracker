@@ -43,8 +43,6 @@ document.addEventListener("DOMContentLoaded", function() {
         const selectedTimeLordDoctorId = timeLordDoctorInputElement?.dataset.timeLordDoctorId || null;
         const backgroundId = backgroundInputElement?.dataset.backgroundId || null;
 
-        // --- FIX START ---
-        // Get selected tag IDs using the function attached by new-deck-modal.js
         let selectedTagIds = [];
         if (typeof formElement.getSelectedTagsForNewDeck === 'function') {
             selectedTagIds = formElement.getSelectedTagsForNewDeck();
@@ -57,11 +55,9 @@ document.addEventListener("DOMContentLoaded", function() {
             commander_id: commanderId,
             tags: selectedTagIds // Pass the tag IDs directly in the payload
         };
-        // --- FIX END ---
         
         if (partnerId) payload.partner_id = partnerId;
         if (friendsForeverId) payload.friends_forever_id = friendsForeverId;
-        // Assign to the correct payload keys that the backend expects
         if (selectedDoctorCompanionId) payload.time_lord_doctor_id = selectedDoctorCompanionId;
         if (selectedTimeLordDoctorId) payload.doctor_companion_id = selectedTimeLordDoctorId;
         if (backgroundId) payload.background_id = backgroundId;
@@ -73,11 +69,11 @@ document.addEventListener("DOMContentLoaded", function() {
             const data = await registerResponse.json().catch(() => ({ error: `Non-JSON response: ${registerResponse.statusText}` }));
 
             if (registerResponse.ok) {
-                // The backend handles tag association, so the post-creation loop is no longer needed.
+                const newDeckId = data.deck?.id;
                 const finalMessage = data.message || `Deck "${deckName}" registered!`;
                 sessionStorage.setItem("flashMessage", finalMessage);
-                sessionStorage.setItem("flashType", "success");
-                window.location.href = "/my-decks";
+                sessionStorage.setItem("flashType", "success"); 
+                window.location.href = `/my-decks?new_deck_id=${newDeckId}`;
             } else {
                 if (typeof showFlashMessage === 'function') showFlashMessage(data.error || `Error: ${registerResponse.statusText}`, "error");
             }

@@ -1,5 +1,37 @@
 # Changelog
 
+## [4.5.0] - YYYY-MM-DD
+
+### Added
+- **Match History - View Notes Functionality:**
+    - Implemented a new modal to view "Pod Notes" directly from the "My Matches" page.
+    - The "Notes" icon on a match card is now an interactive button.
+    - The icon now provides a visual cue: it appears solid when notes exist for a match and hollow/dimmed when they do not.
+
+### Changed
+- **UI/UX - Match History Card Redesign:**
+    - Fundamentally redesigned the layout of match cards on the "My Matches" page for a more modern, scannable, and visually balanced experience.
+    - The top of the card is now a two-column layout:
+        - The left column features a large, prominent image of the user's commander.
+        - The right column contains all textual information, creating a clear separation between visuals and data.
+    - The user's **Deck Name** is now the primary title in the right column, improving readability.
+    - The **Match Date** is now a subtitle below the deck name, giving it its own line and preventing awkward text wrapping on smaller screens.
+    - The **Win/Loss/Draw pill** and the **"three dots" options menu** are now cleanly aligned to the top-right of the content column.
+
+### Fixed
+- **Quick Log Functionality on Deck Details Page:**
+    - Resolved a critical bug where the "Quick Log" (Win/Loss/Draw) buttons on the Deck Details page failed to pre-select the deck and result in the Log Match modal.
+    - The `deck-details.js` script now correctly passes pre-selection data to the refactored `log-match-modal.js` module, restoring this key workflow.
+- **Log New Match Modal - Opponent Interaction:**
+    - Fixed an issue where the **"+ Add Opponent"** button was unresponsive. The logic has been refactored to be correctly driven by the button click, allowing users to add opponent rows one by one after selecting their turn order.
+- **UI & Styling Regressions:**
+    - Restored the correct visual styling (borders, colors, etc.) for the "Match Result," "Turn Order," and "Mulligan" buttons within the Log Match modal, which were lost during an HTML refactor.
+    - The "three dots" options menu, which had disappeared from match cards on the "My Matches" page, has been restored.
+- **JavaScript Stability:**
+    - Fixed a `ReferenceError: Can't find variable: zone` in `match-list-manager.js` that prevented match cards from rendering.
+    - Fixed a `ReferenceError: Can't find variable: preselectionData` in `log-match-modal.js` that caused an error when opening the modal from the Deck Details page.
+    - Resolved an error where the "Add Tag" and "Delete Match" functions on match cards were broken due to missing `data-match-id` attributes in the newly generated HTML.
+
 ## [4.4.1] - 2025-07-17
 
 ### Changed
