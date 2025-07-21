@@ -1,28 +1,59 @@
-# fly.toml app configuration file generated for tcg-tracker on 2025-04-09T17:53:49-04:00
-#
+# fly.toml app configuration file for tcg-tracker
 # See https://fly.io/docs/reference/configuration/ for information about how to use this file.
-#
 
 app = 'tcg-tracker'
 primary_region = 'scl'
 
+# This is the new top-level build section.
+# It tells Fly to use the 'release' stage from your Dockerfile by default.
 [build]
+  dockerfile = "Dockerfile"
+  target = "release"
 
+# This section defines your web server. It remains mostly the same.
 [http_service]
   internal_port = 8080
   force_https = true
-  auto_stop_machines = 'stop'
+  auto_stop_machines = true # 'stop' is valid, but 'true' is the modern syntax
   auto_start_machines = true
   min_machines_running = 0
+  # This tells the service to route traffic to machines in the 'app' process group.
   processes = ['app']
 
-[[vm]]
-  memory = '1gb'
-  cpu_kind = 'shared'
-  cpus = 1
-
+# This sets environment variables for ALL processes (app and cron).
 [env]
   FLASK_ENV = "production"
 
-  [deploy]
+# This command runs once on deployment to apply database migrations. It remains unchanged.
+[deploy]
   release_command = "flask db upgrade"
+
+# --- Process Definitions ---
+# This is the modern way to define your machine types.
+
+# This block explicitly defines your main web 'app' process.
+[[processes]]
+  name = "app"
+  # The command to run your web server.
+  cmd = ["gunicorn", "--bind", ":8080", "--workers", "1", "app:app"]
+  
+  # This uses the VM settings from your original file for the web app.
+  [processes.vm]
+    memory = '1gb'
+    cpu_kind = 'shared'
+    cpus = 1
+
+# This new block defines your scheduled 'cron' process.
+[[processes]]
+  name = "cron"
+  schedule = "0 8 * * *"
+
+  # This tells Fly to use the 'cron_release' stage from the Dockerfile
+  # ONLY for this 'cron' process, overriding the default build target.
+  [processes.build]
+    dockerfile = "Dockerfile"
+    target = "cron_release"
+
+  # We give the cron job a small, cheap VM since it's a short-lived task.
+  [processes.vm]
+    size = "shared-cpu-1x-256mb"

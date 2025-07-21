@@ -1,3 +1,5 @@
+# update_commanders.py
+
 import requests
 import psycopg2
 import time
@@ -55,8 +57,24 @@ try:
             colors = ",".join(card.get("colors", []))
             color_identity = ",".join(card.get("color_identity", []))
             set_code = card.get("set", "")
-            image_url = card.get("image_uris", {}).get("normal", None)
-            art_crop = card.get("image_uris", {}).get("art_crop", None)
+
+            # --- MODIFICATION START ---
+            # Prioritize the top-level image_uris. If it doesn't exist (e.g., for transform cards),
+            # then fall back to checking the first card face.
+            image_uris_source = card.get("image_uris")
+
+            if not image_uris_source:
+                card_faces = card.get("card_faces")
+                if card_faces and isinstance(card_faces, list) and len(card_faces) > 0:
+                    image_uris_source = card_faces[0].get("image_uris")
+
+            # Ensure image_uris_source is a dictionary to prevent errors on .get()
+            if not image_uris_source:
+                image_uris_source = {}
+
+            image_url = image_uris_source.get("normal", None)
+            art_crop = image_uris_source.get("art_crop", None)
+            # --- MODIFICATION END ---
 
             sql = """
                 INSERT INTO commanders (
@@ -64,10 +82,10 @@ try:
                     power, toughness, loyalty, colors, color_identity, set_code, image_url,
                     art_crop, updated_at
                 )
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
                 ON CONFLICT(scryfall_id) DO UPDATE SET
                     name=excluded.name, flavor_name=excluded.flavor_name, mana_cost=excluded.mana_cost,
-                    type_line=excluded.type_line, oracle_text=excluded.oracle_text,
+                    cmc=excluded.cmc, type_line=excluded.type_line, oracle_text=excluded.oracle_text,
                     power=excluded.power, toughness=excluded.toughness, loyalty=excluded.loyalty,
                     colors=excluded.colors, color_identity=excluded.color_identity,
                     set_code=excluded.set_code, image_url=excluded.image_url,
