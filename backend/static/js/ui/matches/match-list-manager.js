@@ -90,52 +90,36 @@ function displayMatches(matches, containerElement, noMatchesElement) {
     const locale = navigator.language || 'en-US'; 
     const dateOptions = { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true };
 
-    const renderCommanderCell = (zone, isPlayerDeck = false, deckName = '') => {
-        if (!zone || zone.length === 0) {
-            return isPlayerDeck ? `<h3 class="text-lg font-semibold text-gray-900 dark:text-white leading-tight truncate" title="${deckName}">${deckName}</h3>` : '';
-        }
-
-        const fullCommanderName = zone.map(c => c.name).join(' / ');
-        let displayName;
-
-        if (isPlayerDeck) {
-            displayName = deckName;
-        } else if (zone.length > 1) {
-            displayName = zone.map(c => c.name.split(' // ')[0].split(',')[0]).join(' / ');
-        } else {
-            displayName = zone[0].name.split(' // ')[0];
-        }
+    const renderCommanderImage = (commandZone) => {
+        if (!commandZone || commandZone.length === 0) return '';
+        const fullCommanderName = commandZone.map(c => c.name).join(' / ');
         
         let imagesHtml = '';
-        if (zone.length === 1) {
-            imagesHtml = `<img src="${zone[0].art_crop}" alt="${fullCommanderName}" class="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-110">`;
-        } else if (zone.length > 1) {
+        if (commandZone.length === 1) {
+            imagesHtml = `<img src="${commandZone[0].art_crop}" alt="${fullCommanderName}" class="absolute inset-0 w-full h-full object-cover">`;
+        } else if (commandZone.length > 1) {
             imagesHtml = `
-                <div class="absolute inset-0 w-full h-full flex transition-transform duration-300 group-hover:scale-110">
-                    <div class="w-1/2 h-full bg-cover bg-center" style="background-image: url('${zone[0].art_crop}')"></div>
-                    <div class="w-1/2 h-full bg-cover bg-center" style="background-image: url('${zone[1].art_crop}')"></div>
+                <div class="absolute inset-0 w-full h-full flex">
+                    <div class="w-1/2 h-full bg-cover bg-center" style="background-image: url('${commandZone[0].art_crop}')"></div>
+                    <div class="w-1/2 h-full bg-cover bg-center" style="background-image: url('${commandZone[1].art_crop}')"></div>
                 </div>
             `;
         }
+        return `<div class="relative w-full aspect-video rounded-lg overflow-hidden shadow-md bg-slate-700">${imagesHtml}</div>`;
+    };
 
-        // --- STYLE DIFFERENTIATION LOGIC ---
-        let textStyles;
-
-        if (isPlayerDeck) {
-            // Player's text is larger and more prominent.
-            textStyles = 'font-size: 0.85rem; line-height: 1rem; text-shadow: 0 1px 4px rgba(0,0,0,1);';
-        } else {
-            // Opponents' text is smaller.
-            textStyles = 'font-size: 0.65rem; line-height: 0.8rem; text-shadow: 0 1px 3px rgba(0,0,0,0.9);';
-        }
-
-        const containerClasses = "group relative w-full h-full aspect-video rounded-lg overflow-hidden shadow-md bg-slate-700";
+    const renderOpponentCell = (commandZone) => {
+        if (!commandZone || commandZone.length === 0) return '';
+        const fullCommanderName = commandZone.map(c => c.name).join(' / ');
+        const displayName = commandZone.length > 1 
+            ? commandZone.map(c => c.name.split(' // ')[0].split(',')[0]).join(' / ') 
+            : commandZone[0].name.split(' // ')[0];
 
         return `
-            <div class="${containerClasses}">
-                ${imagesHtml}
+            <div class="group relative w-full aspect-video rounded-lg overflow-hidden shadow-md bg-slate-700" title="${fullCommanderName}">
+                ${renderCommanderImage(commandZone)}
                 <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent"></div>
-                <p class="absolute bottom-0 left-0 right-0 p-1.5 font-bold text-white leading-tight" style="${textStyles}" title="${fullCommanderName}">
+                <p class="absolute bottom-0 left-0 right-0 p-1.5 font-bold text-white text-[0.65rem] leading-tight text-shadow-lg truncate">
                     ${displayName}
                 </p>
             </div>
@@ -144,7 +128,7 @@ function displayMatches(matches, containerElement, noMatchesElement) {
 
     const renderOpponentsHtml = (commandZones) => {
         if (!commandZones || commandZones.length === 0) return '';
-        const opponentCells = commandZones.map(zone => renderCommanderCell(zone, false)).join('');
+        const opponentCells = commandZones.map(zone => renderOpponentCell(zone)).join('');
         return `
             <div class="space-y-2">
                 <h4 class="text-xs font-bold uppercase text-slate-400 dark:text-slate-500">Opponents</h4>
@@ -165,10 +149,14 @@ function displayMatches(matches, containerElement, noMatchesElement) {
         if (typeof match.player_mulligans === 'number' && match.player_mulligans >= 0) {
             details.push(`<li class="flex items-center gap-1" title="Your Mulligans"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" class="w-3.5 h-3.5 text-slate-400 dark:text-slate-500"><path fill-rule="evenodd" d="M12.5 3.5h-11a.5.5 0 0 0 0 1h11a.5.5 0 0 0 0-1ZM2 7.5a.5.5 0 0 1 .5-.5h11a.5.5 0 0 1 0 1h-11a.5.5 0 0 1-.5-.5Zm1.5 3.5a.5.5 0 0 0 0 1h8a.5.5 0 0 0 0-1h-8Z" clip-rule="evenodd" /></svg><span>${match.player_mulligans} Mull${match.player_mulligans !== 1 ? 's' : ''}</span></li>`);
         }
+        
         if (match.pod_notes && match.pod_notes.trim()) {
-            const escapedNotes = match.pod_notes.replace(/"/g, '"').replace(/'/g, '');
-            details.push(`<li class="flex items-center gap-1" title="Pod Notes: ${escapedNotes}"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" class="w-3.5 h-3.5 text-slate-400 dark:text-slate-500"><path fill-rule="evenodd" d="M3.5 2A1.5 1.5 0 0 0 2 3.5v9A1.5 1.5 0 0 0 3.5 14h9a1.5 1.5 0 0 0 1.5-1.5v-9A1.5 1.5 0 0 0 12.5 2h-9ZM3 3.5a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 .5.5v9a.5.5 0 0 1-.5-.5h-9a.5.5 0 0 1-.5-.5v-9ZM6 7a1 1 0 1 1-2 0 1 1 0 0 1 2 0Zm3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0Zm3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z" clip-rule="evenodd" /></svg><span>Notes</span></li>`);
+            const escapedNotes = match.pod_notes.replace(/"/g, '"');
+            details.push(`<li><button type="button" class="view-notes-btn flex items-center gap-1 hover:text-violet-600 dark:hover:text-violet-400 transition-colors" title="View Match Notes" data-notes="${escapedNotes}"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" class="w-3.5 h-3.5"><path d="M3.5 2A1.5 1.5 0 0 0 2 3.5v9A1.5 1.5 0 0 0 3.5 14h9a1.5 1.5 0 0 0 1.5-1.5v-9A1.5 1.5 0 0 0 12.5 2h-9ZM8 6a1 1 0 1 1-2 0 1 1 0 0 1 2 0Zm3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z" /></svg><span>Notes</span></button></li>`);
+        } else {
+            details.push(`<li class="flex items-center gap-1 opacity-50" title="No Notes for this Match"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" class="w-3.5 h-3.5"><path fill-rule="evenodd" d="M3.5 2A1.5 1.5 0 0 0 2 3.5v9A1.5 1.5 0 0 0 3.5 14h9a1.5 1.5 0 0 0 1.5-1.5v-9A1.5 1.5 0 0 0 12.5 2h-9ZM3 3.5a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 .5.5v9a.5.5 0 0 1-.5-.5h-9a.5.5 0 0 1-.5-.5v-9ZM6 7a1 1 0 1 1-2 0 1 1 0 0 1 2 0Zm3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0Zm3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z" clip-rule="evenodd" /></svg><span>Notes</span></li>`);
         }
+        
         if (details.length === 0) return '';
         return `<ul class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs font-medium text-slate-600 dark:text-slate-300">${details.join('')}</ul>`;
     };
@@ -199,7 +187,7 @@ function displayMatches(matches, containerElement, noMatchesElement) {
         
         card.classList.add(...borderColorClassString.split(' ')); 
 
-        const userDeckHeaderHtml = renderCommanderCell(match.deck.command_zone, true, match.deck.name);
+        const userDeckImageHtml = renderCommanderImage(match.deck.command_zone);
         const opponentsHtml = renderOpponentsHtml(match.opponent_command_zones);
         const matchDetailsHtml = renderMatchDetailsHtml(match);
         
@@ -210,18 +198,15 @@ function displayMatches(matches, containerElement, noMatchesElement) {
         
         const addTagButtonHtml = `<button type="button" class="add-match-tag-button text-xs font-medium text-violet-600 dark:text-violet-400 hover:text-violet-800 dark:hover:text-violet-200 border border-dashed border-violet-400 dark:border-violet-500 rounded-full px-2.5 py-1 hover:bg-violet-100 dark:hover:bg-violet-700/30 transition-colors leading-tight focus:outline-none focus:ring-1 focus:ring-violet-500" aria-label="Add tag to match" data-match-id="${match.id}">+ Tag</button>`;
 
+        // --- FIX IS HERE: RESTORED FULL HTML FOR THE MENU ---
         card.innerHTML = `
-            <!-- Main Flex Container for Header -->
-            <div class="flex gap-4">
-                <!-- Left Column: User Commander (Larger) -->
+            <div class="flex gap-4 items-start">
                 <div class="w-1/3 flex-shrink-0">
-                    ${userDeckHeaderHtml}
+                    ${userDeckImageHtml}
                 </div>
-
-                <!-- Right Column: All Other Match Info -->
-                <div class="flex-grow flex flex-col justify-between">
-                    <div class="flex justify-between items-start">
-                        <p class="text-xs text-gray-500 dark:text-gray-400 pt-1">${formattedDate}</p>
+                <div class="flex-grow flex flex-col min-w-0 space-y-1">
+                    <div class="flex justify-between items-start gap-2">
+                        <h3 class="text-base font-bold text-gray-800 dark:text-gray-100 truncate pt-0.5" title="${match.deck.name}">${match.deck.name}</h3>
                         <div class="flex-shrink-0 flex items-center gap-2">
                             <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold ${resultBadgeClass}">${resultText}</span>
                             <div class="relative match-actions">
@@ -232,14 +217,15 @@ function displayMatches(matches, containerElement, noMatchesElement) {
                             </div>
                         </div>
                     </div>
-                    <div class="mt-auto">
-                        ${matchDetailsHtml}
+                    <div>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">${formattedDate}</p>
+                        <div class="mt-1.5">
+                            ${matchDetailsHtml}
+                        </div>
                     </div>
                 </div>
             </div>
-
-            <!-- Footer Section -->
-            <div class="space-y-3">
+            <div class="space-y-3 pt-2">
                 ${opponentsHtml}
                 <div class="flex flex-wrap items-center gap-1.5 min-h-[28px] tags-container">
                     ${tagPillsHtml}
@@ -305,6 +291,7 @@ document.addEventListener('DOMContentLoaded', () => {
         matchesContainer.addEventListener('click', async (event) => {
             const removeButton = event.target.closest('.remove-match-tag-button');
             const addButton = event.target.closest('.add-match-tag-button');
+            const notesButton = event.target.closest('.view-notes-btn');
 
             if (removeButton) {
                 const removedSuccessfully = await handleRemoveMatchTagClick(event);
@@ -321,10 +308,40 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else {
                     console.error("Cannot open tag modal: Missing matchId or modal function.");
                 }
+            } else if (notesButton) {
+                event.preventDefault();
+                const notes = notesButton.dataset.notes;
+                const modal = document.getElementById('viewNotesModal');
+                const content = document.getElementById('viewNotesContent');
+                const modalContent = modal.querySelector('.transform');
+                if (modal && content && modalContent) {
+                    content.textContent = notes || "No notes for this match.";
+                    modal.classList.remove('hidden');
+                    setTimeout(() => modalContent.classList.remove('scale-95', 'opacity-0'), 10);
+                }
             }
         });
     } else {
         console.warn("Match list container #matches-list-items not found.");
+    }
+
+    const viewNotesModal = document.getElementById("viewNotesModal");
+    const viewNotesCloseBtn = document.getElementById("viewNotesModalCloseButton");
+    if (viewNotesModal && viewNotesCloseBtn) {
+        const modalContent = viewNotesModal.querySelector('.transform');
+        const closeModal = () => {
+            modalContent.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => viewNotesModal.classList.add('hidden'), 150);
+        };
+        viewNotesCloseBtn.addEventListener('click', closeModal);
+        viewNotesModal.addEventListener('click', (event) => {
+            if (event.target === viewNotesModal) closeModal();
+        });
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape' && !viewNotesModal.classList.contains('hidden')) {
+                closeModal();
+            }
+        });
     }
 
     const quickAddModal = document.getElementById("quickAddTagModal");

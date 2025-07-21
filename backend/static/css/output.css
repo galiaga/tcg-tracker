@@ -380,6 +380,9 @@
   .mt-1 {
     margin-top: calc(var(--spacing) * 1);
   }
+  .mt-1\.5 {
+    margin-top: calc(var(--spacing) * 1.5);
+  }
   .mt-2 {
     margin-top: calc(var(--spacing) * 2);
   }
@@ -1135,6 +1138,9 @@
   .py-10 {
     padding-block: calc(var(--spacing) * 10);
   }
+  .pt-0\.5 {
+    padding-top: calc(var(--spacing) * 0.5);
+  }
   .pt-1 {
     padding-top: calc(var(--spacing) * 1);
   }
@@ -1222,6 +1228,9 @@
     font-size: var(--text-xs);
     line-height: var(--tw-leading, var(--text-xs--line-height));
   }
+  .text-\[0\.65rem\] {
+    font-size: 0.65rem;
+  }
   .leading-6 {
     --tw-leading: calc(var(--spacing) * 6);
     line-height: calc(var(--spacing) * 6);
@@ -1266,6 +1275,9 @@
   }
   .whitespace-nowrap {
     white-space: nowrap;
+  }
+  .whitespace-pre-wrap {
+    white-space: pre-wrap;
   }
   .text-black {
     color: var(--color-black);
@@ -1379,6 +1391,9 @@
   }
   .opacity-25 {
     opacity: 25%;
+  }
+  .opacity-50 {
+    opacity: 50%;
   }
   .opacity-75 {
     opacity: 75%;
@@ -1889,6 +1904,13 @@
     &:hover {
       @media (hover: hover) {
         color: var(--color-violet-200);
+      }
+    }
+  }
+  .hover\:text-violet-600 {
+    &:hover {
+      @media (hover: hover) {
+        color: var(--color-violet-600);
       }
     }
   }
@@ -3064,6 +3086,15 @@
       &:hover {
         @media (hover: hover) {
           color: var(--color-violet-200);
+        }
+      }
+    }
+  }
+  .dark\:hover\:text-violet-400 {
+    @media (prefers-color-scheme: dark) {
+      &:hover {
+        @media (hover: hover) {
+          color: var(--color-violet-400);
         }
       }
     }
