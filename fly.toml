@@ -10,6 +10,10 @@ primary_region = 'scl'
   dockerfile = "Dockerfile"
   target = "release"
 
+[deploy]
+  release_command = "flask db upgrade"
+  vm_memory = "512mb" 
+
 # This section defines your web server. It remains mostly the same.
 [http_service]
   internal_port = 8080
