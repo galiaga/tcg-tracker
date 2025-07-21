@@ -1,7 +1,7 @@
 // backend/static/js/registerDeck.js
+
 import { authFetch } from './auth/auth.js';
 import { registerDeck, associateTagWithDeck } from './api/deck-api.js';
-// FIELD_CONFIG is not directly imported here. We rely on dataset attributes being correctly set by deck-form.js.
 
 const COMMANDER_DECK_TYPE_ID = "7"; // For Commander
 
@@ -25,7 +25,6 @@ document.addEventListener("DOMContentLoaded", function() {
         const backgroundInputElement = formElement.querySelector("#chooseABackground_name");
 
         const deckName = deckNameElement ? deckNameElement.value.trim() : "";
-        const deckTypeId = COMMANDER_DECK_TYPE_ID;
 
         if (!deckName) {
             if (typeof showFlashMessage === 'function') showFlashMessage("Please enter a Deck Name.", "error");
@@ -40,19 +39,25 @@ document.addEventListener("DOMContentLoaded", function() {
         
         const partnerId = partnerInputElement?.dataset.partnerId || null;
         const friendsForeverId = friendsForeverInputElement?.dataset.friendsForeverId || null;
-        // These will read the dataset attributes set by deck-form.js using the corrected FIELD_CONFIG
         const selectedDoctorCompanionId = doctorCompanionInputElement?.dataset.doctorCompanionId || null;
         const selectedTimeLordDoctorId = timeLordDoctorInputElement?.dataset.timeLordDoctorId || null;
         const backgroundId = backgroundInputElement?.dataset.backgroundId || null;
 
-        const tagInstance = formElement.tagInputInstance;
-        const selectedTagIds = tagInstance ? tagInstance.getSelectedTagIds() : [];
+        // --- FIX START ---
+        // Get selected tag IDs using the function attached by new-deck-modal.js
+        let selectedTagIds = [];
+        if (typeof formElement.getSelectedTagsForNewDeck === 'function') {
+            selectedTagIds = formElement.getSelectedTagsForNewDeck();
+        } else {
+            console.warn("[registerDeck.js] Could not find getSelectedTagsForNewDeck function on the form. Tags will not be saved.");
+        }
 
         const payload = {
             deck_name: deckName,
-            deck_type: deckTypeId,
-            commander_id: commanderId
+            commander_id: commanderId,
+            tags: selectedTagIds // Pass the tag IDs directly in the payload
         };
+        // --- FIX END ---
         
         if (partnerId) payload.partner_id = partnerId;
         if (friendsForeverId) payload.friends_forever_id = friendsForeverId;
@@ -63,35 +68,17 @@ document.addEventListener("DOMContentLoaded", function() {
 
         
         try {
+            // The payload now contains everything, including tags.
             const registerResponse = await registerDeck(payload);
             const data = await registerResponse.json().catch(() => ({ error: `Non-JSON response: ${registerResponse.statusText}` }));
 
             if (registerResponse.ok) {
-                const newDeckId = data.deck?.id;
-                let associationErrors = false;
-                if (newDeckId && selectedTagIds.length > 0) {
-                    const associationPromises = selectedTagIds.map(async (tagId) => {
-                        try {
-                            const assocResponse = await associateTagWithDeck(newDeckId, tagId);
-                            if (!assocResponse.ok) {
-                                console.error(`Error associating tag ${tagId} with deck ${newDeckId}: Status ${assocResponse.status}`);
-                                associationErrors = true;
-                            }
-                        } catch (err) {
-                             console.error(`Network/Auth error associating tag ${tagId} with deck ${newDeckId}:`, err);
-                             associationErrors = true;
-                        }
-                    });
-                    await Promise.all(associationPromises);
-                }
-
-                let finalMessage = data.message || `Deck "${deckName}" registered!`;
-                if (associationErrors) {
-                     finalMessage += " (Note: Some tags might not have been associated).";
-                }
+                // The backend handles tag association, so the post-creation loop is no longer needed.
+                const finalMessage = data.message || `Deck "${deckName}" registered!`;
                 sessionStorage.setItem("flashMessage", finalMessage);
                 sessionStorage.setItem("flashType", associationErrors ? "warning" : "success");
                 window.location.href = `/my-decks?new_deck_id=${newDeckId}`;
+
             } else {
                 if (typeof showFlashMessage === 'function') showFlashMessage(data.error || `Error: ${registerResponse.statusText}`, "error");
             }
