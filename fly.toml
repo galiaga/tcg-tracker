@@ -7,10 +7,9 @@ primary_region = 'scl'
   dockerfile = "Dockerfile"
   target = "release"
 
-# THIS IS THE CRUCIAL SECTION THAT IS LIKELY MISSING OR INCORRECT
 [deploy]
   release_command = "flask db upgrade"
-  vm_memory = "512mb" 
+  vm_memory = "1gb"
 
 [http_service]
   internal_port = 8080
