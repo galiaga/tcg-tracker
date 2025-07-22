@@ -20,16 +20,30 @@ def get_card_identifiers_from_moxfield(deck_url):
 
     api_url = f"https://api2.moxfield.com/v2/decks/all/{deck_id}"
     headers = {
-        'User-Agent': 'TcgTrackerApp/1.0 (+https://tcg-tracker.fly.dev; mailto:spamgaston@gmail.com)'
+        'User-Agent': 'TcgTrackerApp/1.0 (+https://tcg-tracker.fly.dev; mailto:your-email@example.com)'
     }
     
     try:
-        response = requests.get(api_url, headers=headers)
-        response.raise_for_status()
+        # Add a timeout and handle specific HTTP errors for better diagnostics.
+        response = requests.get(api_url, headers=headers, timeout=10)
+        response.raise_for_status()  # This will raise an HTTPError for 4xx/5xx responses
         deck_data = response.json()
+    except requests.HTTPError as e:
+        # This is for specific error codes returned by the Moxfield server.
+        status_code = e.response.status_code
+        if status_code == 404:
+            logger.warning(f"Moxfield deck not found (404) for ID {deck_id}. It might be private or deleted.")
+            raise ValueError("Moxfield deck not found. Please ensure the URL is correct and the deck is set to 'Public'.")
+        elif status_code == 403:
+            logger.warning(f"Moxfield deck access forbidden (403) for ID {deck_id}. It is likely private.")
+            raise ValueError("Access to this Moxfield deck is forbidden. Please ensure the deck is set to 'Public'.")
+        else:
+            logger.error(f"HTTP error {status_code} when fetching from Moxfield for deck {deck_id}: {e}")
+            raise ConnectionError(f"Moxfield's API responded with an error (Code: {status_code}). Please try again later.")
     except requests.RequestException as e:
-        logger.error(f"Failed to fetch from Moxfield API for deck {deck_id}: {e}")
-        raise ConnectionError("Could not retrieve deck data from Moxfield's API.")
+        # This is for network-level errors (e.g., DNS failure, connection timeout).
+        logger.error(f"Network error when fetching from Moxfield API for deck {deck_id}: {e}")
+        raise ConnectionError("Could not connect to Moxfield's API. There may be a network issue.")
 
     mainboard = deck_data.get('mainboard', {})
     if not mainboard:
