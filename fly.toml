@@ -8,7 +8,7 @@ primary_region = 'scl'
   target = "release"
 
 [deploy]
-  release_command = "flask db upgrade"
+  # release_command = "flask db upgrade"
   vm_memory = "1gb"
 
 [http_service]
