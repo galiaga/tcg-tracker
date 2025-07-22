@@ -24,25 +24,24 @@ def get_card_identifiers_from_moxfield(deck_url):
     }
     
     try:
-        # Add a timeout and handle specific HTTP errors for better diagnostics.
         response = requests.get(api_url, headers=headers, timeout=10)
-        response.raise_for_status()  # This will raise an HTTPError for 4xx/5xx responses
+        response.raise_for_status()
         deck_data = response.json()
     except requests.HTTPError as e:
-        # This is for specific error codes returned by the Moxfield server.
         status_code = e.response.status_code
         if status_code == 404:
-            logger.warning(f"Moxfield deck not found (404) for ID {deck_id}. It might be private or deleted.")
+            # Enhanced logging with the full URL
+            logger.warning(f"Moxfield deck not found (404) for URL '{deck_url}'. It might be private or deleted.")
             raise ValueError("Moxfield deck not found. Please ensure the URL is correct and the deck is set to 'Public'.")
         elif status_code == 403:
-            logger.warning(f"Moxfield deck access forbidden (403) for ID {deck_id}. It is likely private.")
+            # Enhanced logging with the full URL
+            logger.warning(f"Moxfield deck access forbidden (403) for URL '{deck_url}'. The deck may be private or the server IP may be blocked.")
             raise ValueError("Access to this Moxfield deck is forbidden. Please ensure the deck is set to 'Public'.")
         else:
-            logger.error(f"HTTP error {status_code} when fetching from Moxfield for deck {deck_id}: {e}")
+            logger.error(f"HTTP error {status_code} when fetching from Moxfield for URL '{deck_url}': {e}")
             raise ConnectionError(f"Moxfield's API responded with an error (Code: {status_code}). Please try again later.")
     except requests.RequestException as e:
-        # This is for network-level errors (e.g., DNS failure, connection timeout).
-        logger.error(f"Network error when fetching from Moxfield API for deck {deck_id}: {e}")
+        logger.error(f"Network error when fetching from Moxfield API for URL '{deck_url}': {e}")
         raise ConnectionError("Could not connect to Moxfield's API. There may be a network issue.")
 
     mainboard = deck_data.get('mainboard', {})
@@ -54,7 +53,6 @@ def get_card_identifiers_from_moxfield(deck_url):
         scryfall_id = card_info.get('card', {}).get('scryfall_id')
         quantity = card_info.get('quantity', 0)
         if scryfall_id and quantity > 0:
-            # We need to add the quantity here to remember it later
             identifiers.append({"scryfall_id": scryfall_id, "quantity": quantity})
 
     if not identifiers:
@@ -68,15 +66,10 @@ def get_card_details_from_scryfall(identifiers):
     if not identifiers:
         return []
 
-    # Scryfall's collection endpoint is limited to 75 identifiers per request
-    # We will chunk our requests if the deck is large
     all_card_data = []
     chunk_size = 75
     
-    # Create a map of scryfall_id to quantity for later use
     quantity_map = {item['scryfall_id']: item['quantity'] for item in identifiers}
-    
-    # Prepare the list of identifiers for the API call (without quantity)
     scryfall_identifiers = [{"id": item['scryfall_id']} for item in identifiers]
 
     for i in range(0, len(scryfall_identifiers), chunk_size):
@@ -91,7 +84,6 @@ def get_card_details_from_scryfall(identifiers):
             response.raise_for_status()
             scryfall_data = response.json()
             
-            # Add the quantity back to each card object
             for card in scryfall_data.get('data', []):
                 card['quantity'] = quantity_map.get(card['id'], 0)
             
@@ -112,7 +104,6 @@ def analyze_scryfall_data(scryfall_card_list):
     primary_types = ['Creature', 'Instant', 'Sorcery', 'Artifact', 'Enchantment', 'Planeswalker', 'Land']
     analysis = {card_type: {i: 0 for i in range(11)} for card_type in primary_types + ['Other']}
     
-    # --- ADD these variables for the new calculations ---
     total_cmc_sum = 0.0
     non_land_card_count = 0
     land_card_count = 0
@@ -130,11 +121,9 @@ def analyze_scryfall_data(scryfall_card_list):
             assigned_type = 'Land'
             land_card_count += quantity
         else:
-            # This is a non-land card, so add to CMC calculations
             total_cmc_sum += cmc * quantity
             non_land_card_count += quantity
             
-            # Determine its primary type for the chart
             for p_type in primary_types:
                 if p_type in type_line:
                     assigned_type = p_type
@@ -142,12 +131,9 @@ def analyze_scryfall_data(scryfall_card_list):
         
         analysis[assigned_type][curve_key] += quantity
 
-    # --- ADD the final calculation ---
     average_cmc = (total_cmc_sum / non_land_card_count) if non_land_card_count > 0 else 0.0
-    
     final_analysis = {k: v for k, v in analysis.items() if sum(v.values()) > 0}
     
-    # --- UPDATE the return object with the new stats ---
     return {
         'analysis': final_analysis,
         'average_cmc': average_cmc,
