@@ -19,7 +19,9 @@ def get_card_identifiers_from_moxfield(deck_url):
     deck_id = match.group(1)
 
     api_url = f"https://api2.moxfield.com/v2/decks/all/{deck_id}"
-    headers = {'User-Agent': 'Mozilla/5.0'}
+    headers = {
+        'User-Agent': 'TcgTrackerApp/1.0 (+https://tcg-tracker.fly.dev; mailto:spamgaston@gmail.com)'
+    }
     
     try:
         response = requests.get(api_url, headers=headers)
