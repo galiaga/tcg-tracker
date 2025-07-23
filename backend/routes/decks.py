@@ -403,7 +403,6 @@ def delete_deck(deck_id):
 @limiter.limit("60 per minute")
 @login_required
 def add_tag_to_deck(deck_id):
-    # ... (This route seems mostly okay) ...
     current_user_id = session.get('user_id')
     data = request.get_json()
     if not data or 'tag_id' not in data: return jsonify({"error": "Missing 'tag_id' in request body"}), 400
@@ -428,3 +427,4 @@ def add_tag_to_deck(deck_id):
         db.session.rollback()
         logger.error(f"Error adding tag {tag_id} to deck {deck_id}: {e}", exc_info=True)
         return jsonify({"error": "An unexpected error occurred while associating the tag"}), 500
+

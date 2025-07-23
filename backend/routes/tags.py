@@ -1,7 +1,9 @@
 from flask import Blueprint, jsonify, request, session
+from sqlalchemy.orm import selectinload
 from backend.utils.decorators import login_required
 from backend import db, limiter
 from backend.models.tag import Tag
+from backend.models.deck import Deck
 from sqlalchemy.exc import IntegrityError
 
 tags_bp = Blueprint('tags', __name__, url_prefix='/api')
@@ -55,3 +57,53 @@ def create_user_tag():
         db.session.rollback()
         print(f"Error creating tag: {e}") 
         return jsonify({"error": "An unexpected error occurred"}), 500
+    
+@tags_bp.route('/decks/<int:deck_id>/tags', methods=['POST'])
+@limiter.limit("60 per minute")
+@login_required
+def add_tag_to_deck(deck_id):
+    current_user_id = session.get('user_id')
+    data = request.get_json()
+    if not data or 'tag_id' not in data: return jsonify({"error": "Missing 'tag_id' in request body"}), 400
+    
+    try:
+        tag_id = int(data.get('tag_id'))
+    except (ValueError, TypeError):
+        return jsonify({"error": "'tag_id' must be a valid integer"}), 400
+
+    deck = Deck.query.options(selectinload(Deck.tags)).filter_by(id=deck_id, user_id=current_user_id, is_active=True).first()
+    if not deck: return jsonify({"error": "Active deck not found or not owned by user"}), 404
+
+    tag_to_add = db.session.get(Tag, tag_id)
+    if not tag_to_add or tag_to_add.user_id != current_user_id: return jsonify({"error": "Tag not found or not owned by user"}), 404
+    if tag_to_add in deck.tags: return jsonify({"message": "Tag already associated with this deck"}), 200
+
+    try:
+        deck.tags.append(tag_to_add)
+        db.session.commit()
+        return jsonify({"message": "Tag associated successfully"}), 201
+    except Exception as e:
+        db.session.rollback()
+        # logger.error(f"Error adding tag {tag_id} to deck {deck_id}: {e}", exc_info=True)
+        return jsonify({"error": "An unexpected error occurred while associating the tag"}), 500
+
+@tags_bp.route('/decks/<int:deck_id>/tags/<int:tag_id>', methods=['DELETE'])
+@limiter.limit("60 per minute")
+@login_required
+def remove_tag_from_deck(deck_id, tag_id):
+    current_user_id = session.get('user_id')
+    deck = Deck.query.options(selectinload(Deck.tags)).filter_by(id=deck_id, user_id=current_user_id, is_active=True).first()
+    if not deck: return jsonify({"error": "Active deck not found or not owned by user"}), 404
+
+    tag_to_remove = db.session.get(Tag, tag_id)
+    if not tag_to_remove or tag_to_remove.user_id != current_user_id: return jsonify({"error": "Tag not found or not owned by user"}), 404
+    if tag_to_remove not in deck.tags: return jsonify({"error": "Tag is not associated with this deck"}), 404
+
+    try:
+        deck.tags.remove(tag_to_remove)
+        db.session.commit()
+        return '', 204 # Standard for successful DELETE with no content
+    except Exception as e:
+        db.session.rollback()
+        # logger.error(f"Error removing tag {tag_id} from deck {deck_id}: {e}", exc_info=True)
+        return jsonify({"error": "An unexpected error occurred while disassociating the tag"}), 500
