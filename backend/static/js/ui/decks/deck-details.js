@@ -5,11 +5,6 @@ import { openQuickAddTagModal } from '../tag-utils.js';
 import { openLogMatchModal } from '../matches/log-match-modal.js';
 
 // --- Module-level variables ---
-let manaCurveChartInstance = null;
-
-let fetchDeckInfoButton = null;
-let deckAnalysisContent = null;
-let deckAnalysisLoading = null;
 
 let currentDeckId = null;
 let currentDeckName = null;
@@ -279,49 +274,6 @@ function renderMatchupStats(matchupData) {
     matchupAnalysisCardElement.classList.remove('hidden');
 }
 
-// This is the new, single, compact chart rendering function
-function renderDeckAnalysisChart(analysisData) {
-    const ctx = document.getElementById('mana-curve-chart').getContext('2d');
-    const typeColorMap = {
-        'Creature': 'rgba(34, 197, 94, 0.7)',   // green-500
-        'Instant': 'rgba(96, 165, 250, 0.7)',  // blue-400
-        'Sorcery': 'rgba(139, 92, 246, 0.7)',  // violet-500
-        'Artifact': 'rgba(107, 114, 128, 0.7)',// gray-500
-        'Enchantment': 'rgba(239, 68, 68, 0.7)', // red-500
-        'Planeswalker': 'rgba(217, 119, 6, 0.7)',// amber-600
-        'Land': 'rgba(245, 158, 11, 0.7)',     // amber-500
-        'Other': 'rgba(209, 213, 219, 0.7)'   // gray-300
-    };
-    const labels = Array.from({ length: 11 }, (_, i) => i === 10 ? '10+' : String(i));
-    const datasets = Object.keys(analysisData).map(type => {
-        return {
-            label: type,
-            data: Object.values(analysisData[type]),
-            backgroundColor: typeColorMap[type] || typeColorMap['Other']
-        };
-    });
-
-    if (manaCurveChartInstance) {
-        manaCurveChartInstance.destroy();
-    }
-
-    manaCurveChartInstance = new Chart(ctx, {
-        type: 'bar',
-        data: { labels: labels, datasets: datasets },
-        options: {
-            plugins: {
-                title: { display: false },
-                legend: { position: 'bottom', labels: { color: '#d1d5db', boxWidth: 20, padding: 20 } }
-            },
-            responsive: true,
-            scales: {
-                x: { stacked: true, ticks: { color: '#9ca3af' } },
-                y: { stacked: true, ticks: { color: '#9ca3af' } }
-            }
-        }
-    });
-}
-
 async function loadDeckDetails(deckIdToLoad) {
     showLoadingState();
     currentDeckId = deckIdToLoad; 
@@ -484,39 +436,6 @@ async function deleteDeckOnServer(deckId) {
     }
 }
 
-async function handleFetchDeckInfo() {
-    if (!currentDeckId) return;
-    fetchDeckInfoButton.disabled = true;
-    deckAnalysisContent.classList.add('hidden');
-    deckAnalysisLoading.classList.remove('hidden');
-    try {
-        const response = await authFetch(`/api/decks/${currentDeckId}/fetch_metadata`, { method: 'POST' });
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error || 'Failed to fetch deck info.');
-        }
-        const data = await response.json();
-
-        const summaryEl = document.getElementById('deck-summary-stats');
-        if (summaryEl) {
-            const avgCmc = data.average_cmc.toFixed(2);
-            summaryEl.innerHTML = `
-                ${data.non_land_count} Non-Land | ${data.land_count} Land | 
-                <span class="font-bold text-gray-700 dark:text-gray-200">Avg. CMC: ${avgCmc}</span>
-            `;
-        }
-
-        renderDeckAnalysisChart(data.analysis);
-        deckAnalysisContent.classList.remove('hidden');
-    } catch (error) {
-        console.error("Error fetching deck analysis:", error);
-        if (typeof showFlashMessage === 'function') showFlashMessage(error.message, 'danger');
-    } finally {
-        fetchDeckInfoButton.disabled = false;
-        deckAnalysisLoading.classList.add('hidden');
-    }
-}
-
 function initializePageEventListeners() {
     if (quickLogCardElement) {
         quickLogCardElement.addEventListener('click', (event) => {
@@ -528,9 +447,6 @@ function initializePageEventListeners() {
                 }
             }
         });
-    }
-    if (fetchDeckInfoButton) {
-        fetchDeckInfoButton.addEventListener('click', handleFetchDeckInfo);
     }
     if (deckTagsCardElement) {
         deckTagsCardElement.addEventListener('click', async (event) => {
@@ -605,9 +521,6 @@ document.addEventListener("DOMContentLoaded", () => {
     editDeckUrlCancelButton = document.getElementById('editDeckUrlCancelButton');
     deckUrlInputElement = document.getElementById('deck_url_input');
     editDeckUrlButton = document.getElementById('edit-deck-url-button');
-    fetchDeckInfoButton = document.getElementById('fetch-deck-info-button');
-    deckAnalysisContent = document.getElementById('deck-analysis-content');
-    deckAnalysisLoading = document.getElementById('deck-analysis-loading');
     globalLogMatchFab = document.getElementById('globalLogMatchFab');
 
     if (!deckDetailsContentElement) return; 
