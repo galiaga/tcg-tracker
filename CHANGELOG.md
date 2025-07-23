@@ -1,6 +1,14 @@
 # Changelog
 
-## [4.5.0] - YYYY-MM-DD
+## [4.5.1] - 2025-07-23
+
+### Removed
+- **Decklist Intelligence & Analysis Feature:** The "Fetch Info" functionality on the Deck Details page has been removed. This was due to persistent, unresolvable `403 Forbidden` errors from the external Moxfield API, caused by Cloudflare security rules blocking the application's hosting provider (Fly.io). All related UI elements (Fetch button, analysis chart, summary stats) and the backend API endpoint (`POST /api/decks/<deck_id>/fetch_metadata`) have been decommissioned to provide a cleaner user experience.
+
+### Fixed
+- **Tag Management on Deck Details Page:** Resolved a critical `404 NOT FOUND` error that occurred when attempting to remove a tag from a deck on its details page. The issue was caused by a local routing misconfiguration where tag association routes were incorrectly placed. The fix involved reverting the local backend route structure to match the working production environment, ensuring the `DELETE /api/decks/<deck_id>/tags/<tag_id>` endpoint is correctly registered and accessible.
+
+## [4.5.0] - 2025-07-22
 
 ### Added
 - **Match History - View Notes Functionality:**
