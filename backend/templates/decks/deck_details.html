@@ -104,10 +104,6 @@
             <div class="flex justify-between items-center mb-2">
                 <h3 class="text-sm font-semibold text-gray-600 dark:text-gray-300">Decklist Link</h3>
                 <div class="flex items-center gap-2">
-                    <button id="fetch-deck-info-button" type="button" aria-label="Fetch Deck Info"
-                            class="text-xs font-medium text-white bg-violet-600 hover:bg-violet-700 rounded-md px-2 py-1 transition-colors leading-tight disabled:bg-gray-500 disabled:cursor-not-allowed">
-                        Fetch Info
-                    </button>
                     <button id="edit-deck-url-button" type="button" aria-label="Edit Decklist Link"
                             class="text-xs font-medium text-violet-600 dark:text-violet-400 hover:text-violet-800 dark:hover:text-violet-200">
                         Edit
@@ -116,22 +112,6 @@
             </div>
             <div id="decklist-display-container" class="mt-2 text-sm">
                 <!-- Link injected by JS -->
-            </div>
-
-            <!-- Placeholders for our new analysis content -->
-            <div id="deck-analysis-content" class="mt-4 border-t border-gray-200 dark:border-gray-700 pt-4 hidden">
-                <p id="deck-summary-stats" class="text-center text-xs text-gray-500 dark:text-gray-400 mb-4">
-                    <!-- Summary stats will be injected here -->
-                </p>
-                <!-- This single canvas will hold our new stacked chart -->
-                <canvas id="mana-curve-chart" height="150"></canvas>
-            </div>
-            <div id="deck-analysis-loading" class="hidden text-center text-sm text-gray-500 dark:text-gray-400 py-4">
-                <svg class="animate-spin h-5 w-5 text-violet-500 mx-auto mb-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                Fetching and analyzing...
             </div>
         </div>
 

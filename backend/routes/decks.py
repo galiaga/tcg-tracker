@@ -7,7 +7,6 @@ import logging
 from datetime import timezone, datetime
 
 from backend import db, limiter
-from backend.services.decks.deck_scraper import get_card_identifiers_from_moxfield, get_card_details_from_scryfall, analyze_scryfall_data
 from backend.models import LoggedMatch, OpponentCommanderInMatch, CommanderDeck, Commander, UserDeck, Deck, Tag, DeckType
 from backend.services.matches.match_service import get_all_decks_stats
 from backend.utils.decorators import login_required
@@ -429,57 +428,3 @@ def add_tag_to_deck(deck_id):
         db.session.rollback()
         logger.error(f"Error adding tag {tag_id} to deck {deck_id}: {e}", exc_info=True)
         return jsonify({"error": "An unexpected error occurred while associating the tag"}), 500
-
-@decks_bp.route('/decks/<int:deck_id>/tags/<int:tag_id>', methods=['DELETE'])
-@limiter.limit("60 per minute")
-@login_required
-def remove_tag_from_deck(deck_id, tag_id):
-    # ... (This route seems mostly okay) ...
-    current_user_id = session.get('user_id')
-    deck = Deck.query.options(selectinload(Deck.tags)).filter_by(id=deck_id, user_id=current_user_id, is_active=True).first()
-    if not deck: return jsonify({"error": "Active deck not found or not owned by user"}), 404
-
-    tag_to_remove = db.session.get(Tag, tag_id)
-    if not tag_to_remove or tag_to_remove.user_id != current_user_id: return jsonify({"error": "Tag not found or not owned by user"}), 404
-    if tag_to_remove not in deck.tags: return jsonify({"error": "Tag is not associated with this deck"}), 404
-
-    try:
-        deck.tags.remove(tag_to_remove)
-        db.session.commit()
-        return '', 204 # Standard for successful DELETE with no content
-    except Exception as e:
-        db.session.rollback()
-        logger.error(f"Error removing tag {tag_id} from deck {deck_id}: {e}", exc_info=True)
-        return jsonify({"error": "An unexpected error occurred while disassociating the tag"}), 500
-    
-@decks_bp.route("/decks/<int:deck_id>/fetch_metadata", methods=["POST"])
-@limiter.limit("10 per minute")
-@login_required
-def fetch_deck_metadata(deck_id):
-    user_id = session.get('user_id')
-    deck = Deck.query.filter_by(id=deck_id, user_id=user_id, is_active=True).first()
-    
-    if not deck:
-        return jsonify({"error": "Deck not found."}), 404
-    
-    if not deck.deck_url:
-        return jsonify({"error": "No decklist URL is saved for this deck."}), 400
-
-    try:
-        # Step 1: Get card identifiers from Moxfield
-        card_identifiers = get_card_identifiers_from_moxfield(deck.deck_url)
-        
-        # Step 2: Get full card details from Scryfall
-        full_card_details = get_card_details_from_scryfall(card_identifiers)
-        
-        # Step 3: Analyze the rich data from Scryfall
-        analysis_data = analyze_scryfall_data(full_card_details)
-        
-        return jsonify(analysis_data), 200
-        
-    except (ValueError, ConnectionError) as e:
-        logger.error(f"Failed to parse decklist for deck {deck_id}: {e}")
-        return jsonify({"error": str(e)}), 400
-    except Exception as e:
-        logger.error(f"An unexpected error occurred during decklist fetch for deck {deck_id}: {e}", exc_info=True)
-        return jsonify({"error": "An unexpected server error occurred."}), 500
