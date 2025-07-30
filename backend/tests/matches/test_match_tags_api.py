@@ -1,8 +1,9 @@
-# backend/tests/tags/test_tags_api.py
+# backend/tests/matches/test_match_tags_api.py
 
 import pytest
-from sqlalchemy import select
-from backend.models import User, Deck, Tag, DeckType # Assuming DeckType is needed for deck setup
+from sqlalchemy import select, delete
+from sqlalchemy.orm import selectinload
+from backend.models import User, Deck, Tag, DeckType
 from backend import db as _db
 import logging
 
@@ -15,10 +16,11 @@ logger = logging.getLogger(__name__)
 
 @pytest.fixture(scope="function")
 def sample_tags_data(app, db, test_user):
-    """Creates sample tags for the primary test user."""
+    """Creates sample tags for the primary test user using normalized names."""
     user_id = test_user["user_obj"].id
     tags = {}
-    tag_names = ["competitive_tags_s", "budget_tags_s", "testing_tags_s"] # Suffix 's' for session scope hint
+    # Use clean, normalized names for the fixtures
+    tag_names = ["competitive", "budget", "testing"]
     with app.app_context():
         needs_commit = False
         for name in tag_names:
@@ -30,17 +32,11 @@ def sample_tags_data(app, db, test_user):
                 needs_commit = True
             tags[name] = tag
         if needs_commit:
-            try:
-                db.session.commit()
-            except Exception as e:
-                 db.session.rollback()
-                 logger.error(f"Error committing tags in tags_api fixture: {e}")
-                 pytest.fail("Failed to commit sample tags for tags_api.")
+            db.session.commit()
 
         tag_ids = {}
         for key, tag_obj in tags.items():
-            if tag_obj.id is None: db.session.refresh(tag_obj)
-            if tag_obj.id is None: pytest.fail(f"Tag '{key}' failed to get ID in tags_api fixture.")
+            db.session.refresh(tag_obj)
             tag_ids[key] = tag_obj.id
         yield tag_ids
 
@@ -49,38 +45,23 @@ def sample_tags_data(app, db, test_user):
 def sample_deck_data(app, db, test_user):
     """Creates a sample deck for the primary test user."""
     user_id = test_user["user_obj"].id
-    deck_name = "Tag Test Deck Tags Sesh"
-    deck_type_id = 1 # Example type
+    deck_name = "Tag Test Deck"
+    deck_type_id = 1
     with app.app_context():
-        # Ensure DeckType exists
         deck_type = db.session.get(DeckType, deck_type_id)
         if not deck_type:
             deck_type = DeckType(id=deck_type_id, name='Standard Tags Test')
             db.session.add(deck_type)
-            try:
-                db.session.commit()
-            except Exception:
-                db.session.rollback()
-                deck_type = db.session.get(DeckType, deck_type_id)
-                if not deck_type: pytest.fail("Failed to create/get DeckType in tags_api fixture.")
+            db.session.commit()
 
         stmt = select(Deck).where(Deck.user_id == user_id, Deck.name == deck_name)
         deck = db.session.scalars(stmt).first()
         if not deck:
             deck = Deck(user_id=user_id, name=deck_name, deck_type_id=deck_type.id)
             db.session.add(deck)
-            try:
-                db.session.commit()
-                db.session.refresh(deck)
-            except Exception as e:
-                 db.session.rollback()
-                 logger.error(f"Error committing deck in tags_api fixture: {e}")
-                 pytest.fail("Failed to commit sample deck for tags_api.")
-        elif deck.id is None:
-             db.session.refresh(deck)
-
-        if deck.id is None: pytest.fail("Failed to get deck ID in tags_api fixture.")
-
+            db.session.commit()
+        
+        db.session.refresh(deck)
         yield {"id": deck.id, "name": deck.name, "user_id": user_id}
 
 
@@ -89,29 +70,25 @@ def deck_with_tag_data(app, db, sample_deck_data, sample_tags_data):
     """Associates a specific tag with the sample deck."""
     with app.app_context():
         deck_id = sample_deck_data["id"]
-        tag_id = sample_tags_data["competitive_tags_s"] # Use a specific tag
-        deck = db.session.get(Deck, deck_id)
+        tag_id = sample_tags_data["competitive"] # Use normalized key
+        deck = db.session.get(Deck, deck_id, options=[selectinload(Deck.tags)])
         tag = db.session.get(Tag, tag_id)
-
-        if not deck: pytest.fail(f"Deck {deck_id} not found in deck_with_tag_data fixture.")
-        if not tag: pytest.fail(f"Tag {tag_id} not found in deck_with_tag_data fixture.")
 
         if tag not in deck.tags:
             deck.tags.append(tag)
-            try:
-                db.session.commit()
-            except Exception as e:
-                 db.session.rollback()
-                 logger.error(f"Error committing deck tag association in fixture: {e}")
-                 pytest.fail("Failed to commit deck tag association.")
+            db.session.commit()
 
         yield {"deck_id": deck_id, "tag_id": tag_id}
 
 
 # --- Test Cases: GET Tags ---
 
-def test_get_tags_success_no_tags(logged_in_client):
+def test_get_tags_success_no_tags(app, db, logged_in_client, test_user):
     client, _ = logged_in_client
+    with app.app_context():
+        # Cleanly delete tags for this specific user to ensure an empty state
+        db.session.execute(delete(Tag).where(Tag.user_id == test_user["user_obj"].id))
+        db.session.commit()
     response = client.get("/api/tags")
     assert response.status_code == 200
     assert response.get_json() == []
@@ -123,7 +100,6 @@ def test_get_tags_success_with_tags(logged_in_client, sample_tags_data):
     assert response.status_code == 200
     tags_list = response.get_json()
     assert isinstance(tags_list, list)
-    # Check if at least the expected tags are present
     expected_ids = set(sample_tags_data.values())
     returned_ids = {tag['id'] for tag in tags_list}
     assert expected_ids.issubset(returned_ids)
@@ -133,22 +109,28 @@ def test_get_tags_success_with_tags(logged_in_client, sample_tags_data):
 
 def test_create_tag_success(logged_in_client):
     client, csrf_token = logged_in_client
-    tag_name = "new_test_tag_api"
-    payload = {"name": tag_name}
+    payload = {"name": "a brand new tag"}
     response = client.post("/api/tags", json=payload, headers={"X-CSRF-TOKEN": csrf_token})
     assert response.status_code == 201
     json_data = response.get_json()
     assert json_data is not None
-    assert json_data.get("name") == tag_name.lower() # Check normalization
+    assert json_data.get("name") == "a brand new tag" # Expect normalized name
     assert isinstance(json_data.get("id"), int)
 
 
+# --- THIS IS THE FIXED TEST ---
 def test_create_tag_duplicate(logged_in_client, sample_tags_data):
     client, csrf_token = logged_in_client
-    tag_name = "competitive_tags_s" # Name created by fixture
+    tag_name = "competitive" # Name created by fixture
     payload = {"name": tag_name}
     response = client.post("/api/tags", json=payload, headers={"X-CSRF-TOKEN": csrf_token})
-    assert response.status_code == 409 # Conflict
+    
+    # Assert the NEW, correct behavior: 200 OK with existing tag data
+    assert response.status_code == 200
+    json_response = response.get_json()
+    assert json_response['id'] == sample_tags_data['competitive']
+    assert json_response['name'] == 'competitive'
+    assert "Tag already exists" in json_response.get("message", "")
 
 
 def test_create_tag_missing_name(logged_in_client):
@@ -170,7 +152,7 @@ def test_create_tag_empty_name(logged_in_client):
 def test_add_tag_to_deck_success(logged_in_client, sample_deck_data, sample_tags_data):
     client, csrf_token = logged_in_client
     deck_id = sample_deck_data["id"]
-    tag_id = sample_tags_data["budget_tags_s"] # Use a tag not added by deck_with_tag_data
+    tag_id = sample_tags_data["budget"] # Use a tag not added by deck_with_tag_data
     payload = {"tag_id": tag_id}
     response = client.post(f"/api/decks/{deck_id}/tags", json=payload, headers={"X-CSRF-TOKEN": csrf_token})
     assert response.status_code == 201
@@ -188,7 +170,7 @@ def test_add_tag_to_deck_already_associated(logged_in_client, deck_with_tag_data
 def test_add_tag_to_deck_deck_not_found(logged_in_client, sample_tags_data):
     client, csrf_token = logged_in_client
     invalid_deck_id = 99999
-    tag_id = sample_tags_data["budget_tags_s"]
+    tag_id = sample_tags_data["budget"]
     payload = {"tag_id": tag_id}
     response = client.post(f"/api/decks/{invalid_deck_id}/tags", json=payload, headers={"X-CSRF-TOKEN": csrf_token})
     assert response.status_code == 404
@@ -206,7 +188,7 @@ def test_add_tag_to_deck_tag_not_found(logged_in_client, sample_deck_data):
 def test_add_tag_to_deck_deck_not_owned(logged_in_client_user_2, sample_deck_data, sample_tags_data):
     client, csrf_token = logged_in_client_user_2
     deck_id = sample_deck_data["id"] # Deck owned by user 1
-    tag_id = sample_tags_data["budget_tags_s"] # Tag owned by user 1
+    tag_id = sample_tags_data["budget"] # Tag owned by user 1
     payload = {"tag_id": tag_id}
     response = client.post(f"/api/decks/{deck_id}/tags", json=payload, headers={"X-CSRF-TOKEN": csrf_token})
     assert response.status_code == 404 # Deck not owned by user 2
@@ -220,18 +202,12 @@ def test_add_tag_to_deck_tag_not_owned(app, db, logged_in_client, sample_deck_da
     # Create tag owned by user 2
     tag_name_user_2 = "user2_decktag_owned_test"
     with app.app_context():
-        stmt = select(Tag).where(Tag.user_id == user_2_id, Tag.name == tag_name_user_2)
-        tag_user_2 = db.session.scalars(stmt).first()
+        tag_user_2 = db.session.scalar(select(Tag).where(Tag.user_id == user_2_id, Tag.name == tag_name_user_2))
         if not tag_user_2:
             tag_user_2 = Tag(user_id=user_2_id, name=tag_name_user_2)
             db.session.add(tag_user_2)
-            try:
-                db.session.commit()
-                db.session.refresh(tag_user_2)
-            except Exception as e:
-                 db.session.rollback()
-                 pytest.fail(f"Failed to create tag for user 2: {e}")
-        if tag_user_2.id is None: pytest.fail("Failed to get ID for user 2 tag.")
+            db.session.commit()
+        db.session.refresh(tag_user_2)
         tag_id_user_2 = tag_user_2.id
 
     payload = {"tag_id": tag_id_user_2}
@@ -248,11 +224,10 @@ def test_add_tag_to_deck_missing_tag_id(logged_in_client, sample_deck_data):
 
 
 def test_add_tag_to_deck_unauthenticated(client, sample_deck_data, sample_tags_data):
-    # *** CORRECTED TEST ***
     with client.session_transaction() as sess:
         sess.clear() # Ensure session is clear
     deck_id = sample_deck_data["id"]
-    tag_id = sample_tags_data["budget_tags_s"]
+    tag_id = sample_tags_data["budget"]
     payload = {"tag_id": tag_id}
     response = client.post(f"/api/decks/{deck_id}/tags", json=payload)
     assert response.status_code == 401
@@ -270,7 +245,7 @@ def test_remove_tag_from_deck_success(logged_in_client, deck_with_tag_data):
 def test_remove_tag_from_deck_not_associated(logged_in_client, deck_with_tag_data, sample_tags_data):
     client, csrf_token = logged_in_client
     deck_id = deck_with_tag_data["deck_id"]
-    tag_id_not_associated = sample_tags_data["budget_tags_s"] # Use a tag not added by fixture
+    tag_id_not_associated = sample_tags_data["budget"] # Use a tag not added by fixture
     response = client.delete(f"/api/decks/{deck_id}/tags/{tag_id_not_associated}", headers={"X-CSRF-TOKEN": csrf_token})
     assert response.status_code == 404
 
@@ -278,7 +253,7 @@ def test_remove_tag_from_deck_not_associated(logged_in_client, deck_with_tag_dat
 def test_remove_tag_from_deck_deck_not_found(logged_in_client, sample_tags_data):
     client, csrf_token = logged_in_client
     invalid_deck_id = 99999
-    tag_id = sample_tags_data["competitive_tags_s"]
+    tag_id = sample_tags_data["competitive"]
     response = client.delete(f"/api/decks/{invalid_deck_id}/tags/{tag_id}", headers={"X-CSRF-TOKEN": csrf_token})
     assert response.status_code == 404
 
@@ -300,7 +275,6 @@ def test_remove_tag_from_deck_deck_not_owned(logged_in_client_user_2, deck_with_
 
 
 def test_remove_tag_from_deck_unauthenticated(client, deck_with_tag_data):
-    # *** CORRECTED TEST ***
     with client.session_transaction() as sess:
         sess.clear() # Ensure session is clear
     deck_id = deck_with_tag_data["deck_id"]

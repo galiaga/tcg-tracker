@@ -1,5 +1,13 @@
 # Changelog
 
+## [4.6.0] - 2025-07-30
+
+### Added
+- **Tag Normalization:** Implemented a robust normalization pipeline for tag creation. The system now automatically handles variations in user input by converting tags to lowercase, removing accents (e.g., treating "liga miércoles" and "liga miercoles" as identical), and trimming whitespace before saving. This prevents the creation of duplicate tags and significantly improves data consistency.
+
+### Fixed
+- **Backend Stability (SQLAlchemy):** Resolved a persistent `SAWarning` related to an ambiguous relationship between the `Commander` and `CommanderDeck` models. The fix involved adding an `overlaps` parameter to the relationship definition in the `Commander` model, providing explicit guidance to SQLAlchemy and preventing potential future bugs.
+
 ## [4.5.1] - 2025-07-23
 
 ### Removed

@@ -5,8 +5,26 @@ from backend import db, limiter
 from backend.models.tag import Tag
 from backend.models.deck import Deck
 from sqlalchemy.exc import IntegrityError
+import unicodedata
 
 tags_bp = Blueprint('tags', __name__, url_prefix='/api')
+
+def normalize_tag_name(name: str) -> str:
+    """
+    Applies a normalization pipeline to a tag name to handle variations.
+    1. Converts to lowercase.
+    2. Decomposes Unicode characters (like accents) and keeps the base character.
+    3. Trims leading/trailing whitespace.
+    """
+    if not isinstance(name, str):
+        return ""
+    
+    # Converts 'liga miércoles' -> 'liga miercoles'
+    decomposed = unicodedata.normalize('NFKD', name)
+    ascii_name = decomposed.encode('ascii', 'ignore').decode('utf-8')
+    
+    # Converts 'Liga Miercoles' -> 'liga miercoles' and trims whitespace
+    return ascii_name.lower().strip()
 
 @tags_bp.route('/tags', methods=['GET'])
 @limiter.limit("60 per minute")
@@ -31,14 +49,18 @@ def create_user_tag():
     if not isinstance(tag_name, str) or not tag_name.strip():
          return jsonify({"error": "Tag name must be a non-empty string"}), 400
 
-    normalized_name = tag_name.strip().lower()
+    normalized_name = normalize_tag_name(tag_name)
     if not normalized_name:
          return jsonify({"error": "Tag name cannot be empty after stripping whitespace"}), 400
 
     existing_tag = Tag.query.filter_by(user_id=current_user_id, name=normalized_name).first()
 
     if existing_tag:
-        return jsonify({"error": "Tag already exists"}), 409
+        return jsonify({
+            'id': existing_tag.id, 
+            'name': existing_tag.name, 
+            'message': 'Tag already exists.'
+        }), 200
 
     new_tag = Tag(user_id=current_user_id, name=normalized_name)
 
