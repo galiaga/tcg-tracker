@@ -34,7 +34,8 @@ class Commander(db.Model):
         "CommanderDeck", 
         foreign_keys=[CommanderDeck.commander_id], 
         back_populates="commander", 
-        cascade="all, delete-orphan"
+        cascade="all, delete-orphan",
+        overlaps="primary_in_decks"
     )
 
     def to_dict(self):

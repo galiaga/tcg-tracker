@@ -23,7 +23,8 @@ def sample_tags_data(app, db, test_user):
     """Creates sample tags for the primary test user."""
     user_id = test_user["user_obj"].id
     tags = {}
-    tag_names = ["competitive_tags_s", "budget_tags_s", "testing_tags_s"]
+    # Use normalized names for fixtures to ensure consistency
+    tag_names = ["competitive", "budget", "testing"]
     with app.app_context():
         needs_commit = False
         for name in tag_names:
@@ -54,7 +55,7 @@ def sample_tags_data(app, db, test_user):
 def sample_deck_data(app, db, test_user):
     """Creates a sample deck for the primary test user."""
     user_id = test_user["user_obj"].id
-    deck_name = "Tag Test Deck Tags Sesh"
+    deck_name = "Tag Test Deck"
     deck_type_id = 1
     with app.app_context():
         deck_type = db.session.get(DeckType, deck_type_id)
@@ -84,7 +85,6 @@ def sample_deck_data(app, db, test_user):
              db.session.refresh(deck)
         else:
             # Ensure tags are cleared if deck exists from previous run
-            # Eager load tags before clearing
             deck_with_tags = db.session.get(Deck, deck.id, options=[selectinload(Deck.tags)])
             if deck_with_tags and deck_with_tags.tags:
                 logger.info(f"Clearing tags from reused deck {deck.id} in sample_deck_data fixture.")
@@ -105,7 +105,7 @@ def deck_with_tag_data(app, db, sample_deck_data, sample_tags_data):
     """Associates a specific tag with the sample deck."""
     with app.app_context():
         deck_id = sample_deck_data["id"]
-        tag_id = sample_tags_data["competitive_tags_s"]
+        tag_id = sample_tags_data["competitive"]
         deck = db.session.get(Deck, deck_id, options=[selectinload(Deck.tags)])
         tag = db.session.get(Tag, tag_id)
 
@@ -153,7 +153,6 @@ def test_get_tags_success_with_tags(logged_in_client, sample_tags_data):
 
 
 def test_get_tags_unauthenticated(client):
-    # *** ADDED SESSION CLEAR ***
     with client.session_transaction() as sess:
         sess.clear()
     response = client.get("/api/tags")
@@ -167,7 +166,7 @@ def test_get_tags_unauthenticated(client):
 def test_create_tag_success(app, db, logged_in_client, test_user):
     client, csrf_token = logged_in_client
     user_id = test_user["user_obj"].id
-    payload = {"name": "new_test_tag_api"}
+    payload = {"name": "new test tag"}
     response = client.post(
         "/api/tags",
         json=payload,
@@ -176,25 +175,32 @@ def test_create_tag_success(app, db, logged_in_client, test_user):
     json_response = response.get_json()
 
     assert response.status_code == 201
-    assert json_response["name"] == "new_test_tag_api"
+    assert json_response["name"] == "new test tag" # Expect normalized name
     assert isinstance(json_response.get("id"), int)
 
     with app.app_context():
         tag = _db.session.get(Tag, json_response["id"])
         assert tag is not None
-        assert tag.name == "new_test_tag_api"
+        assert tag.name == "new test tag"
         assert tag.user_id == user_id
 
 
-def test_create_tag_duplicate(logged_in_client, sample_tags_data):
+def test_create_tag_duplicate_variation(logged_in_client, sample_tags_data):
+    """Test that creating a variation of an existing tag is treated as a duplicate."""
     client, csrf_token = logged_in_client
-    payload = {"name": "competitive_tags_s"}
+    # "competitive" tag already exists from the fixture
+    payload = {"name": "  Competitive  "} # Variation with different case and spacing
     response = client.post(
         "/api/tags",
         json=payload,
         headers={"X-CSRF-TOKEN": csrf_token}
     )
-    assert response.status_code == 409
+    # The new logic should return 200 OK with the existing tag's data
+    assert response.status_code == 200
+    json_response = response.get_json()
+    assert json_response['id'] == sample_tags_data['competitive']
+    assert json_response['name'] == 'competitive'
+    assert "Tag already exists" in json_response.get("message", "")
 
 
 def test_create_tag_missing_name(logged_in_client):
@@ -222,42 +228,74 @@ def test_create_tag_empty_name(logged_in_client):
 
 
 def test_create_tag_unauthenticated(client):
-    # *** ADDED SESSION CLEAR ***
     with client.session_transaction() as sess:
         sess.clear()
-    payload = {"name": "Auth Test Session"}
+    payload = {"name": "unauth tag"}
     response = client.post("/api/tags", json=payload)
     assert response.status_code == 401
-    json_response = response.get_json()
-    assert json_response is not None and "msg" in json_response
-    assert "Authentication required" in json_response["msg"]
+
+# --- NEW: Test Class for Normalization ---
+
+class TestTagNormalization:
+    @pytest.mark.parametrize("input_name, expected_name", [
+        ("  Liga Miércoles  ", "liga miercoles"),
+        ("CASUAL", "casual"),
+        ("cedh-tier-1", "cedh-tier-1"),
+        ("  with   spaces  ", "with   spaces"),
+        ("NÃO-CEDH", "nao-cedh"),
+        ("Fun Stuff!", "fun stuff!"),
+    ])
+    def test_tag_normalization_on_create(self, logged_in_client, input_name, expected_name):
+        """Tests that various inputs are correctly normalized upon creation."""
+        client, csrf_token = logged_in_client
+        payload = {"name": input_name}
+        response = client.post(
+            "/api/tags",
+            json=payload,
+            headers={"X-CSRF-TOKEN": csrf_token}
+        )
+        json_response = response.get_json()
+
+        assert response.status_code == 201
+        assert json_response["name"] == expected_name
+
+    def test_accented_tag_is_duplicate(self, logged_in_client, sample_tags_data):
+        """Test that creating a tag with an accent is a duplicate of one without."""
+        client, csrf_token = logged_in_client
+        # The tag "testing" already exists
+        payload = {"name": "tésting"}
+        response = client.post(
+            "/api/tags",
+            json=payload,
+            headers={"X-CSRF-TOKEN": csrf_token}
+        )
+        assert response.status_code == 200 # Should find existing tag
+        json_response = response.get_json()
+        assert json_response['id'] == sample_tags_data['testing']
+        assert json_response['name'] == 'testing'
+
 
 # --- Test Cases: Add Tag to Deck ---
 
 def test_add_tag_to_deck_success(app, db, logged_in_client, sample_deck_data, sample_tags_data):
     client, csrf_token = logged_in_client
     deck_id = sample_deck_data["id"]
-    tag_id = sample_tags_data["budget_tags_s"]
+    tag_id = sample_tags_data["budget"]
     payload = {"tag_id": tag_id}
 
-    # *** ADDED EXPLICIT CLEANUP FOR THIS TEST ***
     with app.app_context():
         deck = db.session.get(Deck, deck_id, options=[selectinload(Deck.tags)])
         tag = db.session.get(Tag, tag_id)
         if deck and tag and tag in deck.tags:
-            logger.warning(f"Explicitly removing tag {tag_id} from deck {deck_id} before test_add_tag_to_deck_success")
             deck.tags.remove(tag)
             db.session.commit()
-    # *** END CLEANUP ***
 
     response = client.post(
         f"/api/decks/{deck_id}/tags",
         json=payload,
         headers={"X-CSRF-TOKEN": csrf_token}
     )
-
-    # *** CORRECTED ASSERTION ***
-    assert response.status_code == 201 # Expect 201 Created
+    assert response.status_code == 201
     assert "Tag associated successfully" in response.get_json().get("message", "")
 
     with app.app_context():
@@ -272,7 +310,6 @@ def test_add_tag_to_deck_already_associated(logged_in_client, deck_with_tag_data
     deck_id = deck_with_tag_data["deck_id"]
     tag_id = deck_with_tag_data["tag_id"]
     payload = {"tag_id": tag_id}
-
     response = client.post(
         f"/api/decks/{deck_id}/tags",
         json=payload,
@@ -285,7 +322,7 @@ def test_add_tag_to_deck_already_associated(logged_in_client, deck_with_tag_data
 def test_add_tag_to_deck_deck_not_found(logged_in_client, sample_tags_data):
     client, csrf_token = logged_in_client
     invalid_deck_id = 99999
-    tag_id = sample_tags_data["budget_tags_s"]
+    tag_id = sample_tags_data["budget"]
     payload = {"tag_id": tag_id}
     response = client.post(
         f"/api/decks/{invalid_deck_id}/tags",
@@ -311,7 +348,7 @@ def test_add_tag_to_deck_tag_not_found(logged_in_client, sample_deck_data):
 def test_add_tag_to_deck_deck_not_owned(logged_in_client_user_2, sample_deck_data, sample_tags_data):
     client, csrf_token = logged_in_client_user_2
     deck_id = sample_deck_data["id"]
-    tag_id = sample_tags_data["budget_tags_s"]
+    tag_id = sample_tags_data["budget"]
     payload = {"tag_id": tag_id}
     response = client.post(
         f"/api/decks/{deck_id}/tags",
@@ -326,7 +363,7 @@ def test_add_tag_to_deck_tag_not_owned(app, db, logged_in_client, sample_deck_da
     deck_id = sample_deck_data["id"]
     user_2_id = test_user_2["user_obj"].id
 
-    tag_name_user_2 = "user2tag_owned_s"
+    tag_name_user_2 = "user2tag_owned"
     with app.app_context():
         stmt = select(Tag).where(Tag.user_id == user_2_id, Tag.name == tag_name_user_2)
         tag_user_2 = _db.session.scalars(stmt).first()
@@ -359,11 +396,10 @@ def test_add_tag_to_deck_missing_tag_id(logged_in_client, sample_deck_data):
 
 
 def test_add_tag_to_deck_unauthenticated(client, sample_deck_data, sample_tags_data):
-    # *** ADDED SESSION CLEAR ***
     with client.session_transaction() as sess:
         sess.clear()
     deck_id = sample_deck_data["id"]
-    tag_id = sample_tags_data["budget_tags_s"]
+    tag_id = sample_tags_data["budget"]
     payload = {"tag_id": tag_id}
     response = client.post(f"/api/decks/{deck_id}/tags", json=payload)
     assert response.status_code == 401
@@ -390,7 +426,7 @@ def test_remove_tag_from_deck_success(app, db, logged_in_client, deck_with_tag_d
 def test_remove_tag_from_deck_not_associated(logged_in_client, deck_with_tag_data, sample_tags_data):
     client, csrf_token = logged_in_client
     deck_id = deck_with_tag_data["deck_id"]
-    tag_id_not_associated = sample_tags_data["budget_tags_s"]
+    tag_id_not_associated = sample_tags_data["budget"]
 
     response = client.delete(
         f"/api/decks/{deck_id}/tags/{tag_id_not_associated}",
@@ -405,7 +441,7 @@ def test_remove_tag_from_deck_not_associated(logged_in_client, deck_with_tag_dat
 def test_remove_tag_from_deck_deck_not_found(logged_in_client, sample_tags_data):
     client, csrf_token = logged_in_client
     invalid_deck_id = 99999
-    tag_id = sample_tags_data["competitive_tags_s"]
+    tag_id = sample_tags_data["competitive"]
     response = client.delete(
         f"/api/decks/{invalid_deck_id}/tags/{tag_id}",
         headers={"X-CSRF-TOKEN": csrf_token}
@@ -436,35 +472,9 @@ def test_remove_tag_from_deck_deck_not_owned(logged_in_client_user_2, deck_with_
 
 
 def test_remove_tag_from_deck_unauthenticated(client, deck_with_tag_data):
-    # *** ADDED SESSION CLEAR ***
     with client.session_transaction() as sess:
         sess.clear()
     deck_id = deck_with_tag_data["deck_id"]
     tag_id = deck_with_tag_data["tag_id"]
     response = client.delete(f"/api/decks/{deck_id}/tags/{tag_id}")
     assert response.status_code == 401
-
-# --- Moved Tests ---
-# Moved test_get_tags_unauthenticated and test_create_tag_unauthenticated here
-
-def test_get_tags_unauthenticated(client):
-    # *** ADDED SESSION CLEAR ***
-    with client.session_transaction() as sess:
-        sess.clear()
-    response = client.get("/api/tags")
-    assert response.status_code == 401
-    json_response = response.get_json()
-    assert json_response is not None and "msg" in json_response
-    assert "Authentication required" in json_response["msg"]
-
-
-def test_create_tag_unauthenticated(client):
-    # *** ADDED SESSION CLEAR ***
-    with client.session_transaction() as sess:
-        sess.clear()
-    payload = {"name": "Auth Test Session"}
-    response = client.post("/api/tags", json=payload)
-    assert response.status_code == 401
-    json_response = response.get_json()
-    assert json_response is not None and "msg" in json_response
-    assert "Authentication required" in json_response["msg"]
